@@ -184,11 +184,11 @@ main{flex:1;padding:14px 14px calc(90px + var(--safe-bot));max-width:720px;margi
     </div>
   </div>
   <div class="pin-foot">
-    <div class="muted" style="color:rgba(255,255,255,.5);font-size:11px">v2.2 · PIN locale</div>
+    <div class="muted" style="color:rgba(255,255,255,.5);font-size:11px">v2.1 · PIN-only</div>
   </div>
 </div>
 
-<!-- v2.2 · PIN locale come gate, API chiamata senza JWT (impresasemplice.online non richiede auth) -->
+<!-- Setup admin: RIMOSSO nella v2.1 · l'accesso è PIN-only via /api/auth/pin-login -->
 
 <!-- ============ APP ============ -->
 <div id="app" class="app hidden">
@@ -257,10 +257,10 @@ main{flex:1;padding:14px 14px calc(90px + var(--safe-bot));max-width:720px;margi
         <div class="kv" style="padding:6px 0;font-size:14px"><span class="muted">Utente</span><b id="infoUser">—</b></div>
         <div class="kv" style="padding:6px 0;font-size:14px;border-top:1px solid var(--border)"><span class="muted">API</span><b id="infoApi" style="font-size:12px;word-break:break-all;max-width:60%">—</b></div>
         <div class="kv" style="padding:6px 0;font-size:14px;border-top:1px solid var(--border)"><span class="muted">Token</span><b id="infoToken">—</b></div>
-        <div class="kv" style="padding:6px 0;font-size:14px;border-top:1px solid var(--border)"><span class="muted">Metodo</span><b>PIN locale</b></div>
+        <div class="kv" style="padding:6px 0;font-size:14px;border-top:1px solid var(--border)"><span class="muted">Metodo</span><b>PIN</b></div>
         <button class="btn btn-danger btn-block" style="margin-top:14px" onclick="lockApp()">🔒 Blocca ora</button>
       </div>
-      <div class="muted" style="text-align:center;font-size:11px;margin-top:10px">Ceraldi Mobile · chat-8 · v2.2 (PIN locale · API aperta)</div>
+      <div class="muted" style="text-align:center;font-size:11px;margin-top:10px">Ceraldi Mobile · chat-8 · v2.1 (PIN-only)</div>
     </section>
   </main>
 
@@ -361,19 +361,9 @@ async function onPinKey(k){
   pinBuffer += k;
   renderDots();
   if(pinBuffer.length === 6){
+    // 1. check locale immediato (feedback istantaneo + protezione brute force)
     const hash = await sha256(pinBuffer);
-    if(hash === PIN_HASH){
-      // PIN corretto → entro direttamente (nessuna chiamata server)
-      // In questa modalità "NO-PIN-API" le chiamate backend vanno senza JWT
-      localStorage.removeItem(LS.attempts);
-      localStorage.removeItem(LS.lockUntil);
-      TOKEN = '';  // nessun token, l'API è aperta
-      USER  = 'ceraldi';
-      localStorage.setItem(LS.api, API_BASE);
-      $('pinMsg').textContent = '✓ Accesso consentito'; $('pinMsg').className = 'pin-msg ok';
-      haptic(20);
-      setTimeout(()=>{ hidePin(); showApp(); }, 250);
-    }else{
+    if(hash !== PIN_HASH){
       let a = parseInt(localStorage.getItem(LS.attempts)||'0') + 1;
       localStorage.setItem(LS.attempts, String(a));
       if(a >= 5){
@@ -383,6 +373,27 @@ async function onPinKey(k){
       }else{
         pinError(`PIN errato (${a}/5)`);
       }
+      return;
+    }
+    // 2. PIN locale OK → chiedo JWT al server via /api/auth/pin-login
+    localStorage.removeItem(LS.attempts);
+    localStorage.removeItem(LS.lockUntil);
+    $('pinMsg').textContent = 'Verifica in corso…'; $('pinMsg').className = 'pin-msg';
+    enablePinPad(false);
+    try{
+      const r = await apiCall('/api/auth/pin-login',
+        {method:'POST', body:JSON.stringify({pin: pinBuffer})}, true);
+      TOKEN = r.access_token;
+      USER  = r.name || r.email || 'admin';
+      localStorage.setItem(LS.token, TOKEN);
+      localStorage.setItem(LS.user, USER);
+      localStorage.setItem(LS.api, API_BASE);
+      $('pinMsg').textContent = '✓ Accesso consentito'; $('pinMsg').className = 'pin-msg ok';
+      haptic(20);
+      setTimeout(()=>{ hidePin(); showApp(); }, 250);
+    }catch(e){
+      pinError('Errore: '+ (e.message||'rete'));
+      enablePinPad(true);
     }
   }
 }
@@ -412,10 +423,10 @@ async function apiCall(path, opts={}, skipAuth=false){
   if(TOKEN && !skipAuth) headers['Authorization'] = 'Bearer '+TOKEN;
   const res = await fetch(url, {...opts, headers});
   if(res.status === 401 && !skipAuth){
-    // In questa versione no-PIN-API il 401 significa che l'endpoint richiede
-    // auth che non abbiamo. Mostriamo un avviso ma non buttiamo fuori.
-    toast('Endpoint richiede login · ' + path, 'error');
-    throw new Error('401 Unauthorized');
+    TOKEN=''; localStorage.removeItem(LS.token);
+    toast('Sessione scaduta, rifai il PIN','error');
+    showPin();
+    throw new Error('401');
   }
   if(!res.ok){
     let msg = `HTTP ${res.status}`;
