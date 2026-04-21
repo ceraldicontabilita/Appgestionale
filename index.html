@@ -207,6 +207,7 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
     </div>
     <div class="actions">
       <button class="icon-btn" onclick="reloadModule()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg></button>
+      <button class="icon-btn" onclick="apriImpostazioni()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
       <button class="icon-btn" onclick="lockApp()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
     </div>
   </header>
@@ -241,6 +242,126 @@ const escapeHtml = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 const haptic = (ms=10) => { if(navigator.vibrate) navigator.vibrate(ms); };
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 function toast(msg,type=''){const t=$('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast'+(type?' '+type:''),2800);}
+
+// ====== AI ANTHROPIC (chiamate dal browser con la propria API key) ======
+const AI_LS = 'cm_anthropic_key';
+function getAIKey(){ return localStorage.getItem(AI_LS) || ''; }
+function setAIKey(k){ if(k) localStorage.setItem(AI_LS, k); else localStorage.removeItem(AI_LS); }
+function aiHeaders(){
+  return {'Content-Type':'application/json','x-api-key':getAIKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+}
+async function aiCallVision(base64, mediaType, prompt, maxTokens=2048){
+  if(!getAIKey()){ throw new Error('API key Anthropic mancante - configurala nelle Impostazioni'); }
+  const isPDF = mediaType==='application/pdf';
+  const content = [
+    isPDF ? {type:'document', source:{type:'base64', media_type:mediaType, data:base64}} 
+          : {type:'image',    source:{type:'base64', media_type:mediaType, data:base64}},
+    {type:'text', text:prompt}
+  ];
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST', headers: aiHeaders(),
+    body: JSON.stringify({
+      model:'claude-sonnet-4-5', max_tokens:maxTokens,
+      messages:[
+        {role:'user', content},
+        {role:'assistant', content:'{'}
+      ]
+    })
+  });
+  const d = await res.json();
+  if(d.error) throw new Error(d.error.message||'Errore API');
+  const txt = '{' + ((d.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());
+  try { return JSON.parse(txt); } catch(e){ throw new Error('JSON non valido: '+txt.slice(0,100)); }
+}
+
+// === PROMPT estrazione FATTURA (da primanota di Valerio Ceraldi) ===
+const PROMPT_FATTURA = `Sei un esperto di fatture italiane e DDT. Analizza il documento.
+
+STEP 1 — IDENTIFICA TIPO DOCUMENTO:
+- "fattura" → ha "Fattura", "Fatt.", "FT", IVA calcolata, totale lordo
+- "ddt" → ha "DDT", "D.D.T.", "Bolla", "Documento di Trasporto", focus su quantità e articoli
+
+STEP 2 — ESTRAI CON RAGIONAMENTO:
+"fornitore": Chi ha EMESSO il documento? È il venditore, MAI il destinatario. Ceraldi (Ceraldi Group, Caffetteria Ceraldi, etc) è SEMPRE il destinatario. Cerca prima di "S.r.l./Srl/S.p.A./SpA/S.n.c./SAS/S.a.s./Coop" o dopo "Ragione Sociale/Ditta/Denominazione/Cedente/Prestatore/Fornitore/Emittente".
+"numero_fattura": Codice univoco del documento. Cerca "Numero/N./N°/Nr./Fattura N./Doc. N./Progressivo". Copia valore esatto (es. 001/2024).
+"numero_ddt": Solo se tipo=fattura, riferimento al DDT collegato: "Rif. DDT/DDT N./Bolla N.". Solo numero.
+"data": Data emissione, formato YYYY-MM-DD.
+"importo": Totale FINALE da pagare (numero più alto, include IVA). Ignora Imponibile.
+"data_scadenza": "Scadenza/Data scadenza/Pagamento entro". Formato YYYY-MM-DD o "".
+"pagamento": "contanti"|"bonifico"|"assegno"|"carta" o "".
+"iban": Se bonifico, IBAN del fornitore.
+"partita_iva": P.IVA del fornitore (11 cifre).
+
+STEP 3 — Rispondi SOLO con JSON valido, nessun testo prima o dopo:
+{"tipo_documento":"fattura","fornitore":"","numero_fattura":"","numero_ddt":"","data":"YYYY-MM-DD","data_scadenza":"","importo":0,"pagamento":"","iban":"","partita_iva":""}`;
+
+const PROMPT_ASSEGNO = `Sei un esperto di assegni bancari italiani. Analizza la foto dell'assegno.
+
+ESTRAI:
+"numero": Numero dell'assegno (in alto a destra o in basso, formato es. 0123456789).
+"importo": Importo in cifre (es. 1250.50).
+"data_emissione": Data di emissione, formato YYYY-MM-DD.
+"beneficiario": A chi è intestato (chi incassa), dopo "Pagate a" o "Pagate all'ordine di".
+"banca_emittente": Nome banca che emette l'assegno (in alto).
+"luogo_emissione": Città di emissione.
+"importo_lettere": Importo scritto in lettere, se leggibile.
+
+Rispondi SOLO JSON valido:
+{"numero":"","importo":0,"data_emissione":"","beneficiario":"","banca_emittente":"","luogo_emissione":"","importo_lettere":""}`;
+
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve({base64:r.result.split(',')[1], mediaType:file.type});
+    r.onerror=()=>reject(new Error('Lettura file fallita'));
+    r.readAsDataURL(file);
+  });
+}
+
+// Camera access
+let _camStream = null;
+async function apriCamera(title, onCapture){
+  const w = $('sheetBody');
+  openSheet(`<h2>📷 ${escapeHtml(title||'Scatta foto')}</h2>
+    <div style="background:#000;border-radius:14px;overflow:hidden;aspect-ratio:3/4;position:relative;max-height:65vh">
+      <video id="camVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>
+      <canvas id="camCanvas" style="display:none"></canvas>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <button class="btn btn-ghost btn-block" onclick="chiudiCamera()">Annulla</button>
+      <button class="btn btn-primary btn-block" id="btnScatta">📸 Scatta</button>
+    </div>
+    <div class="field" style="margin-top:12px"><label>Oppure carica foto esistente</label>
+      <input type="file" accept="image/*" id="fileUpload" class="input">
+    </div>`);
+  try{
+    _camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
+    const v = $('camVideo'); v.srcObject = _camStream;
+    $('btnScatta').onclick = ()=>{
+      const c = $('camCanvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d').drawImage(v,0,0);
+      c.toBlob(async (blob)=>{
+        if(!blob) return toast('Errore cattura','error');
+        const {base64, mediaType} = await fileToBase64(blob);
+        chiudiCamera();
+        onCapture(base64, mediaType);
+      }, 'image/jpeg', 0.85);
+    };
+  }catch(e){ 
+    $('camVideo').outerHTML = `<div style="display:grid;place-items:center;height:100%;color:#fff;padding:20px;text-align:center">⚠️ Accesso camera negato<br><small style="opacity:.7">${escapeHtml(e.message)}</small></div>`;
+    $('btnScatta').disabled = true;
+  }
+  $('fileUpload').onchange = async (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const {base64, mediaType} = await fileToBase64(f);
+    chiudiCamera();
+    onCapture(base64, mediaType);
+  };
+}
+function chiudiCamera(){
+  try{ if(_camStream){_camStream.getTracks().forEach(t=>t.stop()); _camStream=null;} }catch{}
+  closeSheet();
+}
 
 async function api(path, opts={}){
   const url = API_BASE.replace(/\/$/,'') + path;
@@ -392,6 +513,224 @@ function getMesi(){ return [
   {n:1,label:'Gen'},{n:2,label:'Feb'},{n:3,label:'Mar'},{n:4,label:'Apr'},{n:5,label:'Mag'},{n:6,label:'Giu'},
   {n:7,label:'Lug'},{n:8,label:'Ago'},{n:9,label:'Set'},{n:10,label:'Ott'},{n:11,label:'Nov'},{n:12,label:'Dic'}
 ]; }
+
+// === IMPOSTAZIONI ===
+function apriImpostazioni(){
+  const k = getAIKey();
+  const masked = k ? k.slice(0,7)+'...'+k.slice(-4) : '';
+  openSheet(`<h2>⚙️ Impostazioni</h2>
+    <div class="card" style="padding:14px;background:#F1F5F9;margin-bottom:14px">
+      <h3 style="margin:0 0 6px;font-size:14px">🧠 API Key Anthropic</h3>
+      <p class="muted" style="margin:0 0 10px;font-size:12px">Serve per leggere foto fatture e assegni con AI. Ottienila su <b>console.anthropic.com</b>. Viene salvata SOLO sul tuo dispositivo.</p>
+      ${k?`<div style="font-family:monospace;font-size:13px;padding:8px;background:#fff;border-radius:8px;margin-bottom:8px;color:var(--success)">✓ ${masked}</div>`:''}
+      <input id="optKey" class="input" type="password" placeholder="sk-ant-api..." value="${k}">
+      <div class="field-row" style="margin-top:8px">
+        <button class="btn btn-primary" onclick="salvaAIKey()">💾 Salva</button>
+        ${k?`<button class="btn btn-danger" onclick="eliminaAIKey()">🗑 Elimina</button>`:''}
+      </div>
+    </div>
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h3 style="margin:0 0 6px;font-size:14px">🔌 Server backend</h3>
+      <p class="muted" style="margin:0 0 8px;font-size:12px">URL del gestionale2.</p>
+      <input id="optApi" class="input" value="${API_BASE}">
+      <button class="btn btn-primary btn-block" style="margin-top:8px" onclick="salvaApiBase()">Salva</button>
+    </div>
+    <div class="card" style="padding:14px">
+      <h3 style="margin:0 0 6px;font-size:14px">📅 Anno contabile</h3>
+      <input id="optAnno" class="input" type="number" value="${ANNO}">
+      <button class="btn btn-primary btn-block" style="margin-top:8px" onclick="salvaAnno()">Applica</button>
+    </div>
+    <div style="margin-top:14px;text-align:center;font-size:11px;color:var(--text-2)">
+      v6.1 - Mobile Suite · chat-8
+    </div>
+    <button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="closeSheet()">Chiudi</button>`);
+}
+function salvaAIKey(){
+  const v = $('optKey').value.trim();
+  setAIKey(v); toast(v?'API key salvata':'API key rimossa','success'); apriImpostazioni();
+}
+function eliminaAIKey(){ setAIKey(''); toast('API key rimossa','success'); apriImpostazioni(); }
+function salvaApiBase(){
+  const v = $('optApi').value.trim().replace(/\/$/,'');
+  if(!v.startsWith('http')) return toast('URL non valido','error');
+  API_BASE = v; localStorage.setItem(LS.api, v); toast('Server aggiornato','success'); closeSheet(); reloadModule();
+}
+function salvaAnno(){
+  const v = parseInt($('optAnno').value)||new Date().getFullYear();
+  ANNO = v; localStorage.setItem(LS.anno, String(v));
+  $('topSub').textContent = 'Anno '+ANNO;
+  toast('Anno aggiornato','success'); closeSheet(); reloadModule();
+}
+
+// === SCAN FATTURA con AI ===
+async function scanFattura(){
+  if(!getAIKey()){
+    openSheet(`<h2>🧠 AI non configurata</h2>
+      <p style="margin:0 0 14px">Per scansionare foto di fatture devi configurare la tua API key Anthropic.</p>
+      <button class="btn btn-primary btn-block" onclick="closeSheet();apriImpostazioni()">Vai a Impostazioni</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+    return;
+  }
+  apriCamera('Scatta foto fattura', async (base64, mediaType)=>{
+    openSheet(`<div style="padding:40px 20px;text-align:center">
+      <div class="spinner" style="width:40px;height:40px"></div>
+      <div style="margin-top:16px;font-weight:700">🧠 Lettura AI in corso...</div>
+      <div style="margin-top:6px;font-size:13px;color:var(--text-2)">Claude sta analizzando la fattura</div>
+    </div>`);
+    try{
+      const dati = await aiCallVision(base64, mediaType, PROMPT_FATTURA);
+      apriFormFatturaDaAI(dati, base64, mediaType);
+    }catch(e){
+      openSheet(`<h2>⚠️ Errore lettura</h2>
+        <p style="margin:0 0 14px;font-size:13px;color:var(--danger)">${escapeHtml(e.message)}</p>
+        <button class="btn btn-primary btn-block" onclick="scanFattura()">🔄 Riprova</button>
+        <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+    }
+  });
+}
+
+function apriFormFatturaDaAI(d, base64Img, mediaType){
+  openSheet(`<h2>✓ Verifica dati letti</h2>
+    <p class="muted" style="margin:0 0 10px;font-size:12px">L'AI ha letto questi dati. Controlla e correggi se serve.</p>
+    ${base64Img?`<img src="data:${mediaType};base64,${base64Img}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
+    <div class="field"><label>Tipo</label>
+      <select id="fTipoDoc" class="select">
+        <option value="fattura" ${d.tipo_documento==='fattura'?'selected':''}>Fattura</option>
+        <option value="ddt" ${d.tipo_documento==='ddt'?'selected':''}>DDT</option>
+      </select></div>
+    <div class="field"><label>Fornitore</label><input id="fForn" class="input" value="${escapeHtml(d.fornitore||'')}"></div>
+    <div class="field-row">
+      <div class="field"><label>N. documento</label><input id="fNum" class="input" value="${escapeHtml(d.numero_fattura||'')}"></div>
+      <div class="field"><label>P.IVA</label><input id="fPiva" class="input" value="${escapeHtml(d.partita_iva||'')}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Data</label><input id="fData" class="input" type="date" value="${escapeHtml(d.data||'')}"></div>
+      <div class="field"><label>Importo (€)</label><input id="fImp" class="input" type="number" step="0.01" value="${d.importo||''}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Scadenza</label><input id="fScad" class="input" type="date" value="${escapeHtml(d.data_scadenza||'')}"></div>
+      <div class="field"><label>Pagamento</label>
+        <select id="fPag" class="select">
+          <option value="" ${!d.pagamento?'selected':''}>-</option>
+          <option value="contanti" ${d.pagamento==='contanti'?'selected':''}>💵 Contanti</option>
+          <option value="bonifico" ${d.pagamento==='bonifico'?'selected':''}>🏦 Bonifico</option>
+          <option value="assegno" ${d.pagamento==='assegno'?'selected':''}>📝 Assegno</option>
+          <option value="carta" ${d.pagamento==='carta'?'selected':''}>💳 Carta</option>
+        </select></div>
+    </div>
+    ${d.iban?`<div class="field"><label>IBAN</label><input id="fIban" class="input" value="${escapeHtml(d.iban)}"></div>`:''}
+    <button class="btn btn-success btn-block" onclick='salvaFatturaAI()'>💾 Salva fattura</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="scanFattura()">🔄 Riscatta</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeSheet()">Annulla</button>`);
+}
+
+async function salvaFatturaAI(){
+  const body = {
+    tipo_documento: $('fTipoDoc').value,
+    fornitore_denominazione: $('fForn').value.trim(),
+    cedente_denominazione: $('fForn').value.trim(),
+    partita_iva: $('fPiva')?.value.trim(),
+    cedente_piva: $('fPiva')?.value.trim(),
+    numero_fattura: $('fNum').value.trim(),
+    data_fattura: $('fData').value,
+    data_scadenza: $('fScad').value||null,
+    importo_totale: parseFloat($('fImp').value)||0,
+    totale: parseFloat($('fImp').value)||0,
+    metodo_pagamento: $('fPag').value||null,
+    iban: $('fIban')?.value.trim()||null,
+    origine: 'mobile_ai_scan'
+  };
+  if(!body.fornitore_denominazione) return toast('Fornitore obbligatorio','error');
+  if(!body.numero_fattura) return toast('Numero obbligatorio','error');
+  if(!body.data_fattura) return toast('Data obbligatoria','error');
+  if(body.importo_totale<=0) return toast('Importo non valido','error');
+  try{
+    // Prova endpoint paga-manuale (se la fattura è già pagata) o crea manuale
+    await api('/api/fatture-ricevute/paga-manuale',{method:'POST',body:JSON.stringify(body)});
+    toast('Fattura salvata','success');haptic(30);closeSheet();
+    if(currentModule==='fatture') reloadModule();
+  }catch(e){
+    // Fallback generico
+    try{
+      await api('/api/invoices',{method:'POST',body:JSON.stringify(body)});
+      toast('Fattura salvata','success');haptic(30);closeSheet();
+      if(currentModule==='fatture') reloadModule();
+    }catch(e2){ toast('Errore: '+e.message,'error'); }
+  }
+}
+
+function apriFormFatturaManuale(){
+  apriFormFatturaDaAI({tipo_documento:'fattura',data:new Date().toISOString().slice(0,10)}, null, null);
+}
+
+// === SCAN ASSEGNO con AI ===
+async function scanAssegno(){
+  if(!getAIKey()){
+    openSheet(`<h2>🧠 AI non configurata</h2>
+      <p style="margin:0 0 14px">Per scansionare foto di assegni devi configurare la tua API key Anthropic.</p>
+      <button class="btn btn-primary btn-block" onclick="closeSheet();apriImpostazioni()">Vai a Impostazioni</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+    return;
+  }
+  apriCamera('Scatta foto assegno', async (base64, mediaType)=>{
+    openSheet(`<div style="padding:40px 20px;text-align:center">
+      <div class="spinner" style="width:40px;height:40px"></div>
+      <div style="margin-top:16px;font-weight:700">🧠 Lettura assegno...</div>
+    </div>`);
+    try{
+      const dati = await aiCallVision(base64, mediaType, PROMPT_ASSEGNO);
+      apriFormAssegnoDaAI(dati, base64, mediaType);
+    }catch(e){
+      openSheet(`<h2>⚠️ Errore lettura</h2>
+        <p style="margin:0 0 14px;font-size:13px;color:var(--danger)">${escapeHtml(e.message)}</p>
+        <button class="btn btn-primary btn-block" onclick="scanAssegno()">🔄 Riprova</button>
+        <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+    }
+  });
+}
+
+function apriFormAssegnoDaAI(d, base64Img, mediaType){
+  openSheet(`<h2>✓ Verifica dati assegno</h2>
+    ${base64Img?`<img src="data:${mediaType};base64,${base64Img}" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
+    <div class="field"><label>N. assegno</label><input id="aNum" class="input" value="${escapeHtml(d.numero||'')}"></div>
+    <div class="field"><label>Importo (€)</label><input id="aImp" class="input" type="number" step="0.01" value="${d.importo||''}"></div>
+    <div class="field"><label>Beneficiario</label><input id="aBen" class="input" value="${escapeHtml(d.beneficiario||'')}"></div>
+    <div class="field"><label>Banca emittente</label><input id="aBanca" class="input" value="${escapeHtml(d.banca_emittente||'')}"></div>
+    <div class="field"><label>Data emissione</label><input id="aData" class="input" type="date" value="${escapeHtml(d.data_emissione||'')}"></div>
+    <div class="field"><label>Luogo emissione</label><input id="aLuogo" class="input" value="${escapeHtml(d.luogo_emissione||'')}"></div>
+    <div class="field"><label>Stato</label>
+      <select id="aStato" class="select">
+        <option value="emesso">Emesso</option>
+        <option value="compilato">Compilato (non ancora emesso)</option>
+        <option value="incassato">Incassato</option>
+      </select></div>
+    <button class="btn btn-success btn-block" onclick='salvaAssegnoAI()'>💾 Salva assegno</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="scanAssegno()">🔄 Riscatta</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeSheet()">Annulla</button>`);
+}
+
+async function salvaAssegnoAI(){
+  const body = {
+    numero: $('aNum').value.trim(),
+    importo: parseFloat($('aImp').value)||null,
+    beneficiario: $('aBen').value.trim(),
+    banca_emittente: $('aBanca').value.trim(),
+    data_emissione: $('aData').value||null,
+    luogo_emissione: $('aLuogo').value.trim(),
+    stato: $('aStato').value,
+    origine: 'mobile_ai_scan'
+  };
+  if(!body.numero) return toast('Numero obbligatorio','error');
+  try{
+    await api('/api/assegni',{method:'POST',body:JSON.stringify(body)});
+    toast('Assegno salvato','success');haptic(30);closeSheet();
+    if(currentModule==='assegni') reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function apriFormAssegnoManuale(){
+  apriFormAssegnoDaAI({stato:'compilato'}, null, null);
+}
 
 showPin();
 </script>
@@ -592,24 +931,68 @@ async function spostaMovimento(id, da, a){
 // --- FORM CHIUSURA CASSA ---
 function apriFormCorrisp(){
   const oggi = new Date().toISOString().slice(0,10);
-  openSheet(`<h2>📊 Corrispettivo</h2>
-    <p class="muted" style="margin:0 0 14px;font-size:13px">Incasso giornaliero al LORDO IVA. Entra in cassa (DARE). Sarà sovrascritto quando arriva XML.</p>
+  openSheet(`<h2>📊 Chiusura giornaliera</h2>
+    <p class="muted" style="margin:0 0 12px;font-size:12px">Incasso giornaliero. Solo i <b>contanti</b> entrano in cassa. POS va in banca. IVA 10%.</p>
     <div class="field"><label>Data</label><input id="fCorrData" class="input" type="date" value="${oggi}"></div>
-    <div class="field"><label>Importo totale (€)</label><input id="fCorrImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="1250,00" autofocus></div>
-    <button class="btn btn-warning btn-block" onclick="salvaFormCorrisp()">💾 Salva corrispettivo</button>
+    <div class="field"><label>💵 Contanti incassati (€)</label>
+      <input id="fCorrCont" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00" oninput="ricalcCorr()"></div>
+    <div class="field"><label>💳 POS incassato (€)</label>
+      <input id="fCorrPos" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00" oninput="ricalcCorr()"></div>
+    <div class="card" style="padding:12px;background:#F1F5F9;margin:10px 0">
+      <div class="kv"><span class="k">Totale lordo</span><span class="v" id="fCorrTot" style="font-weight:800">€ 0,00</span></div>
+      <div class="kv"><span class="k">Imponibile (senza IVA 10%)</span><span class="v" id="fCorrImp">€ 0,00</span></div>
+      <div class="kv"><span class="k">IVA 10%</span><span class="v" id="fCorrIva">€ 0,00</span></div>
+    </div>
+    <button class="btn btn-warning btn-block" style="padding:14px" onclick="salvaFormCorrisp()">💾 Salva chiusura</button>
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
-  setTimeout(()=>$('fCorrImp')?.focus(),100);
+  setTimeout(()=>$('fCorrCont')?.focus(),100);
+}
+function ricalcCorr(){
+  const cont = parseFloat($('fCorrCont')?.value)||0;
+  const pos = parseFloat($('fCorrPos')?.value)||0;
+  const tot = cont+pos;
+  const imp = tot/1.10;
+  const iva = tot-imp;
+  if($('fCorrTot')) $('fCorrTot').textContent = euro(tot);
+  if($('fCorrImp')) $('fCorrImp').textContent = euro(imp);
+  if($('fCorrIva')) $('fCorrIva').textContent = euro(iva);
 }
 async function salvaFormCorrisp(){
-  const data=$('fCorrData').value, imp=parseFloat($('fCorrImp').value)||0;
-  if(imp<=0) return toast('Inserisci importo','error');
+  const data=$('fCorrData').value;
+  const cont = parseFloat($('fCorrCont').value)||0;
+  const pos = parseFloat($('fCorrPos').value)||0;
+  if(cont===0 && pos===0) return toast('Inserisci contanti o POS','error');
+  const totale = cont+pos;
   try{
-    await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
-      data, tipo:'entrata', importo:imp,
-      descrizione:`Corrispettivo giornaliero ${data} (provvisorio)`,
-      categoria:'Corrispettivi', source:'manual_entry', provvisorio:true
-    })});
-    toast('Corrispettivo salvato','success');haptic(30);closeSheet();reloadModule();
+    // 1. Registra corrispettivo completo (entrambi contanti+POS) nel modulo corrispettivi se possibile
+    try{
+      await api('/api/corrispettivi',{method:'POST',body:JSON.stringify({
+        data, contanti:cont, pos:pos, totale:totale,
+        imponibile: Math.round((totale/1.10)*100)/100,
+        iva: Math.round((totale-totale/1.10)*100)/100,
+        aliquota_iva: 10,
+        origine:'mobile_chiusura'
+      })});
+    }catch{}
+    // 2. In cassa va solo il contante (DARE)
+    if(cont>0){
+      await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
+        data, tipo:'entrata', importo:cont,
+        descrizione:`Corrispettivo contanti ${data}`,
+        categoria:'Corrispettivi', source:'manual_entry', provvisorio:true
+      })});
+    }
+    // 3. POS: in banca come accredito (quando arriva) - NON in cassa
+    if(pos>0){
+      try{
+        await api('/api/prima-nota/banca',{method:'POST',body:JSON.stringify({
+          data, tipo:'entrata', importo:pos,
+          descrizione:`POS corrispettivo ${data} (atteso accredito)`,
+          categoria:'POS', source:'manual_pos', provvisorio:true
+        })});
+      }catch{}
+    }
+    toast('Chiusura salvata','success');haptic(30);closeSheet();reloadModule();
   }catch(e){toast('Errore: '+e.message,'error');}
 }
 
@@ -1029,6 +1412,10 @@ async function riconciliaPosGiorno(data){
 async function render_fatture(main){
   state.fat = state.fat || {filt:'unpaid', srch:''};
   main.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <button class="btn btn-primary" style="padding:14px" onclick="scanFattura()">📷 Scansiona con AI</button>
+      <button class="btn btn-ghost" style="padding:14px" onclick="apriFormFatturaManuale()">✏️ Manuale</button>
+    </div>
     <div class="search-bar">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="srchF" type="search" placeholder="Cerca fornitore o numero..." value="${escapeHtml(state.fat.srch)}">
@@ -1348,6 +1735,10 @@ async function render_assegni(main){
   const list = await api(`/api/assegni?${params}`);
   const data = Array.isArray(list)?list:(list.items||[]);
   main.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <button class="btn btn-primary" style="padding:14px" onclick="scanAssegno()">📷 Scansiona con AI</button>
+      <button class="btn btn-ghost" style="padding:14px" onclick="apriFormAssegnoManuale()">✏️ Manuale</button>
+    </div>
     <div class="stats three">
       <div class="stat"><div class="label">Vuoti</div><div class="value">${per.vuoto?.count||0}</div></div>
       <div class="stat warning"><div class="label">Emessi</div><div class="value">${per.emesso?.count||0}</div><div class="sub">${euro(per.emesso?.totale||0)}</div></div>
