@@ -15,15 +15,15 @@
 :root{--primary:#5D29C7;--primary-soft:#EFE7FF;--bg:#F0F4FA;--card:#FFFFFF;--sidebar:#1E1B4B;--success:#00B884;--success-soft:#D4F5EA;--warning:#FF9800;--warning-soft:#FFE9CC;--danger:#F44336;--danger-soft:#FFDAD7;--info:#2196F3;--info-soft:#D7EBFB;--text:#0F172A;--text-2:#64748B;--border:#E2E8F0;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overscroll-behavior-y:none}
-body{font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;font-size:15px;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+body{font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;font-size:16px;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;text-size-adjust:100%;-webkit-text-size-adjust:100%}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
 .topbar{position:sticky;top:0;z-index:40;background:var(--sidebar);color:#fff;padding:calc(12px + var(--safe-top)) 14px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(30,27,75,.15)}
-.topbar .menu-btn,.icon-btn{width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s}
+.topbar .menu-btn,.icon-btn{width:44px;height:44px;border-radius:12px;border:none;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s}
 .topbar .menu-btn:active,.icon-btn:active{background:rgba(255,255,255,.2)}
 .topbar .title-wrap{flex:1;min-width:0}
-.topbar .title{font-weight:700;font-size:16px;letter-spacing:-.01em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar .title-sub{font-weight:500;opacity:.65;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .title{font-weight:700;font-size:17px;letter-spacing:-.01em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .title-sub{font-weight:500;opacity:.65;font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar .actions{display:flex;gap:6px;flex-shrink:0}
 main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margin:0 auto;width:100%}
 .drawer-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -35,10 +35,10 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .drawer-head h2{margin:0;font-size:16px;font-weight:700}
 .drawer-head .sub{opacity:.6;font-size:11px;margin-top:2px}
 .drawer-nav{flex:1;overflow-y:auto;padding:8px}
-.drawer-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;color:rgba(255,255,255,.78);font-weight:600;font-size:14px;cursor:pointer;border:none;background:none;width:100%;text-align:left;margin-bottom:1px;transition:background .15s,color .15s}
+.drawer-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;color:rgba(255,255,255,.8);font-weight:600;font-size:15px;cursor:pointer;border:none;background:none;width:100%;text-align:left;margin-bottom:2px;transition:background .15s,color .15s;min-height:48px}
 .drawer-item:active{background:rgba(255,255,255,.08)}
 .drawer-item.active{background:rgba(255,255,255,.12);color:#fff}
-.drawer-item span.em{font-size:18px;flex-shrink:0;width:22px;text-align:center}
+.drawer-item span.em{font-size:22px;flex-shrink:0;width:26px;text-align:center}
 .drawer-section{padding:10px 18px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.42);font-weight:700;margin-top:6px}
 .drawer-foot{padding:10px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.4);text-align:center}
 .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(93,41,199,.06);margin-bottom:12px}
@@ -66,16 +66,16 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .badge.info{background:var(--info-soft);color:#0D4E8A}
 .badge.neutral{background:#E2E8F0;color:#475569}
 .badge.primary{background:var(--primary-soft);color:var(--primary)}
-.list-item{background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:7px;cursor:pointer;box-shadow:0 1px 6px rgba(93,41,199,.05);transition:transform .1s}
+.list-item{background:var(--card);border-radius:14px;padding:14px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 6px rgba(93,41,199,.05);transition:transform .1s;min-height:60px}
 .list-item:active{transform:scale(.98)}
 .list-item .li-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
-.list-item .li-title{font-weight:700;font-size:14px;line-height:1.3;flex:1;min-width:0;overflow:hidden}
-.list-item .li-title .small{font-weight:500;color:var(--text-2);font-size:12px;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.list-item .li-amount{font-weight:800;font-size:15px;white-space:nowrap;letter-spacing:-.01em}
+.list-item .li-title{font-weight:700;font-size:15px;line-height:1.3;flex:1;min-width:0;overflow:hidden}
+.list-item .li-title .small{font-weight:500;color:var(--text-2);font-size:13px;display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-item .li-amount{font-weight:800;font-size:16px;white-space:nowrap;letter-spacing:-.01em}
 .list-item .li-amount.positive{color:var(--success)}
 .list-item .li-amount.negative{color:var(--danger)}
-.list-item .li-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
-.list-item .li-meta{font-size:11px;color:var(--text-2)}
+.list-item .li-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.list-item .li-meta{font-size:12px;color:var(--text-2)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:12px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:transform .1s,opacity .15s}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -98,9 +98,9 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:9px 14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(93,41,199,.05)}
 .search-bar input{flex:1;border:none;outline:none;font-size:14px;background:none}
 .search-bar svg{color:var(--text-2);flex-shrink:0}
-.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 14px 10px;scrollbar-width:none;margin:0 -14px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 14px 12px;scrollbar-width:none;margin:0 -14px}
 .chips::-webkit-scrollbar{display:none}
-.chip{padding:6px 14px;border-radius:20px;background:#fff;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2);transition:all .15s}
+.chip{padding:10px 18px;border-radius:22px;background:#fff;border:1.5px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2);transition:all .15s;min-height:40px;display:inline-flex;align-items:center}
 .chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .sheet-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;align-items:flex-end}
 .sheet-overlay.show{opacity:1;pointer-events:auto}
@@ -112,25 +112,27 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .sheet .kv:last-of-type{border:none}
 .sheet .kv .k{color:var(--text-2);font-size:12px}
 .sheet .kv .v{font-weight:600;text-align:right;word-break:break-word}
-.pin-wrap{position:fixed;inset:0;z-index:300;background:linear-gradient(160deg,#1E1B4B 0%,#5D29C7 65%,#7B3FF2 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(40px + var(--safe-top)) 24px calc(28px + var(--safe-bot))}
-.pin-head{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:10px}
-.pin-head .logo{width:70px;height:70px;border-radius:20px;background:linear-gradient(135deg,#fff 0%,#EFE7FF 100%);display:grid;place-items:center;color:var(--primary);font-weight:800;font-size:30px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-.pin-head h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
-.pin-head .pin-sub{opacity:.75;font-size:13px;text-align:center}
-.pin-dots{display:flex;gap:14px;margin:30px 0 20px}
-.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.6);transition:all .15s}
+.pin-wrap{position:fixed;inset:0;z-index:300;background:linear-gradient(160deg,#1E1B4B 0%,#5D29C7 65%,#7B3FF2 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(20px + var(--safe-top)) 20px calc(20px + var(--safe-bot));gap:24px;overflow-y:auto}
+.pin-head{display:flex;flex-direction:column;align-items:center;gap:12px}
+.pin-head .logo{width:76px;height:76px;border-radius:22px;background:linear-gradient(135deg,#fff 0%,#EFE7FF 100%);display:grid;place-items:center;color:var(--primary);font-weight:800;font-size:34px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.pin-head h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;text-align:center}
+.pin-head .pin-sub{opacity:.75;font-size:14px;text-align:center}
+.pin-center{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+.pin-dots{display:flex;gap:16px;margin:10px 0 8px}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.6);transition:all .15s}
 .pin-dot.filled{background:#fff;border-color:#fff;transform:scale(1.1)}
 .pin-dot.err{background:var(--danger);border-color:var(--danger)}
 .pin-shake{animation:shake .4s}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-8px)}80%{transform:translateX(8px)}}
-.pin-msg{min-height:22px;font-size:13px;font-weight:600;opacity:.85;text-align:center;padding:0 10px}
+.pin-msg{min-height:24px;font-size:14px;font-weight:600;opacity:.85;text-align:center;padding:0 10px}
 .pin-msg.err{color:#FFD4D0}
 .pin-msg.ok{color:#C6F5E4}
-.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:300px;width:100%;margin-top:8px}
-.pin-key{width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:28px;font-weight:500;cursor:pointer;display:grid;place-items:center;justify-self:center;transition:transform .1s,background .15s;font-family:inherit}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:320px;width:100%;padding:0 4px}
+.pin-key{width:100%;aspect-ratio:1;max-width:84px;max-height:84px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:30px;font-weight:500;cursor:pointer;display:grid;place-items:center;justify-self:center;transition:transform .1s,background .15s;font-family:inherit}
 .pin-key:active{background:rgba(255,255,255,.35);transform:scale(.94)}
 .pin-key.ghost{background:transparent;cursor:default}
 .pin-key:disabled{opacity:.35;cursor:not-allowed}
+.pin-foot{color:rgba(255,255,255,.5);font-size:12px;text-align:center}
 .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(200%);bottom:calc(30px + var(--safe-bot));z-index:400;background:#0F172A;color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .3s cubic-bezier(.4,0,.2,1);max-width:92%;text-align:center}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{background:var(--success)}
@@ -159,9 +161,9 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .kv-box{background:#F1F5F9;border-radius:10px;padding:10px}
 .kv-box .k{font-size:10px;color:var(--text-2);text-transform:uppercase;font-weight:700;letter-spacing:.06em}
 .kv-box .v{font-size:16px;font-weight:800;margin-top:4px}
-.month-selector{display:flex;gap:4px;overflow-x:auto;padding:4px 14px 10px;margin:0 -14px;scrollbar-width:none}
+.month-selector{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 12px;margin:0 -14px;scrollbar-width:none}
 .month-selector::-webkit-scrollbar{display:none}
-.month-selector .m{padding:6px 12px;border-radius:8px;background:#fff;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2)}
+.month-selector .m{padding:10px 16px;border-radius:10px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2);min-height:40px}
 .month-selector .m.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 </style>
 </head>
@@ -173,7 +175,7 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
     <h1>Ceraldi Gestionale</h1>
     <div class="pin-sub">Inserisci il PIN</div>
   </div>
-  <div style="display:flex;flex-direction:column;align-items:center;width:100%">
+  <div class="pin-center">
     <div id="pinDots" class="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
     <div id="pinMsg" class="pin-msg"></div>
     <div id="pinPad" class="pin-pad">
@@ -183,7 +185,7 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
       <button class="pin-key ghost" disabled></button><button class="pin-key" data-k="0">0</button><button class="pin-key" data-k="DEL">&#9003;</button>
     </div>
   </div>
-  <div style="color:rgba(255,255,255,.5);font-size:11px">v4.0 - Mobile Suite</div>
+  <div class="pin-foot">v5.0 - Mobile Suite</div>
 </div>
 
 <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
@@ -198,14 +200,14 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 
 <div id="app" class="app hidden">
   <header class="topbar">
-    <button class="menu-btn" onclick="openDrawer()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <button class="menu-btn" onclick="openDrawer()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="title-wrap">
       <div class="title" id="topTitle">Dashboard</div>
       <div class="title-sub" id="topSub">Anno 2026</div>
     </div>
     <div class="actions">
-      <button class="icon-btn" onclick="reloadModule()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg></button>
-      <button class="icon-btn" onclick="lockApp()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+      <button class="icon-btn" onclick="reloadModule()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg></button>
+      <button class="icon-btn" onclick="lockApp()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
     </div>
   </header>
   <main id="main"></main>
@@ -289,17 +291,22 @@ const MODULES = [
   {id:'prima-nota-banca', group:'banca', icon:'🏦', label:'Prima Nota Banca'},
   {id:'provvisori', group:'banca', icon:'⏳', label:'Prima Nota Provvisori'},
   {id:'corrispettivi', group:'banca', icon:'🧾', label:'Corrispettivi'},
+  {id:'coerenza-pos', group:'banca', icon:'🔍', label:'Coerenza POS'},
   {id:'fatture', group:'passivo', icon:'📄', label:'Fatture Ricevute'},
   {id:'fornitori', group:'passivo', icon:'🏢', label:'Fornitori'},
   {id:'scadenze', group:'passivo', icon:'📅', label:'Scadenze'},
   {id:'assegni', group:'passivo', icon:'🧷', label:'Assegni'},
+  {id:'partitario', group:'passivo', icon:'📘', label:'Partitario Cli/For'},
   {id:'f24', group:'fiscale', icon:'📋', label:'F24'},
   {id:'iva', group:'fiscale', icon:'€', label:'IVA'},
+  {id:'bilancio', group:'fiscale', icon:'📈', label:'Bilancio'},
+  {id:'calendario-fiscale', group:'fiscale', icon:'🗓️', label:'Calendario Fiscale'},
   {id:'commercialista', group:'fiscale', icon:'👔', label:'Commercialista'},
   {id:'dipendenti', group:'hr', icon:'👥', label:'Dipendenti'},
   {id:'cedolini', group:'hr', icon:'💼', label:'Cedolini'},
   {id:'presenze', group:'hr', icon:'🕐', label:'Presenze'},
   {id:'verbali', group:'altro', icon:'🚗', label:'Verbali / Noleggio'},
+  {id:'mutui', group:'altro', icon:'🏠', label:'Mutui'},
   {id:'documenti', group:'altro', icon:'📂', label:'Documenti / Inbox'},
   {id:'riconciliazione', group:'altro', icon:'🔗', label:'Riconciliazione'},
 ];
@@ -349,11 +356,20 @@ function renderPlaceholder(main, mod){
   </div>`;
 }
 function renderError(main, e, mod){
+  const msg = e.message||'Errore';
+  const isFileProto = location.protocol==='file:';
   main.innerHTML = `<div class="card" style="text-align:center;padding:30px">
-    <div style="font-size:36px;margin-bottom:10px">⚠️</div>
-    <h3 style="margin:0 0 6px">Dati non raggiungibili</h3>
-    <p style="margin:0 0 14px;font-size:12px;color:var(--text-2);word-break:break-word">${escapeHtml(e.message||'Errore')}</p>
-    <button class="btn btn-primary btn-sm" onclick="reloadModule()">Riprova</button>
+    <div style="font-size:44px;margin-bottom:12px">⚠️</div>
+    <h3 style="margin:0 0 8px;font-size:18px">Dati non raggiungibili</h3>
+    <p style="margin:0 0 14px;font-size:13px;color:var(--text-2);word-break:break-word">${escapeHtml(msg)}</p>
+    ${isFileProto?`<div class="alert-row danger" style="text-align:left;margin-top:12px">
+      <div class="a-icon">🚨</div>
+      <div class="a-body">
+        <div class="a-title">Stai aprendo il file scaricato</div>
+        <div class="a-sub">Apri invece: <b>ceraldicontabilita.github.io/Appgestionale/</b></div>
+      </div>
+    </div>`:''}
+    <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="reloadModule()">Riprova</button>
   </div>`;
 }
 
@@ -710,6 +726,51 @@ async function salvaCorrispettivo(){
     await api('/api/corrispettivi', {method:'POST', body:JSON.stringify(body)});
     toast('Corrispettivo salvato','success');closeSheet();reloadModule();
   }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+</script><script>
+async function render_coerenza_pos(main){
+  const [riep, ver] = await Promise.all([
+    api(`/api/pos-corrispettivi/riepilogo-mensile?anno=${ANNO}`).catch(()=>null),
+    api(`/api/pos-corrispettivi/verifica-coerenza?anno=${ANNO}`).catch(()=>null),
+  ]);
+  const mesi = (riep?.mesi || riep?.items || riep?.riepilogo || []);
+  const anomalie = (ver?.anomalie || ver?.items || []);
+  const tot_pos = mesi.reduce((s,m)=>s+Number(m.pos_dichiarato||m.pos_corr||0),0);
+  const tot_incassi = mesi.reduce((s,m)=>s+Number(m.pos_incassi||m.pos_effettivo||0),0);
+  const diff = tot_pos - tot_incassi;
+  main.innerHTML = `
+    <div class="stats">
+      <div class="stat accent"><div class="label">POS Corrispettivi</div><div class="value" style="font-size:17px">${euro(tot_pos)}</div></div>
+      <div class="stat"><div class="label">POS Incassi</div><div class="value" style="font-size:17px">${euro(tot_incassi)}</div></div>
+    </div>
+    <div class="stats one">
+      <div class="stat ${Math.abs(diff)<1?'success':'warning'}"><div class="label">Differenza anno ${ANNO}</div><div class="value">${euro(diff)}</div><div class="sub">${Math.abs(diff)<1?'✓ Coerente':'⚠ Verificare'}</div></div>
+    </div>
+    ${anomalie.length?`<div class="section-title">Anomalie (${anomalie.length})</div>
+    ${anomalie.slice(0,30).map(a=>`<div class="alert-row ${a.severita==='alta'||Math.abs(a.differenza||0)>50?'danger':''}">
+      <div class="a-icon">⚠️</div>
+      <div class="a-body">
+        <div class="a-title">${fmtDate(a.data)}</div>
+        <div class="a-sub">POS corr ${euro(a.pos_corrispettivi||0)} vs Incassi ${euro(a.pos_incassi||0)} · diff ${euro(a.differenza||0)}</div>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="riconciliaPosGiorno('${a.data}')">Riconcilia</button>
+    </div>`).join('')}`:''}
+    ${mesi.length?`<div class="section-title">Riepilogo mensile</div>
+    ${mesi.map(m=>{
+      const d = Number(m.pos_dichiarato||m.pos_corr||0) - Number(m.pos_incassi||m.pos_effettivo||0);
+      return `<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${fmtMonth(m.mese)} ${m.anno||ANNO}<span class="small">POS corr ${euro(m.pos_dichiarato||m.pos_corr||0)} · Incassi ${euro(m.pos_incassi||m.pos_effettivo||0)}</span></div>
+          <div class="li-amount ${Math.abs(d)<1?'positive':'negative'}">${euro(d)}</div>
+        </div>
+      </div>`;
+    }).join('')}`:''}
+  `;
+}
+async function riconciliaPosGiorno(data){
+  if(!confirm(`Riconciliare POS del ${fmtDate(data)}?`))return;
+  try{await api(`/api/pos-corrispettivi/riconcilia-pos-giorno?data=${data}`,{method:'POST'});toast('Riconciliato','success');reloadModule();}
+  catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_fatture(main){
@@ -1115,6 +1176,42 @@ async function azioneAssegno(aidEnc, az){
   }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
+async function render_partitario(main){
+  state.part = state.part || {tab:'fornitori'};
+  main.innerHTML = `
+    <div class="tabs">
+      <button class="tab ${state.part.tab==='fornitori'?'active':''}" data-t="fornitori">Fornitori</button>
+      <button class="tab ${state.part.tab==='clienti'?'active':''}" data-t="clienti">Clienti</button>
+    </div>
+    <div id="partBody"><div class="loading"><span class="spinner"></span>Carico...</div></div>
+  `;
+  main.querySelectorAll('.tab').forEach(b=>{b.onclick=()=>{state.part.tab=b.dataset.t;render_partitario(main);};});
+  const data = await api(`/api/contabilita-gestionale/partitario/${state.part.tab}?anno=${ANNO}`).catch(()=>null);
+  if(!data){$('partBody').innerHTML='<div class="empty"><div class="icon">📘</div><div class="title">Partitario non disponibile</div></div>';return;}
+  const list = data.items||data.partitario||data.records||[];
+  const tot = list.reduce((s,p)=>s+Number(p.saldo||p.totale||0),0);
+  $('partBody').innerHTML = `
+    <div class="stats">
+      <div class="stat accent"><div class="label">${state.part.tab==='fornitori'?'Fornitori':'Clienti'}</div><div class="value">${list.length}</div></div>
+      <div class="stat"><div class="label">Saldo totale</div><div class="value" style="font-size:17px">${euro(tot)}</div></div>
+    </div>
+    <div class="section-title">Elenco</div>
+    ${list.length?list.slice(0,100).map(p=>{
+      const saldo = Number(p.saldo||p.totale||0);
+      return `<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(p.ragione_sociale||p.denominazione||p.nome||'-')}<span class="small">${p.piva||p.partita_iva||''}</span></div>
+          <div class="li-amount ${saldo>=0?'positive':'negative'}">${euro(saldo)}</div>
+        </div>
+        <div class="li-bottom">
+          <span class="li-meta">${p.num_fatture?p.num_fatture+' fatture':''}</span>
+          <span class="li-meta">${p.ultima_data?'Ult. '+fmtDate(p.ultima_data):''}</span>
+        </div>
+      </div>`;
+    }).join(''):'<div class="empty"><div class="icon">📘</div><div class="title">Nessun movimento</div></div>'}
+  `;
+}
+</script><script>
 async function render_f24(main){
   const data = await api(`/api/f24?anno=${ANNO}&limit=200`).catch(()=>api('/api/f24?limit=200'));
   const list = Array.isArray(data)?data:(data.items||[]);
@@ -1189,6 +1286,110 @@ async function render_iva(main){
   main.querySelectorAll('.month-selector .m').forEach(b=>{
     b.onclick=()=>{state.iva.mese = b.dataset.mese?parseInt(b.dataset.mese):null; render_iva(main);};
   });
+}
+</script><script>
+async function render_bilancio(main){
+  state.bil = state.bil || {tab:'ce'};
+  const [ce, sp] = await Promise.all([
+    api(`/api/bilancio/conto-economico?anno=${ANNO}`).catch(()=>null),
+    api(`/api/bilancio/stato-patrimoniale?anno=${ANNO}`).catch(()=>null),
+  ]);
+  main.innerHTML = `
+    <div class="tabs">
+      <button class="tab ${state.bil.tab==='ce'?'active':''}" data-t="ce">Conto Economico</button>
+      <button class="tab ${state.bil.tab==='sp'?'active':''}" data-t="sp">Stato Patrimoniale</button>
+    </div>
+    <div id="bilBody"></div>
+  `;
+  main.querySelectorAll('.tab').forEach(b=>{b.onclick=()=>{state.bil.tab=b.dataset.t;render_bilancio(main);};});
+  const body = $('bilBody');
+  if(state.bil.tab==='ce'){
+    if(!ce){body.innerHTML='<div class="empty"><div class="icon">📈</div><div class="title">Conto economico non disponibile</div></div>';return;}
+    const ric = ce.totale_ricavi||ce.ricavi||0;
+    const cos = Math.abs(ce.totale_costi||ce.costi||0);
+    const mol = ce.mol||ce.ebitda||(ric-cos);
+    const utile = ce.utile||ce.risultato_esercizio||(ric-cos);
+    body.innerHTML = `
+      <div class="stats">
+        <div class="stat success"><div class="label">Ricavi ${ANNO}</div><div class="value" style="font-size:18px">${euro(ric)}</div></div>
+        <div class="stat danger"><div class="label">Costi ${ANNO}</div><div class="value" style="font-size:18px">${euro(cos)}</div></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="label">MOL / EBITDA</div><div class="value" style="font-size:17px;color:${mol>=0?'var(--success)':'var(--danger)'}">${euro(mol)}</div></div>
+        <div class="stat accent"><div class="label">Utile</div><div class="value" style="font-size:17px">${euro(utile)}</div></div>
+      </div>
+      ${ce.dettaglio_categorie?`<div class="section-title">Dettaglio categorie</div>
+      ${Object.entries(ce.dettaglio_categorie).map(([k,v])=>`<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(k)}</div>
+          <div class="li-amount ${Number(v)>=0?'positive':'negative'}">${euro(v)}</div>
+        </div>
+      </div>`).join('')}`:''}
+    `;
+  }else{
+    if(!sp){body.innerHTML='<div class="empty"><div class="icon">📈</div><div class="title">Stato patrimoniale non disponibile</div></div>';return;}
+    body.innerHTML = `
+      <div class="card">
+        <h3>🏛️ Attivo</h3>
+        <div class="kv"><span class="k">Immobilizzazioni</span><span class="v">${euro(sp.immobilizzazioni||0)}</span></div>
+        <div class="kv"><span class="k">Crediti</span><span class="v">${euro(sp.crediti||0)}</span></div>
+        <div class="kv"><span class="k">Disponibilità liquide</span><span class="v">${euro(sp.disponibilita||sp.liquidita||0)}</span></div>
+        <div class="kv"><span class="k">Totale Attivo</span><span class="v" style="font-weight:800;color:var(--primary)">${euro(sp.totale_attivo||0)}</span></div>
+      </div>
+      <div class="card">
+        <h3>🧾 Passivo</h3>
+        <div class="kv"><span class="k">Patrimonio netto</span><span class="v">${euro(sp.patrimonio_netto||0)}</span></div>
+        <div class="kv"><span class="k">Debiti</span><span class="v">${euro(sp.debiti||0)}</span></div>
+        <div class="kv"><span class="k">Fondi</span><span class="v">${euro(sp.fondi||0)}</span></div>
+        <div class="kv"><span class="k">Totale Passivo</span><span class="v" style="font-weight:800;color:var(--primary)">${euro(sp.totale_passivo||0)}</span></div>
+      </div>
+    `;
+  }
+}
+</script><script>
+async function render_calendario_fiscale(main){
+  const [cal, notif] = await Promise.all([
+    api(`/api/fiscalita/calendario/${ANNO}`).catch(()=>null),
+    api(`/api/fiscalita/notifiche-scadenze?anno=${ANNO}&giorni=30`).catch(()=>null),
+  ]);
+  const scad = (cal?.scadenze || cal?.items || cal || []);
+  const list = Array.isArray(scad)?scad:[];
+  const notifiche = Array.isArray(notif)?notif:(notif?.items||[]);
+  const prossime = list.filter(s=>!s.completata && s.data_scadenza && new Date(s.data_scadenza)>=new Date());
+  const scadute = list.filter(s=>!s.completata && s.data_scadenza && new Date(s.data_scadenza)<new Date());
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat accent"><div class="label">Prossime</div><div class="value">${prossime.length}</div></div>
+      <div class="stat danger"><div class="label">Scadute</div><div class="value">${scadute.length}</div></div>
+      <div class="stat success"><div class="label">Fatte</div><div class="value">${list.length-prossime.length-scadute.length}</div></div>
+    </div>
+    ${notifiche.length?`<div class="section-title">⚠️ Notifiche (30gg)</div>
+    ${notifiche.slice(0,5).map(n=>`<div class="alert-row ${n.urgenza==='alta'?'danger':''}">
+      <div class="a-icon">📅</div>
+      <div class="a-body">
+        <div class="a-title">${escapeHtml(n.titolo||n.descrizione||'-')}</div>
+        <div class="a-sub">${fmtDate(n.data_scadenza)} · ${euro(n.importo||0)}</div>
+      </div>
+    </div>`).join('')}`:''}
+    <div class="section-title">Calendario ${ANNO}</div>
+    ${list.length?list.sort((a,b)=>new Date(a.data_scadenza)-new Date(b.data_scadenza)).slice(0,60).map(s=>{
+      const gg = s.data_scadenza?Math.floor((new Date(s.data_scadenza)-new Date())/86400000):null;
+      const badge = s.completata?'<span class="badge success">✓ Fatto</span>':(gg!==null&&gg<0?`<span class="badge danger">Scad. ${Math.abs(gg)}gg fa</span>`:(gg!==null?`<span class="badge warning">Tra ${gg}gg</span>`:'<span class="badge neutral">-</span>'));
+      return `<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(s.titolo||s.descrizione||s.tipo||'-')}<span class="small">${escapeHtml(s.categoria||s.tipo||'')} · ${fmtDate(s.data_scadenza)}</span></div>
+          ${s.importo?`<div class="li-amount">${euro(s.importo)}</div>`:''}
+        </div>
+        <div class="li-bottom">${badge}
+          ${!s.completata&&s.id?`<button class="btn btn-sm btn-success" onclick="completaScadFiscale('${s.id}')">✓ Fatto</button>`:''}
+        </div>
+      </div>`;
+    }).join(''):'<div class="empty"><div class="icon">🗓️</div><div class="title">Nessuna scadenza fiscale</div></div>'}
+  `;
+}
+async function completaScadFiscale(id){
+  try{await api(`/api/fiscalita/calendario/completa/${id}`,{method:'POST'});toast('Completata','success');reloadModule();}
+  catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_commercialista(main){
@@ -1417,6 +1618,35 @@ async function render_verbali(main){
         <div class="li-amount">${euro(f.importo||0)}</div>
       </div>
     </div>`).join('')}</div>`:''}
+  `;
+}
+</script><script>
+async function render_mutui(main){
+  const [list, stats] = await Promise.all([
+    api('/api/mutui/').catch(()=>[]),
+    api('/api/mutui/statistiche/dashboard').catch(()=>null),
+  ]);
+  const mutui = Array.isArray(list)?list:(list.items||list.mutui||[]);
+  main.innerHTML = `
+    ${stats?`<div class="stats">
+      <div class="stat accent"><div class="label">Mutui attivi</div><div class="value">${stats.attivi||mutui.length}</div></div>
+      <div class="stat danger"><div class="label">Debito residuo</div><div class="value" style="font-size:16px">${euro(stats.debito_residuo_totale||0)}</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="label">Rata mensile tot.</div><div class="value" style="font-size:16px">${euro(stats.rata_mensile_totale||0)}</div></div>
+      <div class="stat warning"><div class="label">Prossima scadenza</div><div class="value" style="font-size:13px">${fmtDate(stats.prossima_scadenza)}</div></div>
+    </div>`:''}
+    <div class="section-title">Mutui (${mutui.length})</div>
+    ${mutui.length?mutui.map(m=>`<div class="list-item">
+      <div class="li-top">
+        <div class="li-title">${escapeHtml(m.descrizione||m.nome||m.banca||'Mutuo')}<span class="small">${escapeHtml(m.banca||'-')} · ${m.data_erogazione?fmtDate(m.data_erogazione):''}</span></div>
+        <div class="li-amount">${euro(m.debito_residuo||m.importo_residuo||0)}</div>
+      </div>
+      <div class="li-bottom">
+        <span class="badge ${m.stato==='attivo'||!m.stato?'success':'neutral'}">${escapeHtml(m.stato||'attivo')}</span>
+        <span class="li-meta">Rata ${euro(m.rata_mensile||0)} · ${m.rate_residue||0}/${m.rate_totali||'-'}</span>
+      </div>
+    </div>`).join(''):'<div class="empty"><div class="icon">🏠</div><div class="title">Nessun mutuo</div></div>'}
   `;
 }
 </script><script>
