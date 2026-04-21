@@ -7,70 +7,58 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Ceraldi · Gestionale Mobile</title>
+<title>Ceraldi - Gestionale Mobile</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --primary:#5D29C7; --primary-soft:#EFE7FF;
-  --bg:#F0F4FA; --card:#FFFFFF; --sidebar:#1E1B4B;
-  --success:#00B884; --success-soft:#D4F5EA;
-  --warning:#FF9800; --warning-soft:#FFE9CC;
-  --danger:#F44336; --danger-soft:#FFDAD7;
-  --info:#2196F3; --info-soft:#D7EBFB;
-  --text:#0F172A; --text-2:#64748B; --border:#E2E8F0;
-  --safe-top:env(safe-area-inset-top,0px);
-  --safe-bot:env(safe-area-inset-bottom,0px);
-}
+:root{--primary:#5D29C7;--primary-soft:#EFE7FF;--bg:#F0F4FA;--card:#FFFFFF;--sidebar:#1E1B4B;--success:#00B884;--success-soft:#D4F5EA;--warning:#FF9800;--warning-soft:#FFE9CC;--danger:#F44336;--danger-soft:#FFDAD7;--info:#2196F3;--info-soft:#D7EBFB;--text:#0F172A;--text-2:#64748B;--border:#E2E8F0;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overscroll-behavior-y:none}
 body{font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;font-size:15px;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
 .topbar{position:sticky;top:0;z-index:40;background:var(--sidebar);color:#fff;padding:calc(12px + var(--safe-top)) 14px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(30,27,75,.15)}
-.topbar .menu-btn{width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer}
-.topbar .menu-btn:active{background:rgba(255,255,255,.2)}
+.topbar .menu-btn,.icon-btn{width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s}
+.topbar .menu-btn:active,.icon-btn:active{background:rgba(255,255,255,.2)}
 .topbar .title-wrap{flex:1;min-width:0}
-.topbar .title{font-weight:700;font-size:16px;letter-spacing:-.01em;line-height:1.1}
+.topbar .title{font-weight:700;font-size:16px;letter-spacing:-.01em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar .title-sub{font-weight:500;opacity:.65;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar .actions{display:flex;gap:6px}
-.icon-btn{width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s}
-.icon-btn:active{background:rgba(255,255,255,.2)}
+.topbar .actions{display:flex;gap:6px;flex-shrink:0}
 main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margin:0 auto;width:100%}
 .drawer-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
 .drawer-overlay.show{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:320px;background:var(--sidebar);color:#fff;z-index:91;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:calc(24px + var(--safe-top)) 0 calc(16px + var(--safe-bot))}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:84%;max-width:340px;background:var(--sidebar);color:#fff;z-index:91;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:calc(24px + var(--safe-top)) 0 calc(16px + var(--safe-bot))}
 .drawer.show{transform:translateX(0)}
 .drawer-head{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
 .drawer-head .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#8B5CF6 0%,#5D29C7 100%);display:grid;place-items:center;font-weight:800;font-size:18px}
 .drawer-head h2{margin:0;font-size:16px;font-weight:700}
 .drawer-head .sub{opacity:.6;font-size:11px;margin-top:2px}
-.drawer-nav{flex:1;overflow-y:auto;padding:10px}
-.drawer-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;color:rgba(255,255,255,.75);font-weight:600;font-size:14px;cursor:pointer;border:none;background:none;width:100%;text-align:left;margin-bottom:2px;transition:background .15s,color .15s}
+.drawer-nav{flex:1;overflow-y:auto;padding:8px}
+.drawer-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;color:rgba(255,255,255,.78);font-weight:600;font-size:14px;cursor:pointer;border:none;background:none;width:100%;text-align:left;margin-bottom:1px;transition:background .15s,color .15s}
 .drawer-item:active{background:rgba(255,255,255,.08)}
 .drawer-item.active{background:rgba(255,255,255,.12);color:#fff}
-.drawer-item svg{width:20px;height:20px;flex-shrink:0}
-.drawer-item .count{margin-left:auto;background:rgba(255,255,255,.15);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;min-width:24px;text-align:center}
-.drawer-item .count.urgent{background:var(--danger);color:#fff}
-.drawer-section{padding:10px 18px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);font-weight:700;margin-top:8px}
-.drawer-foot{padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.4);text-align:center}
+.drawer-item span.em{font-size:18px;flex-shrink:0;width:22px;text-align:center}
+.drawer-section{padding:10px 18px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.42);font-weight:700;margin-top:6px}
+.drawer-foot{padding:10px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.4);text-align:center}
 .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(93,41,199,.06);margin-bottom:12px}
-.card h2{margin:0 0 12px;font-size:18px;font-weight:700;letter-spacing:-.01em}
-.card h3{margin:0 0 8px;font-size:14px;font-weight:700}
+.card h3{margin:0 0 10px;font-size:15px;font-weight:700}
 .muted{color:var(--text-2);font-size:13px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .stats.three{grid-template-columns:1fr 1fr 1fr}
+.stats.one{grid-template-columns:1fr}
 .stat{background:var(--card);border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(93,41,199,.06)}
-.stat .label{font-size:11px;color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.stat .label{font-size:10px;color:var(--text-2);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
 .stat .value{font-size:22px;font-weight:800;margin-top:6px;letter-spacing:-.02em;line-height:1}
-.stat .sub{font-size:12px;color:var(--text-2);margin-top:4px}
+.stat .sub{font-size:11px;color:var(--text-2);margin-top:4px}
 .stat.accent{background:linear-gradient(135deg,#5D29C7 0%,#7B3FF2 100%);color:#fff}
 .stat.accent .label,.stat.accent .sub{color:rgba(255,255,255,.85)}
 .stat.success{background:linear-gradient(135deg,#00B884 0%,#00D69A 100%);color:#fff}
 .stat.success .label,.stat.success .sub{color:rgba(255,255,255,.85)}
 .stat.danger{background:linear-gradient(135deg,#F44336 0%,#FF5E50 100%);color:#fff}
 .stat.danger .label,.stat.danger .sub{color:rgba(255,255,255,.85)}
+.stat.warning{background:linear-gradient(135deg,#FF9800 0%,#FFB74D 100%);color:#fff}
+.stat.warning .label,.stat.warning .sub{color:rgba(255,255,255,.85)}
 .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .badge.success{background:var(--success-soft);color:#006B4F}
 .badge.warning{background:var(--warning-soft);color:#8B4900}
@@ -78,17 +66,17 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .badge.info{background:var(--info-soft);color:#0D4E8A}
 .badge.neutral{background:#E2E8F0;color:#475569}
 .badge.primary{background:var(--primary-soft);color:var(--primary)}
-.list-item{background:var(--card);border-radius:14px;padding:14px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 6px rgba(93,41,199,.05);transition:transform .1s}
+.list-item{background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:7px;cursor:pointer;box-shadow:0 1px 6px rgba(93,41,199,.05);transition:transform .1s}
 .list-item:active{transform:scale(.98)}
-.list-item .li-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
-.list-item .li-title{font-weight:700;font-size:14px;line-height:1.3;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.list-item .li-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
+.list-item .li-title{font-weight:700;font-size:14px;line-height:1.3;flex:1;min-width:0;overflow:hidden}
 .list-item .li-title .small{font-weight:500;color:var(--text-2);font-size:12px;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .list-item .li-amount{font-weight:800;font-size:15px;white-space:nowrap;letter-spacing:-.01em}
 .list-item .li-amount.positive{color:var(--success)}
 .list-item .li-amount.negative{color:var(--danger)}
-.list-item .li-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+.list-item .li-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
 .list-item .li-meta{font-size:11px;color:var(--text-2)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:12px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:transform .1s,opacity .15s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:12px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:transform .1s,opacity .15s}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary{background:linear-gradient(135deg,#5D29C7 0%,#7B3FF2 100%);color:#fff;box-shadow:0 4px 12px rgba(93,41,199,.25)}
@@ -97,33 +85,33 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .btn-warning{background:var(--warning);color:#fff}
 .btn-danger{background:var(--danger);color:#fff}
 .btn-block{width:100%}
-.btn-sm{padding:8px 14px;font-size:13px}
+.btn-sm{padding:8px 12px;font-size:12px}
 .fab{position:fixed;bottom:calc(20px + var(--safe-bot));right:16px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#5D29C7 0%,#7B3FF2 100%);color:#fff;border:none;box-shadow:0 8px 24px rgba(93,41,199,.4);display:grid;place-items:center;cursor:pointer;z-index:30;transition:transform .1s}
 .fab:active{transform:scale(.92)}
-.field{margin-bottom:14px}
-.field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
-.input,.select,.textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s;font-family:inherit}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--text-2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.input,.select,.textarea{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s;font-family:inherit}
 .textarea{resize:vertical;min-height:80px}
 .input:focus,.select:focus,.textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(93,41,199,.1)}
 .field-row{display:flex;gap:10px}
 .field-row .field{flex:1}
-.search-bar{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 6px rgba(93,41,199,.05)}
+.search-bar{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:9px 14px;margin-bottom:10px;box-shadow:0 1px 6px rgba(93,41,199,.05)}
 .search-bar input{flex:1;border:none;outline:none;font-size:14px;background:none}
 .search-bar svg{color:var(--text-2);flex-shrink:0}
-.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none;margin:0 -14px;padding-left:14px;padding-right:14px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 14px 10px;scrollbar-width:none;margin:0 -14px}
 .chips::-webkit-scrollbar{display:none}
-.chip{padding:7px 14px;border-radius:20px;background:#fff;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2);transition:all .15s}
+.chip{padding:6px 14px;border-radius:20px;background:#fff;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2);transition:all .15s}
 .chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .sheet-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;align-items:flex-end}
 .sheet-overlay.show{opacity:1;pointer-events:auto}
 .sheet{background:#fff;width:100%;max-width:720px;margin:0 auto;border-radius:20px 20px 0 0;padding:8px 16px calc(24px + var(--safe-bot));max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 30px rgba(30,27,75,.2)}
 .sheet-overlay.show .sheet{transform:translateY(0)}
 .sheet-handle{width:40px;height:4px;background:#CBD5E1;border-radius:4px;margin:4px auto 12px}
-.sheet h2{margin:0 0 14px;font-size:19px;font-weight:800;letter-spacing:-.02em}
-.sheet .kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
-.sheet .kv:last-child{border:none}
-.sheet .kv .k{color:var(--text-2)}
-.sheet .kv .v{font-weight:600;text-align:right}
+.sheet h2{margin:0 0 14px;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.sheet .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px}
+.sheet .kv:last-of-type{border:none}
+.sheet .kv .k{color:var(--text-2);font-size:12px}
+.sheet .kv .v{font-weight:600;text-align:right;word-break:break-word}
 .pin-wrap{position:fixed;inset:0;z-index:300;background:linear-gradient(160deg,#1E1B4B 0%,#5D29C7 65%,#7B3FF2 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(40px + var(--safe-top)) 24px calc(28px + var(--safe-bot))}
 .pin-head{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:10px}
 .pin-head .logo{width:70px;height:70px;border-radius:20px;background:linear-gradient(135deg,#fff 0%,#EFE7FF 100%);display:grid;place-items:center;color:var(--primary);font-weight:800;font-size:30px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -149,41 +137,44 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .toast.error{background:var(--danger)}
 .hidden{display:none!important}
 .empty{text-align:center;padding:40px 20px;color:var(--text-2)}
-.empty .icon{font-size:40px;margin-bottom:10px;opacity:.4}
+.empty .icon{font-size:40px;margin-bottom:10px;opacity:.5}
 .empty .title{font-weight:700;margin-bottom:4px;color:var(--text)}
 .loading{text-align:center;padding:30px;color:var(--text-2);font-size:13px}
 .spinner{display:inline-block;width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.section-title{font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin:14px 4px 10px;display:flex;justify-content:space-between;align-items:center}
+.section-title{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.08em;margin:14px 4px 8px;display:flex;justify-content:space-between;align-items:center}
 .section-title .link{color:var(--primary);font-weight:600;text-transform:none;letter-spacing:0;cursor:pointer;font-size:12px}
-.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.alert-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;margin-bottom:8px;background:var(--warning-soft)}
-.alert-card.danger{background:var(--danger-soft)}
-.alert-card.info{background:var(--info-soft)}
-.alert-card .a-icon{font-size:20px;flex-shrink:0}
-.alert-card .a-body{flex:1;min-width:0}
-.alert-card .a-title{font-weight:700;font-size:13px}
-.alert-card .a-sub{font-size:12px;color:var(--text-2);margin-top:2px}
-.module-placeholder{padding:40px 20px;text-align:center;background:var(--card);border-radius:16px;box-shadow:0 2px 10px rgba(93,41,199,.06)}
-.module-placeholder .icon{font-size:42px;margin-bottom:12px}
-.module-placeholder h3{margin:0 0 6px;font-size:16px}
-.module-placeholder p{font-size:13px;color:var(--text-2);margin:0 0 16px;line-height:1.5}
+.tabs{display:flex;background:#fff;border-radius:12px;padding:4px;margin-bottom:12px;box-shadow:0 1px 6px rgba(93,41,199,.05)}
+.tab{flex:1;padding:9px;border-radius:9px;font-weight:700;font-size:13px;text-align:center;background:none;border:none;color:var(--text-2);cursor:pointer}
+.tab.active{background:var(--primary);color:#fff}
+.alert-row{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:12px;margin-bottom:8px;background:var(--warning-soft)}
+.alert-row.danger{background:var(--danger-soft)}
+.alert-row.info{background:var(--info-soft)}
+.alert-row.success{background:var(--success-soft)}
+.alert-row .a-icon{font-size:20px;flex-shrink:0}
+.alert-row .a-body{flex:1;min-width:0}
+.alert-row .a-title{font-weight:700;font-size:13px;line-height:1.35}
+.alert-row .a-sub{font-size:11px;color:var(--text-2);margin-top:2px;line-height:1.4}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.kv-box{background:#F1F5F9;border-radius:10px;padding:10px}
+.kv-box .k{font-size:10px;color:var(--text-2);text-transform:uppercase;font-weight:700;letter-spacing:.06em}
+.kv-box .v{font-size:16px;font-weight:800;margin-top:4px}
+.month-selector{display:flex;gap:4px;overflow-x:auto;padding:4px 14px 10px;margin:0 -14px;scrollbar-width:none}
+.month-selector::-webkit-scrollbar{display:none}
+.month-selector .m{padding:6px 12px;border-radius:8px;background:#fff;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2)}
+.month-selector .m.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 </style>
 </head>
 <body>
 
-<!-- PIN SCREEN -->
 <div id="pinScreen" class="pin-wrap">
   <div class="pin-head">
     <div class="logo">C</div>
     <h1>Ceraldi Gestionale</h1>
-    <div class="pin-sub">Inserisci il PIN per continuare</div>
+    <div class="pin-sub">Inserisci il PIN</div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;width:100%">
-    <div id="pinDots" class="pin-dots">
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-    </div>
+    <div id="pinDots" class="pin-dots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
     <div id="pinMsg" class="pin-msg"></div>
     <div id="pinPad" class="pin-pad">
       <button class="pin-key" data-k="1">1</button><button class="pin-key" data-k="2">2</button><button class="pin-key" data-k="3">3</button>
@@ -192,43 +183,35 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
       <button class="pin-key ghost" disabled></button><button class="pin-key" data-k="0">0</button><button class="pin-key" data-k="DEL">&#9003;</button>
     </div>
   </div>
-  <div style="color:rgba(255,255,255,.5);font-size:11px">v3.0 · Mobile Suite</div>
+  <div style="color:rgba(255,255,255,.5);font-size:11px">v4.0 - Mobile Suite</div>
 </div>
 
-<!-- DRAWER SIDEBAR -->
 <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
 <nav id="drawer" class="drawer">
   <div class="drawer-head">
     <div class="logo">C</div>
-    <div>
-      <h2>Ceraldi</h2>
-      <div class="sub">Gestionale Mobile</div>
-    </div>
+    <div><h2>Ceraldi</h2><div class="sub">Gestionale Mobile v4.0</div></div>
   </div>
   <div class="drawer-nav" id="drawerNav"></div>
-  <div class="drawer-foot">v3.0 · chat-8</div>
+  <div class="drawer-foot">impresasemplice.online</div>
 </nav>
 
-<!-- APP -->
 <div id="app" class="app hidden">
   <header class="topbar">
-    <button class="menu-btn" onclick="openDrawer()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
+    <button class="menu-btn" onclick="openDrawer()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <div class="title-wrap">
       <div class="title" id="topTitle">Dashboard</div>
-      <div class="title-sub" id="topSub">impresasemplice.online</div>
+      <div class="title-sub" id="topSub">Anno 2026</div>
     </div>
     <div class="actions">
       <button class="icon-btn" onclick="reloadModule()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg></button>
       <button class="icon-btn" onclick="lockApp()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
     </div>
   </header>
-  <main id="main"><!-- contenuto iniettato --></main>
+  <main id="main"></main>
   <button id="fab" class="fab hidden" onclick="onFab()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 </div>
 
-<!-- SHEET -->
 <div id="sheetOverlay" class="sheet-overlay" onclick="if(event.target===this)closeSheet()">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -238,37 +221,42 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 <div id="toast" class="toast"></div>
 <script>
 const PIN_HASH = '72e0837603bda6733feca2c118417d031d2df2c9574373df26c76c28a2c9c0b4';
-const LS = { token:'ceraldi_mobile_token', user:'ceraldi_mobile_user', api:'ceraldi_mobile_api', attempts:'ceraldi_mobile_pin_attempts', lockUntil:'ceraldi_mobile_pin_lock' };
+const LS = { token:'cm_token', api:'cm_api', attempts:'cm_pin_att', lockUntil:'cm_pin_lock', anno:'cm_anno' };
 let API_BASE = localStorage.getItem(LS.api) || 'https://impresasemplice.online';
 let TOKEN = localStorage.getItem(LS.token) || '';
+let ANNO = parseInt(localStorage.getItem(LS.anno)||'') || new Date().getFullYear();
 let pinBuffer = '';
 let currentModule = 'dashboard';
 let state = {};
 
 const $ = id => document.getElementById(id);
 const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n||0));
-const fmtDate = d => { if(!d) return '—'; try{const s=typeof d==='string'?d.slice(0,10):d;const[Y,M,D]=s.split('-');return D&&M&&Y?`${D}/${M}/${Y}`:s}catch{return d} };
+const num = n => new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n||0));
+const fmtDate = d => { if(!d) return '-'; try{const s=typeof d==='string'?d.slice(0,10):d;const[Y,M,D]=s.split('-');return D&&M&&Y?`${D}/${M}/${Y}`:s}catch{return d} };
+const fmtMonth = m => ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][m-1] || m;
 const debounce = (fn,ms=300)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
 const escapeHtml = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const haptic = (ms=10) => { if(navigator.vibrate) navigator.vibrate(ms); };
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 function toast(msg,type=''){const t=$('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast'+(type?' '+type:''),2800);}
 
-// ======== API ========
-async function api(path,opts={}){
+async function api(path, opts={}){
   const url = API_BASE.replace(/\/$/,'') + path;
   const headers = {'Content-Type':'application/json',...(opts.headers||{})};
-  if(TOKEN) headers['Authorization'] = 'Bearer '+TOKEN;
+  if(TOKEN) headers['Authorization']='Bearer '+TOKEN;
   const res = await fetch(url,{...opts,headers});
   if(!res.ok){let msg=`HTTP ${res.status}`;try{const j=await res.json();msg=j.detail||j.message||msg;}catch{}throw new Error(msg);}
-  return res.status===204?null:res.json();
+  if(res.status===204) return null;
+  const ct = res.headers.get('content-type')||'';
+  if(ct.includes('json')) return res.json();
+  return res.text();
 }
 
-// ======== PIN ========
+// ====== PIN ======
 function renderDots(){$('pinDots').querySelectorAll('.pin-dot').forEach((d,i)=>{d.classList.remove('err');d.classList.toggle('filled',i<pinBuffer.length);});}
 function pinError(msg){const dots=$('pinDots');dots.classList.add('pin-shake');dots.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('err'));const m=$('pinMsg');m.textContent=msg;m.className='pin-msg err';haptic([60,40,60]);setTimeout(()=>{dots.classList.remove('pin-shake');pinBuffer='';renderDots();m.textContent='';m.className='pin-msg';},900);}
 function isLocked(){const u=parseInt(localStorage.getItem(LS.lockUntil)||'0');return u>Date.now()?u:0;}
-function setLockTimer(){const u=isLocked();if(!u){enablePinPad(true);return;}enablePinPad(false);const s=Math.ceil((u-Date.now())/1000);$('pinMsg').innerHTML=`🔒 Bloccato · ${s}s`;$('pinMsg').className='pin-msg err';if(s>0)setTimeout(setLockTimer,1000);else{localStorage.removeItem(LS.lockUntil);localStorage.removeItem(LS.attempts);enablePinPad(true);$('pinMsg').textContent='';}}
+function setLockTimer(){const u=isLocked();if(!u){enablePinPad(true);return;}enablePinPad(false);const s=Math.ceil((u-Date.now())/1000);$('pinMsg').innerHTML=`Bloccato - ${s}s`;$('pinMsg').className='pin-msg err';if(s>0)setTimeout(setLockTimer,1000);else{localStorage.removeItem(LS.lockUntil);localStorage.removeItem(LS.attempts);enablePinPad(true);$('pinMsg').textContent='';}}
 function enablePinPad(on){$('pinPad').querySelectorAll('.pin-key').forEach(b=>{if(!b.classList.contains('ghost'))b.disabled=!on;});}
 async function onPinKey(k){
   if(isLocked())return;haptic(10);
@@ -277,13 +265,13 @@ async function onPinKey(k){
   pinBuffer+=k;renderDots();
   if(pinBuffer.length===6){
     const h = await sha256(pinBuffer);
-    if(h === PIN_HASH){
+    if(h===PIN_HASH){
       localStorage.removeItem(LS.attempts);localStorage.removeItem(LS.lockUntil);
-      $('pinMsg').textContent='✓ Accesso consentito';$('pinMsg').className='pin-msg ok';haptic(20);
-      setTimeout(()=>{$('pinScreen').classList.add('hidden');showApp();},250);
+      $('pinMsg').textContent='Accesso ok';$('pinMsg').className='pin-msg ok';haptic(20);
+      setTimeout(()=>{$('pinScreen').classList.add('hidden');showApp();},200);
     }else{
       let a=parseInt(localStorage.getItem(LS.attempts)||'0')+1;localStorage.setItem(LS.attempts,String(a));
-      if(a>=5){localStorage.setItem(LS.lockUntil,String(Date.now()+30000));pinError(`Troppi tentativi · 30s`);setTimeout(setLockTimer,500);}
+      if(a>=5){localStorage.setItem(LS.lockUntil,String(Date.now()+30000));pinError(`Troppi tentativi`);setTimeout(setLockTimer,500);}
       else pinError(`PIN errato (${a}/5)`);
     }
   }
@@ -292,24 +280,31 @@ document.querySelectorAll('#pinPad .pin-key').forEach(b=>{if(b.dataset.k)b.addEv
 document.addEventListener('keydown',e=>{if($('pinScreen').classList.contains('hidden'))return;if(/^[0-9]$/.test(e.key))onPinKey(e.key);else if(e.key==='Backspace')onPinKey('DEL');});
 function showPin(){pinBuffer='';renderDots();$('pinMsg').textContent='';$('pinMsg').className='pin-msg';$('pinScreen').classList.remove('hidden');$('app').classList.add('hidden');setLockTimer();}
 function lockApp(){$('app').classList.add('hidden');showPin();}
-function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.remove('hidden');try{$('topSub').textContent=new URL(API_BASE).host;}catch{$('topSub').textContent=API_BASE;}renderDrawer();goModule('dashboard');}
+function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.remove('hidden');renderDrawer();goModule('dashboard');}
 
-// ======== DRAWER ========
+// ====== MODULI ======
 const MODULES = [
-  {id:'dashboard',label:'Dashboard',group:'main',icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'},
-  {id:'fatture',label:'Fatture Ricevute',group:'passivo',icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/>'},
-  {id:'fornitori',label:'Fornitori',group:'passivo',icon:'<circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>'},
-  {id:'pagamenti',label:'Pagamenti & Assegni',group:'passivo',icon:'<rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>'},
-  {id:'cassa',label:'Prima Nota Cassa',group:'banca',icon:'<path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4z"/>'},
-  {id:'banca',label:'Prima Nota Banca',group:'banca',icon:'<path d="M3 9l9-6 9 6v1H3zM5 10v8M10 10v8M14 10v8M19 10v8M3 18h18v2H3z"/>'},
-  {id:'f24',label:'F24 & Scadenze',group:'fiscale',icon:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'},
-  {id:'corrispettivi',label:'Corrispettivi',group:'fiscale',icon:'<line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'},
-  {id:'dipendenti',label:'Dipendenti',group:'hr',icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'},
-  {id:'cedolini',label:'Cedolini',group:'hr',icon:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'},
-  {id:'documenti',label:'Documenti / Inbox',group:'docs',icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'},
-  {id:'alerts',label:'Alert & Anomalie',group:'docs',icon:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'},
+  {id:'dashboard', group:'main', icon:'📊', label:'Dashboard'},
+  {id:'prima-nota-cassa', group:'banca', icon:'💰', label:'Prima Nota Cassa'},
+  {id:'prima-nota-banca', group:'banca', icon:'🏦', label:'Prima Nota Banca'},
+  {id:'provvisori', group:'banca', icon:'⏳', label:'Prima Nota Provvisori'},
+  {id:'corrispettivi', group:'banca', icon:'🧾', label:'Corrispettivi'},
+  {id:'fatture', group:'passivo', icon:'📄', label:'Fatture Ricevute'},
+  {id:'fornitori', group:'passivo', icon:'🏢', label:'Fornitori'},
+  {id:'scadenze', group:'passivo', icon:'📅', label:'Scadenze'},
+  {id:'assegni', group:'passivo', icon:'🧷', label:'Assegni'},
+  {id:'f24', group:'fiscale', icon:'📋', label:'F24'},
+  {id:'iva', group:'fiscale', icon:'€', label:'IVA'},
+  {id:'commercialista', group:'fiscale', icon:'👔', label:'Commercialista'},
+  {id:'dipendenti', group:'hr', icon:'👥', label:'Dipendenti'},
+  {id:'cedolini', group:'hr', icon:'💼', label:'Cedolini'},
+  {id:'presenze', group:'hr', icon:'🕐', label:'Presenze'},
+  {id:'verbali', group:'altro', icon:'🚗', label:'Verbali / Noleggio'},
+  {id:'documenti', group:'altro', icon:'📂', label:'Documenti / Inbox'},
+  {id:'riconciliazione', group:'altro', icon:'🔗', label:'Riconciliazione'},
 ];
-const MODULE_GROUPS = {main:'Principale',passivo:'Ciclo Passivo',banca:'Banca & Cassa',fiscale:'Fiscale',hr:'Personale',docs:'Documenti'};
+const MODULE_GROUPS = {main:'Principale', banca:'Banca & Cassa', passivo:'Ciclo Passivo', fiscale:'Fiscale', hr:'Personale', altro:'Altri'};
+
 function renderDrawer(){
   const nav = $('drawerNav');
   let html = '';
@@ -319,479 +314,1175 @@ function renderDrawer(){
       html += `<div class="drawer-section">${MODULE_GROUPS[m.group]||m.group}</div>`;
       lastGroup = m.group;
     }
-    html += `<button class="drawer-item ${m.id===currentModule?'active':''}" data-mod="${m.id}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${m.icon}</svg>
-      <span>${m.label}</span>
-      <span class="count hidden" id="cnt-${m.id}"></span>
-    </button>`;
+    html += `<button class="drawer-item ${m.id===currentModule?'active':''}" data-mod="${m.id}"><span class="em">${m.icon}</span><span>${escapeHtml(m.label)}</span></button>`;
   }
   nav.innerHTML = html;
-  nav.querySelectorAll('.drawer-item').forEach(el=>{
-    el.onclick = () => { closeDrawer(); goModule(el.dataset.mod); };
-  });
+  nav.querySelectorAll('.drawer-item').forEach(el => { el.onclick = () => { closeDrawer(); goModule(el.dataset.mod); }; });
 }
 function openDrawer(){$('drawer').classList.add('show');$('drawerOverlay').classList.add('show');}
 function closeDrawer(){$('drawer').classList.remove('show');$('drawerOverlay').classList.remove('show');}
 
-// ======== ROUTER ========
 function goModule(id){
   currentModule = id;
   const mod = MODULES.find(m=>m.id===id);
   if(!mod) return;
   $('topTitle').textContent = mod.label;
+  $('topSub').textContent = 'Anno '+ANNO;
   document.querySelectorAll('.drawer-item').forEach(el=>el.classList.toggle('active', el.dataset.mod===id));
-  $('fab').classList.add('hidden');  // default: FAB nascosto
+  $('fab').classList.add('hidden');
   const main = $('main');
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  // Dispatch al renderer giusto
-  const fn = window['render_'+id];
-  if(typeof fn === 'function') fn(main).catch(e => renderError(main, e));
-  else renderPlaceholder(main, mod);
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico...</div>';
+  const fnName = 'render_'+id.replace(/-/g,'_');
+  const fn = window[fnName];
+  if(typeof fn === 'function'){
+    fn(main).catch(e => renderError(main,e,mod));
+  } else {
+    renderPlaceholder(main, mod);
+  }
 }
 function reloadModule(){ goModule(currentModule); }
 function renderPlaceholder(main, mod){
-  main.innerHTML = `<div class="module-placeholder">
-    <div class="icon">🚧</div>
-    <h3>${mod.label}</h3>
-    <p>Questo modulo sarà implementato nella prossima chat.<br>Per ora vedi gli altri moduli dal menu ☰</p>
-    <button class="btn btn-primary" onclick="goModule('dashboard')">Torna alla Dashboard</button>
+  main.innerHTML = `<div class="card" style="text-align:center;padding:30px">
+    <div style="font-size:42px;margin-bottom:12px">${mod.icon}</div>
+    <h3 style="margin:0 0 6px">${mod.label}</h3>
+    <p style="margin:0;font-size:13px;color:var(--text-2)">Modulo in preparazione.<br>Sarà disponibile a breve.</p>
   </div>`;
 }
-function renderError(main, e){
-  main.innerHTML = `<div class="module-placeholder">
-    <div class="icon">⚠️</div>
-    <h3>Dati non disponibili</h3>
-    <p>Il backend ha risposto: <b>${escapeHtml(e.message)}</b><br><br>Possibili cause: endpoint non configurato, autenticazione richiesta, o servizio momentaneamente giù.</p>
-    <button class="btn btn-primary" onclick="reloadModule()">Riprova</button>
+function renderError(main, e, mod){
+  main.innerHTML = `<div class="card" style="text-align:center;padding:30px">
+    <div style="font-size:36px;margin-bottom:10px">⚠️</div>
+    <h3 style="margin:0 0 6px">Dati non raggiungibili</h3>
+    <p style="margin:0 0 14px;font-size:12px;color:var(--text-2);word-break:break-word">${escapeHtml(e.message||'Errore')}</p>
+    <button class="btn btn-primary btn-sm" onclick="reloadModule()">Riprova</button>
   </div>`;
 }
 
-// ======== SHEET ========
 function openSheet(html){$('sheetBody').innerHTML=html;$('sheetOverlay').classList.add('show');document.body.style.overflow='hidden';}
 function closeSheet(){$('sheetOverlay').classList.remove('show');document.body.style.overflow='';}
 
-// ======== FAB ========
 function onFab(){
-  const handlers = { cassa:openAddCassa, banca:openAddBanca, fatture:null, assegni:null };
+  const handlers = {
+    'prima-nota-cassa': ()=>openNuovoMovimento('cassa'),
+    'prima-nota-banca': ()=>openNuovoMovimento('banca'),
+    'corrispettivi': openNuovoCorrispettivo,
+    'scadenze': openNuovaScadenza,
+    'fornitori': openNuovoFornitore,
+  };
   const h = handlers[currentModule];
-  if(h) h(); else toast('Azione non disponibile in questo modulo','error');
+  if(h) h(); else toast('Nessuna azione rapida qui','');
 }
 
-// ======== BOOT ========
+function getMesi(){ return [
+  {n:1,label:'Gen'},{n:2,label:'Feb'},{n:3,label:'Mar'},{n:4,label:'Apr'},{n:5,label:'Mag'},{n:6,label:'Giu'},
+  {n:7,label:'Lug'},{n:8,label:'Ago'},{n:9,label:'Set'},{n:10,label:'Ott'},{n:11,label:'Nov'},{n:12,label:'Dic'}
+]; }
+
 showPin();
 </script>
 <script>
 async function render_dashboard(main){
-  // Ogni chiamata è best-effort: se una fallisce, la ignoro
-  const [unpaid, overdue, aStats, assegniStats, alerts] = await Promise.all([
-    api('/api/invoices/unpaid?skip=0&limit=200').catch(()=>[]),
-    api('/api/invoices/overdue?skip=0&limit=500').catch(()=>[]),
-    api('/api/cash?skip=0&limit=500').catch(()=>[]),
-    api('/api/assegni/stats').catch(()=>({per_stato:{}})),
-    api('/api/alerts?limit=5').catch(()=>[]),
+  const [bilancio, confronto, statoR, scadenzePros, busteDP, f24DP] = await Promise.all([
+    api(`/api/dashboard/bilancio-istantaneo?anno=${ANNO}`).catch(()=>null),
+    api(`/api/dashboard/confronto-annuale?anno=${ANNO}`).catch(()=>null),
+    api(`/api/dashboard/stato-riconciliazione?anno=${ANNO}`).catch(()=>null),
+    api('/api/scadenze/prossime?giorni=30&limit=8').catch(()=>[]),
+    api('/api/paghe/buste-paga?stato=DA_PAGARE').catch(()=>[]),
+    api('/api/paghe/distinte-f24?stato=DA_PAGARE').catch(()=>[]),
   ]);
-  const lUnpaid = Array.isArray(unpaid)?unpaid:(unpaid.items||[]);
-  const lOverdue = Array.isArray(overdue)?overdue:(overdue.items||[]);
-  const lCash = Array.isArray(aStats)?aStats:(aStats.items||[]);
-  const unpaidTot = lUnpaid.reduce((s,i)=>s+Number(getResiduo(i)||0),0);
-  const cashEntr = lCash.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
-  const cashUsc  = lCash.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
-  const cashSaldo = cashEntr + cashUsc;
-  const perStato = (assegniStats||{}).per_stato||{};
-  const assVuoti = (perStato.vuoto||{}).count||0;
-  const assEmessi = (perStato.emesso||{}).count||0;
-  const lAlerts = Array.isArray(alerts)?alerts:(alerts.items||alerts.alerts||[]);
+  const lScad = Array.isArray(scadenzePros)?scadenzePros:(scadenzePros?.items||scadenzePros?.scadenze||[]);
+  const lBuste = Array.isArray(busteDP)?busteDP:(busteDP?.items||[]);
+  const lF24 = Array.isArray(f24DP)?f24DP:(f24DP?.items||[]);
+
+  // Ricavo/Costo/Utile da bilancio
+  const ric = bilancio?.ricavi || bilancio?.totale_ricavi || 0;
+  const cos = Math.abs(bilancio?.costi || bilancio?.totale_costi || 0);
+  const utile = bilancio?.utile || bilancio?.risultato || (ric - cos);
 
   main.innerHTML = `
     <div class="stats">
       <div class="stat accent">
-        <div class="label">Da pagare</div>
-        <div class="value">${lUnpaid.length}</div>
-        <div class="sub">${euro(unpaidTot)}</div>
+        <div class="label">Ricavi ${ANNO}</div>
+        <div class="value" style="font-size:18px">${euro(ric)}</div>
+        <div class="sub">${confronto?.variazione_percentuale?(confronto.variazione_percentuale>0?'+':'')+confronto.variazione_percentuale.toFixed(1)+'% vs anno prec.':''}</div>
       </div>
-      <div class="stat danger">
-        <div class="label">Scadute</div>
-        <div class="value">${lOverdue.length}</div>
-        <div class="sub">richiedono azione</div>
-      </div>
-      <div class="stat">
-        <div class="label">Cassa oggi</div>
-        <div class="value" style="color:${cashSaldo>=0?'var(--success)':'var(--danger)'}">${euro(cashSaldo)}</div>
-        <div class="sub">${lCash.length} movimenti</div>
-      </div>
-      <div class="stat">
-        <div class="label">Assegni</div>
-        <div class="value">${assVuoti + assEmessi}</div>
-        <div class="sub">${assVuoti} vuoti · ${assEmessi} emessi</div>
+      <div class="stat ${utile>=0?'success':'danger'}">
+        <div class="label">Utile ${ANNO}</div>
+        <div class="value" style="font-size:18px">${euro(utile)}</div>
+        <div class="sub">Costi: ${euro(cos)}</div>
       </div>
     </div>
+
+    <div class="stats three">
+      <div class="stat"><div class="label">Scadenze 30gg</div><div class="value" style="font-size:19px">${lScad.length}</div><div class="sub">prossime</div></div>
+      <div class="stat"><div class="label">Buste paga</div><div class="value" style="font-size:19px;color:var(--warning)">${lBuste.length}</div><div class="sub">da pagare</div></div>
+      <div class="stat"><div class="label">F24</div><div class="value" style="font-size:19px;color:var(--danger)">${lF24.length}</div><div class="sub">da pagare</div></div>
+    </div>
+
+    ${statoR ? `
+    <div class="card">
+      <h3>🔗 Riconciliazione</h3>
+      <div class="kv-grid">
+        <div class="kv-box"><div class="k">Fatture da riconciliare</div><div class="v">${statoR.fatture_da_riconciliare||statoR.invoices_pending||0}</div></div>
+        <div class="kv-box"><div class="k">Movimenti aperti</div><div class="v">${statoR.movimenti_aperti||statoR.movements_pending||0}</div></div>
+      </div>
+    </div>` : ''}
 
     <div class="card">
-      <h3>Azioni rapide</h3>
-      <div class="action-grid">
-        <button class="btn btn-ghost btn-sm" onclick="goModule('cassa')">💰 Nuova spesa cassa</button>
-        <button class="btn btn-ghost btn-sm" onclick="goModule('fatture')">📄 Paga fattura</button>
-        <button class="btn btn-ghost btn-sm" onclick="goModule('pagamenti')">🧾 Assegni</button>
-        <button class="btn btn-ghost btn-sm" onclick="goModule('f24')">⚠️ Scadenze F24</button>
+      <h3>⚡ Azioni rapide</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="goModule('prima-nota-cassa')">💰 Cassa</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('prima-nota-banca')">🏦 Banca</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('provvisori')">⏳ Provvisori</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('scadenze')">📅 Scadenze</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('fatture')">📄 Fatture</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('assegni')">🧷 Assegni</button>
       </div>
     </div>
 
-    ${lAlerts.length ? `
-      <div class="section-title">Alert recenti <span class="link" onclick="goModule('alerts')">Vedi tutti</span></div>
-      ${lAlerts.slice(0,3).map(a => `
-        <div class="alert-card ${a.severity==='danger'||a.priority==='high'?'danger':(a.severity==='info'?'info':'')}">
-          <div class="a-icon">⚠️</div>
+    ${lScad.length ? `
+      <div class="section-title">Prossime scadenze <span class="link" onclick="goModule('scadenze')">Tutte</span></div>
+      ${lScad.slice(0,5).map(s => {
+        const gg = s.giorni_mancanti ?? Math.floor((new Date(s.data_scadenza||s.data) - new Date())/86400000);
+        const cls = gg<0?'danger':(gg<7?'warning':'info');
+        return `<div class="alert-row ${cls==='danger'?'danger':(cls==='warning'?'':'info')}">
+          <div class="a-icon">${gg<0?'🚨':(gg<7?'⚠️':'📅')}</div>
           <div class="a-body">
-            <div class="a-title">${escapeHtml(a.title||a.message||a.descrizione||'Alert')}</div>
-            <div class="a-sub">${escapeHtml(a.category||a.tipo||'generico')}</div>
+            <div class="a-title">${escapeHtml(s.descrizione||s.tipo||'Scadenza')}</div>
+            <div class="a-sub">${fmtDate(s.data_scadenza||s.data)} · ${gg<0?`scaduta ${Math.abs(gg)}gg fa`:`tra ${gg}gg`} · ${euro(s.importo||0)}</div>
           </div>
-        </div>`).join('')}
-    ` : ''}
-
-    ${lUnpaid.length ? `
-      <div class="section-title">Prossime fatture da pagare <span class="link" onclick="goModule('fatture')">Tutte</span></div>
-      <div>${lUnpaid.slice(0,3).map(fatturaCardHTML).join('')}</div>
+        </div>`;
+      }).join('')}
     ` : ''}
   `;
-  main.querySelectorAll('.list-item[data-fattura]').forEach(el=>{
-    el.onclick = () => openFatturaSheet(decodeURIComponent(el.dataset.fattura));
-  });
 }
 </script><script>
-function getResiduo(f){if(f.residuo!=null)return f.residuo;const t=Number(f.importo_totale||f.totale||0);const p=Number(f.importo_pagato||f.pagato||0);return Math.max(0,t-p);}
-function getStatoFattura(f){const r=Number(getResiduo(f));const t=Number(f.importo_totale||f.totale||0);if(r<=0.01)return{label:'Pagata',cls:'success'};if(r<t)return{label:'Parziale',cls:'warning'};if(f.data_scadenza&&new Date(f.data_scadenza)<new Date())return{label:'Scaduta',cls:'danger'};return{label:'Da pagare',cls:'info'};}
-function fatturaCardHTML(f){const st=getStatoFattura(f);const sup=f.cedente_denominazione||f.supplier_name||f.fornitore_denominazione||'—';const num=f.numero_fattura||f.numero||'—';const res=getResiduo(f);const fid=f.id||f.invoice_key||f._id;return`<div class="list-item" data-fattura="${encodeURIComponent(fid)}"><div class="li-top"><div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(num)} · ${fmtDate(f.data_fattura)}</span></div><div class="li-amount">${euro(res)}</div></div><div class="li-bottom"><span class="badge ${st.cls}">${st.label}</span><span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div></div>`;}
+async function render_prima_nota_cassa(main){
+  state.pnc = state.pnc || {mese:null};
+  const params = new URLSearchParams({anno:String(ANNO)});
+  if(state.pnc.mese) params.set('mese', String(state.pnc.mese));
+  const data = await api(`/api/prima-nota/cassa?${params}`);
+  const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.cassa||[]);
 
+  const entr = movs.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const usc = movs.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const saldo = entr + usc;
+
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat success"><div class="label">Entrate</div><div class="value" style="font-size:17px">${euro(entr)}</div></div>
+      <div class="stat danger"><div class="label">Uscite</div><div class="value" style="font-size:17px">${euro(usc)}</div></div>
+      <div class="stat accent"><div class="label">Saldo</div><div class="value" style="font-size:17px">${euro(saldo)}</div></div>
+    </div>
+    <div class="month-selector">
+      <button class="m ${!state.pnc.mese?'active':''}" data-mese="">Anno</button>
+      ${getMesi().map(m=>`<button class="m ${state.pnc.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
+    </div>
+    <div class="section-title">Movimenti (${movs.length}) <span class="link" onclick="syncFatturePagate()">🔄 Sync fatture</span></div>
+    <div id="lstC">${movs.length ? movs.map(m=>{
+      const imp=Number(m.importo||0);const pos=imp>=0;
+      return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)} · ${escapeHtml(m.categoria||m.tipo||'')}</span></div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+        </div>
+        ${m.riferimento||m.note ? `<div class="li-bottom"><span class="li-meta">${escapeHtml(m.riferimento||m.note||'')}</span></div>`:''}
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">💰</div><div class="title">Nessun movimento cassa</div></div>'}</div>
+  `;
+  main.querySelectorAll('.month-selector .m').forEach(b=>{
+    b.onclick = ()=>{ state.pnc.mese = b.dataset.mese ? parseInt(b.dataset.mese) : null; render_prima_nota_cassa(main); };
+  });
+  main.querySelectorAll('.list-item[data-mov]').forEach(el=>{
+    el.onclick = ()=>openMovimentoSheet('cassa', JSON.parse(decodeURIComponent(el.dataset.mov)));
+  });
+  $('fab').classList.remove('hidden');
+}
+
+async function syncFatturePagate(){
+  if(!confirm(`Sincronizzare fatture pagate in cassa per l'anno ${ANNO}?`)) return;
+  try{
+    await api(`/api/prima-nota/cassa/sync-fatture-pagate?anno=${ANNO}`, {method:'POST'});
+    toast('Sync completata','success'); reloadModule();
+  }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+
+function openMovimentoSheet(tipo, m){
+  openSheet(`<h2>Movimento ${tipo}</h2>
+    <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(m.data)}</span></div>
+    <div class="kv"><span class="k">Descrizione</span><span class="v">${escapeHtml(m.descrizione||'-')}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="color:${Number(m.importo)>=0?'var(--success)':'var(--danger)'};font-weight:800">${euro(m.importo||0)}</span></div>
+    <div class="kv"><span class="k">Categoria</span><span class="v">${escapeHtml(m.categoria||'-')}</span></div>
+    ${m.tipo?`<div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(m.tipo)}</span></div>`:''}
+    ${m.riferimento?`<div class="kv"><span class="k">Riferimento</span><span class="v">${escapeHtml(m.riferimento)}</span></div>`:''}
+    ${m.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(m.note)}</span></div>`:''}
+    ${m.fattura_id?`<div class="kv"><span class="k">Fattura collegata</span><span class="v">${escapeHtml(String(m.fattura_id).slice(0,20))}</span></div>`:''}
+    <div style="margin-top:16px;display:grid;gap:8px">
+      ${m.id?`<button class="btn btn-danger btn-block" onclick="deleteMovimento('${tipo}','${m.id}')">🗑 Elimina</button>`:''}
+      <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+    </div>`);
+}
+
+async function deleteMovimento(tipo, id){
+  if(!confirm('Eliminare questo movimento?')) return;
+  try{
+    await api(`/api/prima-nota/${tipo}/${id}`, {method:'DELETE'});
+    toast('Movimento eliminato','success');closeSheet();reloadModule();
+  }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+
+function openNuovoMovimento(tipo){
+  openSheet(`<h2>Nuovo movimento ${tipo}</h2>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label>
+        <select id="nmTipo" class="select">
+          <option value="-1">Uscita</option>
+          <option value="1">Entrata</option>
+        </select>
+      </div>
+      <div class="field"><label>Importo (€)</label><input id="nmImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+    </div>
+    <div class="field"><label>Data</label><input id="nmData" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="field"><label>Descrizione</label><input id="nmDesc" class="input" placeholder="Es. Spesa caffè, Ricarica..."></div>
+    <div class="field"><label>Categoria</label><input id="nmCat" class="input" placeholder="Es. Spese minute"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaMovimento('${tipo}')">Salva</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+
+async function salvaMovimento(tipo){
+  const imp = parseFloat($('nmImp').value)||0;
+  const segno = parseInt($('nmTipo').value);
+  if(imp<=0) return toast('Importo non valido','error');
+  const body = {
+    tipo: tipo,
+    importo: imp*segno,
+    data: $('nmData').value,
+    descrizione: $('nmDesc').value.trim(),
+    categoria: $('nmCat').value.trim() || 'Manuale',
+  };
+  try{
+    await api(`/api/prima-nota/${tipo}`, {method:'POST', body:JSON.stringify(body)});
+    toast('Movimento salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+</script><script>
+async function render_prima_nota_banca(main){
+  state.pnb = state.pnb || {mese:null};
+  const params = new URLSearchParams({anno:String(ANNO)});
+  if(state.pnb.mese) params.set('mese', String(state.pnb.mese));
+  const data = await api(`/api/prima-nota/banca?${params}`);
+  const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.banca||[]);
+  const entr = movs.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const usc = movs.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const saldo = entr + usc;
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat success"><div class="label">Entrate</div><div class="value" style="font-size:17px">${euro(entr)}</div></div>
+      <div class="stat danger"><div class="label">Uscite</div><div class="value" style="font-size:17px">${euro(usc)}</div></div>
+      <div class="stat accent"><div class="label">Saldo</div><div class="value" style="font-size:17px">${euro(saldo)}</div></div>
+    </div>
+    <div class="month-selector">
+      <button class="m ${!state.pnb.mese?'active':''}" data-mese="">Anno</button>
+      ${getMesi().map(m=>`<button class="m ${state.pnb.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
+    </div>
+    <div class="section-title">Movimenti (${movs.length})</div>
+    <div id="lstB">${movs.length ? movs.map(m=>{
+      const imp=Number(m.importo||0);const pos=imp>=0;
+      return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)} · ${escapeHtml(m.categoria||m.tipo||'')}</span></div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+        </div>
+        ${m.riferimento||m.note ? `<div class="li-bottom"><span class="li-meta">${escapeHtml(m.riferimento||m.note||'')}</span></div>`:''}
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">🏦</div><div class="title">Nessun movimento banca</div></div>'}</div>
+  `;
+  main.querySelectorAll('.month-selector .m').forEach(b=>{
+    b.onclick = ()=>{ state.pnb.mese = b.dataset.mese ? parseInt(b.dataset.mese) : null; render_prima_nota_banca(main); };
+  });
+  main.querySelectorAll('.list-item[data-mov]').forEach(el=>{
+    el.onclick = ()=>openMovimentoSheet('banca', JSON.parse(decodeURIComponent(el.dataset.mov)));
+  });
+  $('fab').classList.remove('hidden');
+}
+</script><script>
+async function render_provvisori(main){
+  const data = await api(`/api/prima-nota/provvisori?anno=${ANNO}`);
+  const list = Array.isArray(data)?data:(data.items||data.provvisori||[]);
+  const tot = list.reduce((s,p)=>s+Number(p.importo||0),0);
+
+  main.innerHTML = `
+    <div class="stats">
+      <div class="stat warning"><div class="label">Provvisori</div><div class="value">${list.length}</div><div class="sub">fatture da classificare</div></div>
+      <div class="stat"><div class="label">Totale</div><div class="value" style="font-size:17px">${euro(tot)}</div></div>
+    </div>
+    ${list.length ? `
+      <button class="btn btn-success btn-block" style="margin-bottom:12px" onclick="confermaTuttiProvvisori()">✅ Conferma tutti con suggerimento</button>
+    `:''}
+    <div class="section-title">Da classificare</div>
+    <div id="lstP">${list.length ? list.map(p=>{
+      const sug = p.suggerimento||'';
+      const badge = sug==='cassa'?'<span class="badge info">🏪 Cassa</span>':(sug==='banca'?'<span class="badge primary">🏦 Banca</span>':(sug==='sospesa'?'<span class="badge danger">⏳ Sospesa</span>':'<span class="badge neutral">-</span>'));
+      return `<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(p.fornitore||'-')}<span class="small">N. ${escapeHtml(p.fattura_numero||'-')} · ${fmtDate(p.fattura_data)}</span></div>
+          <div class="li-amount">${euro(p.importo||0)}</div>
+        </div>
+        <div class="li-bottom">
+          ${badge}
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn btn-sm" style="background:#F1F5F9;color:#475569;padding:4px 8px;font-size:11px" onclick="confermaProvvisorio('${encodeURIComponent(p.fattura_id)}','cassa')">🏪</button>
+            <button class="btn btn-sm" style="background:#F1F5F9;color:#475569;padding:4px 8px;font-size:11px" onclick="confermaProvvisorio('${encodeURIComponent(p.fattura_id)}','banca')">🏦</button>
+            <button class="btn btn-sm" style="background:#F1F5F9;color:#475569;padding:4px 8px;font-size:11px" onclick="confermaProvvisorio('${encodeURIComponent(p.fattura_id)}','sospesa')">⏳</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">✅</div><div class="title">Nessun provvisorio</div></div>'}</div>
+  `;
+}
+
+async function confermaProvvisorio(fidEnc, metodo){
+  const fid = decodeURIComponent(fidEnc);
+  try{
+    await api('/api/prima-nota/provvisori/conferma', {method:'POST', body:JSON.stringify({fattura_id:fid, metodo})});
+    toast(`Confermato: ${metodo}`,'success');haptic(30);reloadModule();
+  }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+
+async function confermaTuttiProvvisori(){
+  if(!confirm('Confermare tutti con il metodo suggerito?')) return;
+  const data = await api(`/api/prima-nota/provvisori?anno=${ANNO}`).catch(()=>[]);
+  const list = Array.isArray(data)?data:(data.items||[]);
+  let ok=0, ko=0;
+  for(const p of list){
+    try{ await api('/api/prima-nota/provvisori/conferma', {method:'POST', body:JSON.stringify({fattura_id:p.fattura_id, metodo:p.suggerimento||'banca'})}); ok++; }
+    catch{ ko++; }
+  }
+  toast(`${ok} confermati · ${ko} errori`, ko?'error':'success');
+  reloadModule();
+}
+</script><script>
+async function render_corrispettivi(main){
+  const data = await api(`/api/corrispettivi?anno=${ANNO}&limit=2500`);
+  const list = Array.isArray(data)?data:(data.items||data.corrispettivi||[]);
+  const totale = list.reduce((s,c)=>s+Number(c.totale||c.incasso||(Number(c.contanti||0)+Number(c.pos||c.elettronico||0))),0);
+  const tCont = list.reduce((s,c)=>s+Number(c.contanti||0),0);
+  const tPOS = list.reduce((s,c)=>s+Number(c.pos||c.elettronico||0),0);
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat accent"><div class="label">Totale ${ANNO}</div><div class="value" style="font-size:16px">${euro(totale)}</div><div class="sub">${list.length} giornate</div></div>
+      <div class="stat"><div class="label">Contanti</div><div class="value" style="font-size:16px;color:var(--success)">${euro(tCont)}</div></div>
+      <div class="stat"><div class="label">POS</div><div class="value" style="font-size:16px;color:var(--info)">${euro(tPOS)}</div></div>
+    </div>
+    <div class="section-title">Giornate (ultime 60)</div>
+    <div>${list.length ? list.slice(0,60).map(c=>{
+      const co=Number(c.contanti||0); const po=Number(c.pos||c.elettronico||0); const tot = Number(c.totale||c.incasso||(co+po));
+      return `<div class="list-item" data-id="${c.id||c._id||''}">
+        <div class="li-top">
+          <div class="li-title">${fmtDate(c.data)}<span class="small">Contanti ${euro(co)} · POS ${euro(po)}</span></div>
+          <div class="li-amount positive">${euro(tot)}</div>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">🧾</div><div class="title">Nessun corrispettivo</div></div>'}</div>
+  `;
+  $('fab').classList.remove('hidden');
+}
+
+function openNuovoCorrispettivo(){
+  openSheet(`<h2>Nuovo corrispettivo</h2>
+    <div class="field"><label>Data</label><input id="corrData" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="field-row">
+      <div class="field"><label>Contanti (€)</label><input id="corrCont" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+      <div class="field"><label>POS (€)</label><input id="corrPos" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="salvaCorrispettivo()">Salva</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+
+async function salvaCorrispettivo(){
+  const body = {
+    data: $('corrData').value,
+    contanti: parseFloat($('corrCont').value)||0,
+    pos: parseFloat($('corrPos').value)||0,
+  };
+  if(!body.data) return toast('Data richiesta','error');
+  if(body.contanti+body.pos<=0) return toast('Importo mancante','error');
+  try{
+    await api('/api/corrispettivi', {method:'POST', body:JSON.stringify(body)});
+    toast('Corrispettivo salvato','success');closeSheet();reloadModule();
+  }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+</script><script>
 async function render_fatture(main){
-  state.fatture = state.fatture || {filter:'unpaid', list:[]};
+  state.fat = state.fat || {filt:'unpaid', srch:''};
   main.innerHTML = `
     <div class="search-bar">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="srchF" type="search" placeholder="Cerca fornitore, numero…">
+      <input id="srchF" type="search" placeholder="Cerca fornitore o numero..." value="${escapeHtml(state.fat.srch)}">
     </div>
     <div class="chips">
-      <div class="chip ${state.fatture.filter==='unpaid'?'active':''}" data-ff="unpaid">Da pagare</div>
-      <div class="chip ${state.fatture.filter==='overdue'?'active':''}" data-ff="overdue">Scadute</div>
-      <div class="chip ${state.fatture.filter==='all'?'active':''}" data-ff="all">Tutte</div>
+      <div class="chip ${state.fat.filt==='unpaid'?'active':''}" data-f="unpaid">Da pagare</div>
+      <div class="chip ${state.fat.filt==='overdue'?'active':''}" data-f="overdue">Scadute</div>
+      <div class="chip ${state.fat.filt==='paid'?'active':''}" data-f="paid">Pagate</div>
+      <div class="chip ${state.fat.filt==='all'?'active':''}" data-f="all">Tutte</div>
     </div>
-    <div id="listF"><div class="loading"><span class="spinner"></span>Carico…</div></div>`;
-  main.querySelectorAll('.chip[data-ff]').forEach(c=>{c.onclick=()=>{state.fatture.filter=c.dataset.ff;render_fatture(main);};});
-  let path = '/api/invoices/unpaid?skip=0&limit=500';
-  if(state.fatture.filter==='overdue') path='/api/invoices/overdue?skip=0&limit=500';
-  if(state.fatture.filter==='all') path='/api/invoices/list?skip=0&limit=500';
+    <div id="lstF"><div class="loading"><span class="spinner"></span>Carico...</div></div>
+  `;
+  main.querySelectorAll('.chip[data-f]').forEach(c=>{ c.onclick = ()=>{ state.fat.filt = c.dataset.f; render_fatture(main); }; });
+  let path;
+  if(state.fat.filt==='unpaid') path=`/api/invoices/unpaid?anno=${ANNO}&skip=0&limit=500`;
+  else if(state.fat.filt==='overdue') path=`/api/invoices/overdue?anno=${ANNO}&skip=0&limit=500`;
+  else if(state.fat.filt==='paid') path=`/api/invoices/list?anno=${ANNO}&paid=true&skip=0&limit=500`;
+  else path=`/api/invoices/list?anno=${ANNO}&skip=0&limit=500`;
   const data = await api(path);
-  state.fatture.list = Array.isArray(data)?data:(data.items||[]);
+  const list = Array.isArray(data)?data:(data.items||[]);
   const renderList = ()=>{
     const q=($('srchF').value||'').toLowerCase().trim();
-    let list=state.fatture.list;
-    if(q)list=list.filter(f=>[f.cedente_denominazione,f.supplier_name,f.numero_fattura,f.numero].filter(Boolean).join(' ').toLowerCase().includes(q));
-    $('listF').innerHTML = list.length?list.map(fatturaCardHTML).join(''):'<div class="empty"><div class="icon">📭</div><div class="title">Nessuna fattura</div></div>';
-    $('listF').querySelectorAll('.list-item[data-fattura]').forEach(el=>{el.onclick=()=>openFatturaSheet(decodeURIComponent(el.dataset.fattura));});
+    state.fat.srch = q;
+    let filt = list;
+    if(q) filt = list.filter(f=>{
+      const t = [f.cedente_denominazione,f.supplier_name,f.fornitore_denominazione,f.numero_fattura,f.numero,f.cedente_piva].filter(Boolean).join(' ').toLowerCase();
+      return t.includes(q);
+    });
+    $('lstF').innerHTML = filt.length ? filt.map(fatturaCardHTML).join('') : '<div class="empty"><div class="icon">📭</div><div class="title">Nessuna fattura</div></div>';
+    $('lstF').querySelectorAll('.list-item[data-fid]').forEach(el=>{ el.onclick = ()=>openFatturaSheet(decodeURIComponent(el.dataset.fid)); });
   };
   renderList();
   $('srchF').addEventListener('input', debounce(renderList,200));
 }
 
+function getResiduo(f){if(f.residuo!=null)return f.residuo;const t=Number(f.importo_totale||f.totale||0);const p=Number(f.importo_pagato||f.pagato||0);return Math.max(0,t-p);}
+function fatturaCardHTML(f){
+  const res=getResiduo(f);
+  const sup=f.cedente_denominazione||f.supplier_name||f.fornitore_denominazione||'-';
+  const num=f.numero_fattura||f.numero||'-';
+  const fid=f.id||f.invoice_key||f._id||'';
+  const pag=res<=0.01;
+  const scad=!pag&&f.data_scadenza&&new Date(f.data_scadenza)<new Date();
+  const badge=pag?'<span class="badge success">Pagata</span>':(scad?'<span class="badge danger">Scaduta</span>':'<span class="badge info">Da pagare</span>');
+  return `<div class="list-item" data-fid="${encodeURIComponent(fid)}">
+    <div class="li-top">
+      <div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(num)} · ${fmtDate(f.data_fattura)}</span></div>
+      <div class="li-amount">${euro(pag?(f.importo_totale||f.totale||0):res)}</div>
+    </div>
+    <div class="li-bottom">${badge}<span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div>
+  </div>`;
+}
+
 async function openFatturaSheet(fid){
-  openSheet('<div class="loading"><span class="spinner"></span>Carico…</div>');
+  openSheet('<div class="loading"><span class="spinner"></span>Carico...</div>');
   try{
     const f = await api('/api/invoices/'+encodeURIComponent(fid));
-    const sup=f.cedente_denominazione||f.supplier_name||'—';const num=f.numero_fattura||f.numero||'—';
-    const tot=Number(f.importo_totale||f.totale||0);const pag=Number(f.importo_pagato||f.pagato||0);const res=getResiduo(f);const st=getStatoFattura(f);
+    const sup=f.cedente_denominazione||f.supplier_name||'-';
+    const num=f.numero_fattura||f.numero||'-';
+    const tot=Number(f.importo_totale||f.totale||0);
+    const pag=Number(f.importo_pagato||f.pagato||0);
+    const res=getResiduo(f);
     $('sheetBody').innerHTML=`<h2>Fattura</h2>
       <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(sup)}</span></div>
+      <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(f.cedente_piva||f.supplier_piva||'-')}</span></div>
       <div class="kv"><span class="k">Numero</span><span class="v">${escapeHtml(num)}</span></div>
       <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(f.data_fattura)}</span></div>
       ${f.data_scadenza?`<div class="kv"><span class="k">Scadenza</span><span class="v">${fmtDate(f.data_scadenza)}</span></div>`:''}
       <div class="kv"><span class="k">Totale</span><span class="v">${euro(tot)}</span></div>
-      <div class="kv"><span class="k">Pagato</span><span class="v">${euro(pag)}</span></div>
-      <div class="kv"><span class="k">Residuo</span><span class="v" style="color:var(--danger);font-weight:800">${euro(res)}</span></div>
-      <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${st.cls}">${st.label}</span></span></div>
-      ${res>0.01?`<div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border)">
-        <h3>💳 Registra pagamento</h3>
-        <div class="field"><label>Importo</label><input id="payA" class="input" type="number" step="0.01" value="${res.toFixed(2)}" inputmode="decimal"></div>
-        <div class="field"><label>Metodo</label><select id="payM" class="select"><option value="banca">Banca</option><option value="assegno">Assegno</option><option value="cassa">Cassa</option><option value="carta">Carta</option></select></div>
-        <button class="btn btn-success btn-block" onclick="registraPagamento('${encodeURIComponent(f.id||f.invoice_key||f._id)}')">✅ Registra pagamento</button>
-      </div>`:''}
+      <div class="kv"><span class="k">Pagato</span><span class="v" style="color:var(--success)">${euro(pag)}</span></div>
+      <div class="kv"><span class="k">Residuo</span><span class="v" style="color:${res>0.01?'var(--danger)':'var(--success)'};font-weight:800">${euro(res)}</span></div>
+      ${res>0.01?`
+        <div style="margin-top:14px;padding-top:14px;border-top:2px solid var(--border)">
+          <h3>💳 Registra pagamento</h3>
+          <div class="field"><label>Importo</label><input id="pagA" class="input" type="number" step="0.01" value="${res.toFixed(2)}" inputmode="decimal"></div>
+          <div class="field"><label>Metodo</label><select id="pagM" class="select">
+            <option value="bonifico">Bonifico</option><option value="contanti">Contanti</option>
+            <option value="assegno">Assegno</option><option value="carta">Carta</option><option value="altro">Altro</option>
+          </select></div>
+          <div class="field"><label>Data pagamento</label><input id="pagD" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+          <button class="btn btn-success btn-block" onclick="registraPagamentoFattura('${encodeURIComponent(fid)}')">Registra</button>
+        </div>`:''}
       <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`;
   }catch(e){$('sheetBody').innerHTML=`<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;}
 }
-async function registraPagamento(fidEnc){
-  const fid=decodeURIComponent(fidEnc);const amount=parseFloat($('payA').value);const method=$('payM').value;
-  if(!(amount>0))return toast('Importo non valido','error');
-  try{await api(`/api/invoices/${encodeURIComponent(fid)}/payment?${new URLSearchParams({amount:String(amount),payment_method:method})}`,{method:'POST'});toast('Pagamento registrato','success');haptic(30);closeSheet();reloadModule();}
-  catch(e){toast('Errore: '+e.message,'error');}
+
+async function registraPagamentoFattura(fidEnc){
+  const fid = decodeURIComponent(fidEnc);
+  const amount = parseFloat($('pagA').value);
+  const method = $('pagM').value;
+  const data = $('pagD').value;
+  if(!(amount>0)) return toast('Importo non valido','error');
+  try{
+    await api('/api/pagamenti/registra', {method:'POST', body:JSON.stringify({fattura_id:fid, importo:amount, metodo:method, data, note:`Registrato da mobile`})});
+    toast('Pagamento registrato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){
+    // fallback a endpoint vecchio
+    try{
+      await api(`/api/invoices/${encodeURIComponent(fid)}/payment?amount=${amount}&payment_method=${method}`, {method:'POST'});
+      toast('Pagamento registrato','success');haptic(30);closeSheet();reloadModule();
+    }catch(e2){ toast('Errore: '+e.message,'error'); }
+  }
 }
 </script><script>
 async function render_fornitori(main){
-  main.innerHTML = `<div class="search-bar">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input id="srchFor" type="search" placeholder="Cerca per nome o P.IVA…"></div>
-    <div id="listFor"><div class="loading"><span class="spinner"></span>Carico…</div></div>`;
-  try{
-    const data = await api('/api/fornitori?skip=0&limit=500');
-    const list = Array.isArray(data)?data:(data.items||data.fornitori||[]);
-    const render = ()=>{
-      const q=($('srchFor').value||'').toLowerCase().trim();
-      let filt=list;
-      if(q)filt=list.filter(f=>{const t=[f.anagrafica?.ragione_sociale, f.ragione_sociale, f.denominazione, f.anagrafica?.piva, f.piva].filter(Boolean).join(' ').toLowerCase();return t.includes(q);});
-      $('listFor').innerHTML = filt.length?filt.slice(0,100).map(f=>{
-        const name = f.anagrafica?.ragione_sociale || f.ragione_sociale || f.denominazione || '—';
-        const piva = f.anagrafica?.piva || f.piva || '';
-        const metodo = f.metodo_pagamento || f.pagamento || null;
-        const badge = metodo ? `<span class="badge info">${escapeHtml(metodo)}</span>` : `<span class="badge warning">Metodo mancante</span>`;
-        return `<div class="list-item" data-for="${encodeURIComponent(f.id||f._id||'')}">
-          <div class="li-top"><div class="li-title">${escapeHtml(name)}<span class="small">${piva?'P.IVA '+piva:''}</span></div></div>
-          <div class="li-bottom">${badge}<span class="li-meta">${f.num_fatture?f.num_fatture+' fatture':''}</span></div>
-        </div>`;
-      }).join(''):'<div class="empty"><div class="icon">🏢</div><div class="title">Nessun fornitore</div></div>';
-      $('listFor').querySelectorAll('.list-item[data-for]').forEach(el=>{el.onclick=()=>openFornitoreSheet(decodeURIComponent(el.dataset.for), list);});
-    };
-    render();
-    $('srchFor').addEventListener('input', debounce(render,200));
-  }catch(e){throw e;}
-}
-function openFornitoreSheet(fid, list){
-  const f = list.find(x=>(x.id||x._id)===fid);
-  if(!f){toast('Fornitore non trovato','error');return;}
-  const a = f.anagrafica || f;
-  openSheet(`<h2>${escapeHtml(a.ragione_sociale||f.denominazione||'Fornitore')}</h2>
-    <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(a.piva||f.piva||'—')}</span></div>
-    <div class="kv"><span class="k">C.F.</span><span class="v">${escapeHtml(a.cf||f.cf||'—')}</span></div>
-    <div class="kv"><span class="k">PEC</span><span class="v">${escapeHtml(a.pec||f.pec||'—')}</span></div>
-    <div class="kv"><span class="k">Email</span><span class="v">${escapeHtml(a.email||f.email||'—')}</span></div>
-    <div class="kv"><span class="k">Telefono</span><span class="v">${escapeHtml(a.telefono||f.telefono||'—')}</span></div>
-    <div class="kv"><span class="k">Metodo pagamento</span><span class="v">${escapeHtml(f.metodo_pagamento||f.pagamento||'non definito')}</span></div>
-    <div class="kv"><span class="k">IBAN</span><span class="v" style="font-size:11px">${escapeHtml(f.iban||a.iban||'—')}</span></div>
-    <div style="margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
-}
-</script><script>
-async function render_cassa(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/cash?skip=0&limit=200');
-    const list = Array.isArray(data)?data:(data.items||[]);
-    const entr = list.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
-    const usc = list.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
-    const saldo = entr + usc;
-    main.innerHTML = `<div class="stats">
-        <div class="stat ${saldo>=0?'success':'danger'}"><div class="label">Saldo cassa</div><div class="value">${euro(saldo)}</div><div class="sub">${list.length} movimenti</div></div>
-        <div class="stat"><div class="label">Entrate · Uscite</div><div class="value" style="font-size:15px;line-height:1.3">+${euro(entr)}<br>${euro(usc)}</div></div>
-      </div>
-      <div class="section-title">Movimenti recenti <span class="link" onclick="openAddCassa()">+ Nuovo</span></div>
-      <div id="listC">${list.length?list.slice(0,50).map(m=>{
-        const imp=Number(m.importo||0);const pos=imp>=0;
-        const desc=m.descrizione||m.causale||'—';
-        return `<div class="list-item"><div class="li-top">
-          <div class="li-title">${escapeHtml(desc)}<span class="small">${fmtDate(m.data||m.data_movimento)} · ${escapeHtml(m.causale||m.categoria||'')}</span></div>
-          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
-        </div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">💰</div><div class="title">Nessun movimento</div></div>'}</div>`;
-    $('fab').classList.remove('hidden');
-  }catch(e){throw e;}
-}
-function openAddCassa(){
-  openSheet(`<h2>💰 Nuovo movimento cassa</h2>
-    <div class="field-row">
-      <div class="field"><label>Tipo</label><select id="cType" class="select"><option value="-1">Uscita</option><option value="1">Entrata</option></select></div>
-      <div class="field"><label>Importo (€)</label><input id="cImp" class="input" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0,00"></div>
+  state.forn = state.forn || {srch:''};
+  main.innerHTML = `
+    <div class="search-bar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="srchFor" type="search" placeholder="Cerca nome, P.IVA..." value="${escapeHtml(state.forn.srch)}">
     </div>
-    <div class="field"><label>Descrizione</label><input id="cDesc" class="input" placeholder="Es. Caffè · Ricarica registratore · ..."></div>
-    <div class="field"><label>Causale</label><select id="cCaus" class="select">
-      <option>Spesa minuta</option><option>Acquisto merce</option><option>Rimborso</option>
-      <option>Versamento da banca</option><option>Prelievo per banca</option><option>Altro</option>
-    </select></div>
-    <div class="field"><label>Data</label><input id="cData" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-    <button class="btn btn-primary btn-block" onclick="salvaCassa()">Salva movimento</button>
+    <div id="lstFor"><div class="loading"><span class="spinner"></span>Carico...</div></div>
+  `;
+  const data = await api(`/api/suppliers?anno=${ANNO}&limit=500`).catch(async()=>{
+    return api('/api/fornitori?limit=500');
+  });
+  const list = Array.isArray(data)?data:(data.items||data.fornitori||data.suppliers||[]);
+  const render = ()=>{
+    const q = ($('srchFor').value||'').toLowerCase().trim();
+    state.forn.srch = q;
+    let filt = list;
+    if(q) filt = list.filter(f=>{
+      const t = [f.ragione_sociale,f.denominazione,f.anagrafica?.ragione_sociale,f.piva,f.partita_iva,f.anagrafica?.piva].filter(Boolean).join(' ').toLowerCase();
+      return t.includes(q);
+    });
+    $('lstFor').innerHTML = filt.length ? filt.slice(0,200).map(f=>{
+      const name = f.ragione_sociale||f.denominazione||f.anagrafica?.ragione_sociale||'-';
+      const piva = f.piva||f.partita_iva||f.anagrafica?.piva||'';
+      const metodo = f.metodo_pagamento||f.pagamento||'';
+      const tot = f.fatturato_anno||f.totale_fatturato||0;
+      return `<div class="list-item" data-forn='${encodeURIComponent(JSON.stringify(f))}'>
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(name)}<span class="small">${piva?'P.IVA '+piva:''}</span></div>
+          ${tot>0?`<div class="li-amount" style="font-size:13px">${euro(tot)}</div>`:''}
+        </div>
+        <div class="li-bottom">
+          ${metodo?`<span class="badge info">${escapeHtml(metodo)}</span>`:'<span class="badge warning">Metodo mancante</span>'}
+          <span class="li-meta">${f.num_fatture?f.num_fatture+' fatt.':''}</span>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">🏢</div><div class="title">Nessun fornitore</div></div>';
+    $('lstFor').querySelectorAll('.list-item[data-forn]').forEach(el=>{
+      el.onclick = ()=>openFornitoreSheet(JSON.parse(decodeURIComponent(el.dataset.forn)));
+    });
+  };
+  render();
+  $('srchFor').addEventListener('input', debounce(render,200));
+  $('fab').classList.remove('hidden');
+}
+
+async function openFornitoreSheet(f){
+  const name = f.ragione_sociale||f.denominazione||f.anagrafica?.ragione_sociale||'-';
+  const piva = f.piva||f.partita_iva||f.anagrafica?.piva||'';
+  openSheet(`<h2>${escapeHtml(name)}</h2>
+    <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(piva||'-')}</span></div>
+    <div class="kv"><span class="k">C.F.</span><span class="v">${escapeHtml(f.cf||f.codice_fiscale||f.anagrafica?.cf||'-')}</span></div>
+    <div class="kv"><span class="k">PEC</span><span class="v" style="font-size:12px">${escapeHtml(f.pec||f.anagrafica?.pec||'-')}</span></div>
+    <div class="kv"><span class="k">Email</span><span class="v" style="font-size:12px">${escapeHtml(f.email||f.anagrafica?.email||'-')}</span></div>
+    <div class="kv"><span class="k">Telefono</span><span class="v">${escapeHtml(f.telefono||f.anagrafica?.telefono||'-')}</span></div>
+    <div class="kv"><span class="k">Città</span><span class="v">${escapeHtml(f.citta||f.anagrafica?.citta||'-')}</span></div>
+    <div class="kv"><span class="k">Metodo pagamento</span><span class="v">${escapeHtml(f.metodo_pagamento||'non definito')}</span></div>
+    <div class="kv"><span class="k">IBAN</span><span class="v" style="font-size:11px">${escapeHtml(f.iban||f.anagrafica?.iban||'-')}</span></div>
+    <div id="fornFatt" style="margin-top:14px"></div>
+    <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+  // Carica fatture del fornitore
+  if(f.id){
+    try{
+      const ff = await api(`/api/suppliers/${f.id}/fatture?anno=${ANNO}`);
+      const ll = Array.isArray(ff)?ff:(ff.items||[]);
+      if(ll.length){
+        $('fornFatt').innerHTML = `<div style="border-top:1px solid var(--border);padding-top:10px">
+          <div class="section-title" style="margin:0 0 8px">Fatture ${ANNO} (${ll.length})</div>
+          ${ll.slice(0,20).map(f=>`<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #F1F5F9">
+            <span>${escapeHtml(f.numero_fattura||f.numero||'-')} · ${fmtDate(f.data_fattura)}</span>
+            <span style="font-weight:700">${euro(f.importo_totale||f.totale||0)}</span>
+          </div>`).join('')}
+        </div>`;
+      }
+    }catch{}
+  }
+}
+
+function openNuovoFornitore(){
+  openSheet(`<h2>Nuovo fornitore</h2>
+    <div class="field"><label>Ragione sociale</label><input id="nfRs" class="input" placeholder="Denominazione"></div>
+    <div class="field"><label>P.IVA</label><input id="nfPiva" class="input" inputmode="numeric" placeholder="11 cifre"></div>
+    <div class="field"><label>C.F.</label><input id="nfCf" class="input"></div>
+    <div class="field"><label>PEC</label><input id="nfPec" class="input" type="email"></div>
+    <div class="field"><label>Metodo pagamento</label>
+      <select id="nfMet" class="select">
+        <option value="">- seleziona -</option>
+        <option value="bonifico">Bonifico</option><option value="contanti">Contanti</option>
+        <option value="assegno">Assegno</option><option value="rid">RID/SDD</option><option value="altro">Altro</option>
+      </select></div>
+    <div class="field"><label>IBAN</label><input id="nfIban" class="input" placeholder="IT..."></div>
+    <button class="btn btn-primary btn-block" onclick="salvaFornitore()">Salva</button>
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
 }
-async function salvaCassa(){
-  const imp = parseFloat($('cImp').value)||0;
-  const tipo = parseInt($('cType').value);
-  if(imp<=0)return toast('Importo non valido','error');
+
+async function salvaFornitore(){
   const body = {
-    importo: imp*tipo,
-    descrizione: $('cDesc').value.trim(),
-    causale: $('cCaus').value,
-    data: $('cData').value,
-    origine: 'mobile'
+    ragione_sociale: $('nfRs').value.trim(),
+    partita_iva: $('nfPiva').value.trim(),
+    codice_fiscale: $('nfCf').value.trim(),
+    pec: $('nfPec').value.trim(),
+    metodo_pagamento: $('nfMet').value,
+    iban: $('nfIban').value.trim(),
   };
+  if(!body.ragione_sociale) return toast('Ragione sociale obbligatoria','error');
   try{
-    await api('/api/cash',{method:'POST',body:JSON.stringify(body)});
-    toast('Movimento registrato','success');haptic(30);closeSheet();reloadModule();
+    await api('/api/suppliers', {method:'POST', body:JSON.stringify(body)});
+    toast('Fornitore creato','success');closeSheet();reloadModule();
+  }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+</script><script>
+async function render_scadenze(main){
+  state.scd = state.scd || {filt:'aperte'};
+  const params = new URLSearchParams({anno:String(ANNO)});
+  if(state.scd.filt==='aperte') params.set('completata','false');
+  else if(state.scd.filt==='completate') params.set('completata','true');
+  const data = await api(`/api/scadenze/tutte?${params}`).catch(()=>api(`/api/scadenze?anno=${ANNO}`));
+  const list = Array.isArray(data)?data:(data.items||data.scadenze||[]);
+  const aperte = list.filter(s=>!s.completata && !s.data_completamento);
+  const scadute = aperte.filter(s=>s.data_scadenza && new Date(s.data_scadenza)<new Date());
+  const totAp = aperte.reduce((s,x)=>s+Number(x.importo||0),0);
+
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat accent"><div class="label">Aperte</div><div class="value">${aperte.length}</div><div class="sub">${euro(totAp)}</div></div>
+      <div class="stat danger"><div class="label">Scadute</div><div class="value">${scadute.length}</div></div>
+      <div class="stat"><div class="label">Totali</div><div class="value">${list.length}</div></div>
+    </div>
+    <div class="chips">
+      <div class="chip ${state.scd.filt==='aperte'?'active':''}" data-f="aperte">Aperte</div>
+      <div class="chip ${state.scd.filt==='completate'?'active':''}" data-f="completate">Completate</div>
+      <div class="chip ${state.scd.filt==='tutte'?'active':''}" data-f="tutte">Tutte</div>
+    </div>
+    <div id="lstS">${list.length ? list.map(s=>{
+      const gg = s.data_scadenza ? Math.floor((new Date(s.data_scadenza)-new Date())/86400000) : null;
+      const cls = s.completata?'success':(gg!==null&&gg<0?'danger':(gg!==null&&gg<7?'warning':'info'));
+      const badge = s.completata?'<span class="badge success">✓ Completata</span>':(gg!==null&&gg<0?`<span class="badge danger">Scaduta ${Math.abs(gg)}gg</span>`:(gg!==null?`<span class="badge ${cls}">Tra ${gg}gg</span>`:'<span class="badge neutral">-</span>'));
+      return `<div class="list-item" data-scd='${encodeURIComponent(JSON.stringify(s))}'>
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(s.descrizione||s.tipo||'Scadenza')}<span class="small">${fmtDate(s.data_scadenza)}</span></div>
+          <div class="li-amount">${euro(s.importo||0)}</div>
+        </div>
+        <div class="li-bottom">${badge}<span class="li-meta">${escapeHtml(s.categoria||s.tipo||'')}</span></div>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">📅</div><div class="title">Nessuna scadenza</div></div>'}</div>
+  `;
+  main.querySelectorAll('.chip[data-f]').forEach(c=>{c.onclick = ()=>{state.scd.filt=c.dataset.f;render_scadenze(main);};});
+  main.querySelectorAll('.list-item[data-scd]').forEach(el=>{
+    el.onclick = ()=>openScadenzaSheet(JSON.parse(decodeURIComponent(el.dataset.scd)));
+  });
+  $('fab').classList.remove('hidden');
+}
+
+function openScadenzaSheet(s){
+  openSheet(`<h2>Scadenza</h2>
+    <div class="kv"><span class="k">Descrizione</span><span class="v">${escapeHtml(s.descrizione||'-')}</span></div>
+    <div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(s.tipo||s.categoria||'-')}</span></div>
+    <div class="kv"><span class="k">Data scadenza</span><span class="v">${fmtDate(s.data_scadenza)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800">${euro(s.importo||0)}</span></div>
+    ${s.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(s.note)}</span></div>`:''}
+    <div style="margin-top:16px;display:grid;gap:8px">
+      ${!s.completata?`<button class="btn btn-success btn-block" onclick="completaScadenza('${s.id||s._id}')">✅ Segna come completata</button>`:''}
+      <button class="btn btn-danger btn-block" onclick="eliminaScadenza('${s.id||s._id}')">🗑 Elimina</button>
+      <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+    </div>`);
+}
+
+async function completaScadenza(id){
+  try{await api(`/api/scadenze/completa/${id}`,{method:'PUT'});toast('Completata','success');closeSheet();reloadModule();}
+  catch(e){toast('Errore: '+e.message,'error');}
+}
+async function eliminaScadenza(id){
+  if(!confirm('Eliminare questa scadenza?')) return;
+  try{await api(`/api/scadenze/${id}`,{method:'DELETE'});toast('Eliminata','success');closeSheet();reloadModule();}
+  catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function openNuovaScadenza(){
+  openSheet(`<h2>Nuova scadenza</h2>
+    <div class="field"><label>Descrizione</label><input id="nsDesc" class="input" placeholder="Es. Bollo auto"></div>
+    <div class="field"><label>Tipo</label>
+      <select id="nsTipo" class="select">
+        <option value="bollo">Bollo auto</option><option value="assicurazione">Assicurazione</option>
+        <option value="mutuo">Mutuo</option><option value="canone">Canone</option>
+        <option value="contributi">Contributi</option><option value="altro">Altro</option>
+      </select></div>
+    <div class="field-row">
+      <div class="field"><label>Data</label><input id="nsData" class="input" type="date"></div>
+      <div class="field"><label>Importo (€)</label><input id="nsImp" class="input" type="number" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>Note</label><textarea id="nsNote" class="textarea" placeholder="Facoltativo"></textarea></div>
+    <button class="btn btn-primary btn-block" onclick="salvaScadenza()">Crea scadenza</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+
+async function salvaScadenza(){
+  const body = {
+    descrizione:$('nsDesc').value.trim(), tipo:$('nsTipo').value,
+    data_scadenza:$('nsData').value, importo:parseFloat($('nsImp').value)||0,
+    note:$('nsNote').value.trim(),
+  };
+  if(!body.descrizione||!body.data_scadenza) return toast('Descrizione e data obbligatorie','error');
+  try{await api('/api/scadenze/crea',{method:'POST',body:JSON.stringify(body)});toast('Scadenza creata','success');closeSheet();reloadModule();}
+  catch(e){toast('Errore: '+e.message,'error');}
+}
+</script><script>
+async function render_assegni(main){
+  state.asg = state.asg || {stato:''};
+  const stats = await api(`/api/assegni/stats?anno=${ANNO}`).catch(()=>({per_stato:{}}));
+  const per = stats?.per_stato||{};
+  const params = new URLSearchParams({anno:String(ANNO), limit:'500'});
+  if(state.asg.stato) params.set('stato', state.asg.stato);
+  const list = await api(`/api/assegni?${params}`);
+  const data = Array.isArray(list)?list:(list.items||[]);
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat"><div class="label">Vuoti</div><div class="value">${per.vuoto?.count||0}</div></div>
+      <div class="stat warning"><div class="label">Emessi</div><div class="value">${per.emesso?.count||0}</div><div class="sub">${euro(per.emesso?.totale||0)}</div></div>
+      <div class="stat success"><div class="label">Incassati</div><div class="value">${per.incassato?.count||0}</div></div>
+    </div>
+    <div class="chips">
+      <div class="chip ${!state.asg.stato?'active':''}" data-s="">Tutti</div>
+      <div class="chip ${state.asg.stato==='vuoto'?'active':''}" data-s="vuoto">Vuoti</div>
+      <div class="chip ${state.asg.stato==='compilato'?'active':''}" data-s="compilato">Compilati</div>
+      <div class="chip ${state.asg.stato==='emesso'?'active':''}" data-s="emesso">Emessi</div>
+      <div class="chip ${state.asg.stato==='incassato'?'active':''}" data-s="incassato">Incassati</div>
+      <div class="chip ${state.asg.stato==='annullato'?'active':''}" data-s="annullato">Annullati</div>
+    </div>
+    <div>${data.length ? data.map(a=>{
+      const s=a.stato||'vuoto';
+      const col={vuoto:'neutral',compilato:'info',emesso:'warning',incassato:'success',annullato:'danger'}[s]||'neutral';
+      return `<div class="list-item" data-id="${encodeURIComponent(a.id||a.numero)}">
+        <div class="li-top">
+          <div class="li-title">N. ${escapeHtml(a.numero||'-')}<span class="small">${escapeHtml(a.beneficiario||'nessun beneficiario')}</span></div>
+          <div class="li-amount">${a.importo!=null?euro(a.importo):'-'}</div>
+        </div>
+        <div class="li-bottom"><span class="badge ${col}">${s}</span><span class="li-meta">${a.data_emissione?'Emesso '+fmtDate(a.data_emissione):''}</span></div>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">🧷</div><div class="title">Nessun assegno</div></div>'}</div>
+  `;
+  main.querySelectorAll('.chip[data-s]').forEach(c=>{c.onclick=()=>{state.asg.stato=c.dataset.s;render_assegni(main);};});
+  main.querySelectorAll('.list-item[data-id]').forEach(el=>{el.onclick=()=>openAssegnoSheet(decodeURIComponent(el.dataset.id));});
+}
+
+async function openAssegnoSheet(aid){
+  openSheet('<div class="loading"><span class="spinner"></span>Carico...</div>');
+  try{
+    const a = await api('/api/assegni/'+encodeURIComponent(aid));
+    const stato = a.stato||'vuoto';
+    $('sheetBody').innerHTML = `<h2>Assegno N. ${escapeHtml(a.numero||'-')}</h2>
+      <div class="kv"><span class="k">Stato</span><span class="v">${stato}</span></div>
+      <div class="kv"><span class="k">Beneficiario</span><span class="v">${escapeHtml(a.beneficiario||'-')}</span></div>
+      <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800">${a.importo!=null?euro(a.importo):'-'}</span></div>
+      <div class="kv"><span class="k">Causale</span><span class="v">${escapeHtml(a.causale||'-')}</span></div>
+      <div class="kv"><span class="k">Data emissione</span><span class="v">${fmtDate(a.data_emissione)}</span></div>
+      ${a.fattura_collegata?`<div class="kv"><span class="k">Fattura</span><span class="v" style="font-size:11px">${escapeHtml(String(a.numero_fattura||a.fattura_collegata))}</span></div>`:''}
+      <div style="margin-top:14px;display:grid;gap:8px">
+        ${stato==='vuoto'?`<button class="btn btn-primary btn-block" onclick="compilaAssegno('${encodeURIComponent(aid)}')">✏️ Compila</button>`:''}
+        ${stato==='compilato'?`<button class="btn btn-warning btn-block" onclick="azioneAssegno('${encodeURIComponent(aid)}','emetti')">📤 Emetti</button>`:''}
+        ${stato==='emesso'?`<button class="btn btn-success btn-block" onclick="azioneAssegno('${encodeURIComponent(aid)}','incassa')">💰 Incassa</button>`:''}
+        ${stato!=='annullato'&&stato!=='incassato'?`<button class="btn btn-danger btn-block" onclick="azioneAssegno('${encodeURIComponent(aid)}','annulla')">⛔ Annulla</button>`:''}
+        <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+      </div>`;
+  }catch(e){$('sheetBody').innerHTML=`<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;}
+}
+
+function compilaAssegno(aidEnc){
+  const aid = decodeURIComponent(aidEnc);
+  openSheet(`<h2>Compila assegno</h2>
+    <div class="field"><label>Beneficiario</label><input id="caBen" class="input"></div>
+    <div class="field"><label>Importo (€)</label><input id="caImp" class="input" type="number" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>Causale</label><input id="caCau" class="input"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaCompilazione('${encodeURIComponent(aid)}')">💾 Salva</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+
+async function salvaCompilazione(aidEnc){
+  const aid = decodeURIComponent(aidEnc);
+  try{
+    await api('/api/assegni/'+encodeURIComponent(aid), {method:'PUT', body:JSON.stringify({
+      beneficiario:$('caBen').value.trim(), importo:parseFloat($('caImp').value)||null, causale:$('caCau').value.trim(), stato:'compilato'
+    })});
+    toast('Salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+async function azioneAssegno(aidEnc, az){
+  const aid = decodeURIComponent(aidEnc);
+  const conf = {emetti:'Emettere?',incassa:'Incassare?',annulla:'Annullare?'};
+  if(!confirm(conf[az])) return;
+  try{
+    await api(`/api/assegni/${encodeURIComponent(aid)}/${az}`, {method:'POST', body:JSON.stringify({})});
+    toast('Fatto','success');haptic(30);closeSheet();reloadModule();
   }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
-async function render_banca(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/estratto-conto-movimenti?skip=0&limit=100').catch(()=>api('/api/bank/statements?skip=0&limit=100'));
-    const list = Array.isArray(data)?data:(data.items||data.movimenti||[]);
-    const entr = list.filter(m=>Number(m.importo||m.amount)>0).reduce((s,m)=>s+Number(m.importo||m.amount||0),0);
-    const usc = list.filter(m=>Number(m.importo||m.amount)<0).reduce((s,m)=>s+Number(m.importo||m.amount||0),0);
-    main.innerHTML = `<div class="stats three">
-        <div class="stat"><div class="label">Entrate</div><div class="value" style="color:var(--success);font-size:17px">${euro(entr)}</div></div>
-        <div class="stat"><div class="label">Uscite</div><div class="value" style="color:var(--danger);font-size:17px">${euro(usc)}</div></div>
-        <div class="stat"><div class="label">Saldo</div><div class="value" style="font-size:17px">${euro(entr+usc)}</div></div>
-      </div>
-      <div class="section-title">Ultimi movimenti</div>
-      <div>${list.length?list.slice(0,50).map(m=>{
-        const imp=Number(m.importo||m.amount||0);const pos=imp>=0;
-        const desc=m.descrizione||m.description||m.causale||'Movimento';
-        const stato=m.stato||m.status||'';
-        const badge = stato ? `<span class="badge ${stato==='riconciliato'?'success':(stato==='da_verificare'?'warning':'neutral')}">${escapeHtml(stato)}</span>` : '';
-        return `<div class="list-item"><div class="li-top">
-          <div class="li-title">${escapeHtml(desc)}<span class="small">${fmtDate(m.data||m.data_movimento||m.date)}</span></div>
-          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
-        </div><div class="li-bottom">${badge}<span class="li-meta"></span></div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">🏦</div><div class="title">Nessun movimento</div></div>'}</div>`;
-  }catch(e){throw e;}
+async function render_f24(main){
+  const data = await api(`/api/f24?anno=${ANNO}&limit=200`).catch(()=>api('/api/f24?limit=200'));
+  const list = Array.isArray(data)?data:(data.items||[]);
+  const paganti = list.filter(f=>!f.pagato && !f.data_pagamento);
+  const scaduti = paganti.filter(f=>f.data_scadenza && new Date(f.data_scadenza)<new Date());
+  const totOpen = paganti.reduce((s,f)=>s+Number(f.importo||0),0);
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat accent"><div class="label">Aperti</div><div class="value">${paganti.length}</div><div class="sub">${euro(totOpen)}</div></div>
+      <div class="stat danger"><div class="label">Scaduti</div><div class="value">${scaduti.length}</div></div>
+      <div class="stat success"><div class="label">Pagati</div><div class="value">${list.length-paganti.length}</div></div>
+    </div>
+    <div class="section-title">F24 ${ANNO}</div>
+    <div>${list.length ? list.map(f=>{
+      const pag = f.pagato||f.data_pagamento;
+      const scad = !pag&&f.data_scadenza&&new Date(f.data_scadenza)<new Date();
+      const badge = pag?'<span class="badge success">Pagato</span>':(scad?'<span class="badge danger">Scaduto</span>':'<span class="badge warning">Aperto</span>');
+      return `<div class="list-item" data-id='${encodeURIComponent(JSON.stringify(f))}'>
+        <div class="li-top">
+          <div class="li-title">F24 ${escapeHtml(f.periodo||`${f.mese||''}/${f.anno||''}`||'-')}<span class="small">${f.codici_tributo?'Trib: '+escapeHtml(String(f.codici_tributo).slice(0,40)):(f.descrizione?escapeHtml(f.descrizione.slice(0,40)):'')}</span></div>
+          <div class="li-amount">${euro(f.importo||0)}</div>
+        </div>
+        <div class="li-bottom">${badge}<span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">📋</div><div class="title">Nessun F24</div></div>'}</div>
+  `;
+  main.querySelectorAll('.list-item[data-id]').forEach(el=>{
+    el.onclick = ()=>openF24Sheet(JSON.parse(decodeURIComponent(el.dataset.id)));
+  });
+}
+function openF24Sheet(f){
+  openSheet(`<h2>F24</h2>
+    <div class="kv"><span class="k">Periodo</span><span class="v">${escapeHtml(f.periodo||`${f.mese||''}/${f.anno||''}`)}</span></div>
+    <div class="kv"><span class="k">Scadenza</span><span class="v">${fmtDate(f.data_scadenza)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800">${euro(f.importo||0)}</span></div>
+    <div class="kv"><span class="k">Codici tributo</span><span class="v" style="font-size:11px">${escapeHtml(String(f.codici_tributo||'-').slice(0,80))}</span></div>
+    ${f.data_pagamento?`<div class="kv"><span class="k">Pagato il</span><span class="v">${fmtDate(f.data_pagamento)}</span></div>`:''}
+    ${f.quietanza?`<div class="kv"><span class="k">Quietanza</span><span class="v">${escapeHtml(f.quietanza)}</span></div>`:''}
+    <div style="margin-top:14px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
 }
 </script><script>
-async function render_f24(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/f24?skip=0&limit=100');
-    const list = Array.isArray(data)?data:(data.items||[]);
-    const totOpen = list.filter(f=>!f.pagato&&!f.data_pagamento).reduce((s,f)=>s+Number(f.importo||0),0);
-    const scaduti = list.filter(f=>!f.pagato&&f.data_scadenza&&new Date(f.data_scadenza)<new Date()).length;
-    main.innerHTML = `<div class="stats">
-        <div class="stat accent"><div class="label">F24 aperti</div><div class="value">${list.filter(f=>!f.pagato).length}</div><div class="sub">${euro(totOpen)}</div></div>
-        <div class="stat danger"><div class="label">Scaduti</div><div class="value">${scaduti}</div><div class="sub">non pagati</div></div>
+async function render_iva(main){
+  state.iva = state.iva || {mese: null};
+  const annuale = state.iva.mese ? null : await api(`/api/iva/annual/${ANNO}`).catch(()=>null);
+  const mensile = state.iva.mese ? await api(`/api/iva/monthly/${ANNO}/${state.iva.mese}`).catch(()=>null) : null;
+  const data = mensile || annuale || {};
+
+  main.innerHTML = `
+    <div class="month-selector">
+      <button class="m ${!state.iva.mese?'active':''}" data-mese="">Anno</button>
+      ${getMesi().map(m=>`<button class="m ${state.iva.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
+    </div>
+    <div class="stats">
+      <div class="stat accent">
+        <div class="label">IVA a debito</div>
+        <div class="value" style="font-size:17px">${euro(data.iva_debito||data.iva_vendite||0)}</div>
       </div>
-      <div class="section-title">F24 recenti</div>
-      <div>${list.length?list.slice(0,30).map(f=>{
-        const pagato = f.pagato||f.data_pagamento;
-        const scaduto = !pagato&&f.data_scadenza&&new Date(f.data_scadenza)<new Date();
-        const badge = pagato?'<span class="badge success">Pagato</span>':(scaduto?'<span class="badge danger">Scaduto</span>':'<span class="badge warning">Aperto</span>');
-        return `<div class="list-item"><div class="li-top">
-          <div class="li-title">F24 ${escapeHtml(f.periodo||f.mese+'/'+f.anno||'')}<span class="small">${f.codici_tributo?'Tributi: '+escapeHtml(String(f.codici_tributo).slice(0,40)):'—'}</span></div>
-          <div class="li-amount">${euro(f.importo||0)}</div>
-        </div><div class="li-bottom">${badge}<span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">📋</div><div class="title">Nessun F24</div></div>'}</div>`;
-  }catch(e){throw e;}
+      <div class="stat success">
+        <div class="label">IVA a credito</div>
+        <div class="value" style="font-size:17px">${euro(data.iva_credito||data.iva_acquisti||0)}</div>
+      </div>
+    </div>
+    <div class="stats one">
+      <div class="stat ${(data.saldo||data.iva_da_versare)>=0?'danger':'success'}">
+        <div class="label">${state.iva.mese?`${fmtMonth(state.iva.mese)} ${ANNO}`:`Anno ${ANNO}`}</div>
+        <div class="value">${euro(data.saldo||data.iva_da_versare||((data.iva_debito||0)-(data.iva_credito||0)))}</div>
+        <div class="sub">${(data.saldo||data.iva_da_versare||0)>=0?'da versare':'a credito'}</div>
+      </div>
+    </div>
+    ${data.dettaglio?`<div class="card"><h3>Dettaglio</h3><pre style="font-size:11px;overflow-x:auto">${escapeHtml(JSON.stringify(data.dettaglio,null,2))}</pre></div>`:''}
+  `;
+  main.querySelectorAll('.month-selector .m').forEach(b=>{
+    b.onclick=()=>{state.iva.mese = b.dataset.mese?parseInt(b.dataset.mese):null; render_iva(main);};
+  });
+}
+</script><script>
+async function render_commercialista(main){
+  state.comm = state.comm || {mese: new Date().getMonth()+1};
+  const [primaNota, fatture, alert] = await Promise.all([
+    api(`/api/commercialista/prima-nota-cassa/${ANNO}/${state.comm.mese}`).catch(()=>null),
+    api(`/api/commercialista/fatture-cassa/${ANNO}/${state.comm.mese}`).catch(()=>null),
+    api('/api/commercialista/alert-status').catch(()=>null),
+  ]);
+  main.innerHTML = `
+    <div class="month-selector">
+      ${getMesi().map(m=>`<button class="m ${state.comm.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
+    </div>
+    ${alert?`<div class="alert-row ${alert.severity==='high'||alert.priority==='high'?'danger':'info'}">
+      <div class="a-icon">📤</div>
+      <div class="a-body">
+        <div class="a-title">${escapeHtml(alert.message||alert.title||'Stato invio')}</div>
+        <div class="a-sub">${alert.giorni_dall_ultimo_invio?'Ultimo invio: '+alert.giorni_dall_ultimo_invio+' giorni fa':'-'}</div>
+      </div>
+    </div>`:''}
+    <div class="stats">
+      <div class="stat"><div class="label">Prima nota cassa ${fmtMonth(state.comm.mese)}</div><div class="value" style="font-size:18px">${primaNota?.totale_movimenti||primaNota?.count||0}</div><div class="sub">${euro(primaNota?.totale||0)}</div></div>
+      <div class="stat"><div class="label">Fatture cassa</div><div class="value" style="font-size:18px">${fatture?.totale_fatture||fatture?.count||0}</div><div class="sub">${euro(fatture?.totale||0)}</div></div>
+    </div>
+    <div class="card">
+      <h3>📤 Export mensile</h3>
+      <p class="muted" style="margin:0 0 10px">Invia al commercialista i movimenti e le fatture cassa del mese selezionato.</p>
+      <button class="btn btn-primary btn-block" onclick="segnaInviataComm()">Segna come inviata</button>
+    </div>
+  `;
+  main.querySelectorAll('.month-selector .m').forEach(b=>{
+    b.onclick=()=>{state.comm.mese=parseInt(b.dataset.mese); render_commercialista(main);};
+  });
+}
+
+async function segnaInviataComm(){
+  if(!confirm(`Segnare come inviata al commercialista?`)) return;
+  try{await api('/api/commercialista/segna-inviata',{method:'POST',body:JSON.stringify({anno:ANNO,mese:state.comm.mese})});toast('Inviata','success');reloadModule();}
+  catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_dipendenti(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/dipendenti?skip=0&limit=200');
-    const list = Array.isArray(data)?data:(data.items||data.dipendenti||[]);
-    const att = list.filter(d=>d.stato==='attivo'||d.is_active).length;
-    const ces = list.filter(d=>d.stato==='cessato'||!d.is_active).length;
-    main.innerHTML = `<div class="stats">
-        <div class="stat accent"><div class="label">Totale</div><div class="value">${list.length}</div><div class="sub">in organico</div></div>
-        <div class="stat success"><div class="label">Attivi</div><div class="value">${att}</div><div class="sub">${ces} cessati</div></div>
+  state.dip = state.dip || {srch:''};
+  main.innerHTML = `
+    <div class="search-bar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="srchD" type="search" placeholder="Cerca dipendente..." value="${escapeHtml(state.dip.srch)}">
+    </div>
+    <div id="lstD"><div class="loading"><span class="spinner"></span>Carico...</div></div>
+  `;
+  const data = await api('/api/dipendenti?limit=500');
+  const list = Array.isArray(data)?data:(data.items||data.dipendenti||[]);
+  const att = list.filter(d=>d.stato==='attivo'||d.is_active||(!d.data_cessazione&&!d.cessato));
+  const ces = list.length - att.length;
+  const render = ()=>{
+    const q = ($('srchD').value||'').toLowerCase().trim();
+    state.dip.srch = q;
+    let filt = list;
+    if(q) filt = list.filter(d=>{const t=[d.cognome,d.nome,d.nome_completo,d.codice_fiscale,d.cf].filter(Boolean).join(' ').toLowerCase();return t.includes(q);});
+    $('lstD').innerHTML = `
+      <div class="stats">
+        <div class="stat success"><div class="label">Attivi</div><div class="value">${att.length}</div></div>
+        <div class="stat"><div class="label">Cessati</div><div class="value">${ces}</div></div>
       </div>
-      <div class="section-title">Elenco dipendenti</div>
-      <div>${list.length?list.map(d=>{
-        const nome = `${d.cognome||''} ${d.nome||''}`.trim() || d.nome_completo || '—';
-        const attivo = d.stato==='attivo'||d.is_active;
-        return `<div class="list-item"><div class="li-top">
-          <div class="li-title">${escapeHtml(nome)}<span class="small">${escapeHtml(d.mansione||d.ruolo||'—')}</span></div>
-        </div><div class="li-bottom">${attivo?'<span class="badge success">Attivo</span>':'<span class="badge neutral">Cessato</span>'}<span class="li-meta">${d.iban_cedolino?'IBAN OK':(d.iban?'IBAN':'No IBAN')}</span></div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">👥</div><div class="title">Nessun dipendente</div></div>'}</div>`;
-  }catch(e){throw e;}
+      <div class="section-title">Elenco (${filt.length})</div>
+      ${filt.length ? filt.map(d=>{
+        const nome = `${d.cognome||''} ${d.nome||''}`.trim() || d.nome_completo || '-';
+        const attivo = d.stato==='attivo'||d.is_active||(!d.data_cessazione&&!d.cessato);
+        return `<div class="list-item" data-dip='${encodeURIComponent(JSON.stringify(d))}'>
+          <div class="li-top">
+            <div class="li-title">${escapeHtml(nome)}<span class="small">${escapeHtml(d.mansione||d.ruolo||'-')}</span></div>
+          </div>
+          <div class="li-bottom">
+            ${attivo?'<span class="badge success">Attivo</span>':'<span class="badge neutral">Cessato</span>'}
+            <span class="li-meta">${d.iban_cedolino?'IBAN ✓':(d.iban?'IBAN':'No IBAN')}</span>
+          </div>
+        </div>`;
+      }).join('') : '<div class="empty"><div class="icon">👥</div><div class="title">Nessun dipendente</div></div>'}
+    `;
+    $('lstD').querySelectorAll('.list-item[data-dip]').forEach(el=>{
+      el.onclick = ()=>openDipendenteSheet(JSON.parse(decodeURIComponent(el.dataset.dip)));
+    });
+  };
+  render();
+  $('srchD').addEventListener('input', debounce(render,200));
+}
+
+async function openDipendenteSheet(d){
+  const nome = `${d.cognome||''} ${d.nome||''}`.trim() || d.nome_completo || '-';
+  openSheet(`<h2>${escapeHtml(nome)}</h2>
+    <div class="kv"><span class="k">C.F.</span><span class="v">${escapeHtml(d.codice_fiscale||d.cf||'-')}</span></div>
+    <div class="kv"><span class="k">Mansione</span><span class="v">${escapeHtml(d.mansione||d.ruolo||'-')}</span></div>
+    <div class="kv"><span class="k">Contratto</span><span class="v">${escapeHtml(d.tipo_contratto||d.contratto||'-')}</span></div>
+    <div class="kv"><span class="k">Assunto</span><span class="v">${fmtDate(d.data_assunzione)}</span></div>
+    ${d.data_cessazione?`<div class="kv"><span class="k">Cessato</span><span class="v">${fmtDate(d.data_cessazione)}</span></div>`:''}
+    <div class="kv"><span class="k">IBAN cedolino</span><span class="v" style="font-size:11px">${escapeHtml(d.iban_cedolino||d.iban||'-')}</span></div>
+    <div class="kv"><span class="k">Tel.</span><span class="v">${escapeHtml(d.telefono||'-')}</span></div>
+    <div id="dipDetails" style="margin-top:12px"><div class="loading"><span class="spinner"></span></div></div>
+    <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+  if(d.id){
+    const [ced, sf] = await Promise.all([
+      api(`/api/cedolini/dipendente/${d.id}?anno=${ANNO}`).catch(()=>[]),
+      api(`/api/giustificativi/dipendente/${d.id}/saldo-ferie?anno=${ANNO}`).catch(()=>null),
+    ]);
+    const lc = Array.isArray(ced)?ced:(ced.items||[]);
+    $('dipDetails').innerHTML = `
+      ${sf?`<div class="card" style="padding:12px"><h3 style="font-size:13px">🏖️ Saldo ferie/permessi ${ANNO}</h3>
+        <div class="kv-grid">
+          <div class="kv-box"><div class="k">Ferie residue</div><div class="v" style="font-size:14px">${sf.ferie_residue||0}</div></div>
+          <div class="kv-box"><div class="k">Permessi</div><div class="v" style="font-size:14px">${sf.permessi_residui||0}</div></div>
+        </div></div>`:''}
+      ${lc.length?`<div class="card" style="padding:12px"><h3 style="font-size:13px">💼 Cedolini ${ANNO} (${lc.length})</h3>
+        ${lc.slice(0,6).map(c=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #F1F5F9">
+          <span>${escapeHtml(c.mese+'/'+c.anno||c.periodo||'-')}</span>
+          <span style="font-weight:700">${euro(c.netto||c.netto_pagare||0)}</span>
+        </div>`).join('')}
+        </div>`:''}
+    `;
+  } else $('dipDetails').innerHTML='';
 }
 </script><script>
 async function render_cedolini(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/cedolini?skip=0&limit=100');
-    const list = Array.isArray(data)?data:(data.items||data.cedolini||[]);
-    main.innerHTML = `<div class="section-title">Cedolini recenti (${list.length})</div>
-      <div>${list.length?list.slice(0,50).map(c=>{
-        const nome = c.nome_dipendente || c.dipendente_nome || `${c.cognome||''} ${c.nome||''}`.trim() || '—';
-        const periodo = c.anno&&c.mese?`${c.mese}/${c.anno}`:(c.periodo||'');
-        return `<div class="list-item"><div class="li-top">
-          <div class="li-title">${escapeHtml(nome)}<span class="small">Periodo ${escapeHtml(periodo)}</span></div>
+  state.ced = state.ced || {mese:null};
+  const params = new URLSearchParams({anno:String(ANNO), limit:'500'});
+  if(state.ced.mese) params.set('mese', String(state.ced.mese));
+  const data = await api(`/api/cedolini?${params}`);
+  const list = Array.isArray(data)?data:(data.items||data.cedolini||[]);
+  const tot = list.reduce((s,c)=>s+Number(c.netto||c.netto_pagare||0),0);
+  main.innerHTML = `
+    <div class="stats">
+      <div class="stat accent"><div class="label">Cedolini ${ANNO}</div><div class="value">${list.length}</div><div class="sub">${euro(tot)} netto</div></div>
+      <div class="stat"><div class="label">${state.ced.mese?fmtMonth(state.ced.mese):'Periodo'}</div><div class="value" style="font-size:17px">${euro(tot)}</div></div>
+    </div>
+    <div class="month-selector">
+      <button class="m ${!state.ced.mese?'active':''}" data-mese="">Anno</button>
+      ${getMesi().map(m=>`<button class="m ${state.ced.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
+    </div>
+    <div class="section-title">Cedolini (${list.length})</div>
+    <div>${list.length ? list.map(c=>{
+      const nome = c.nome_dipendente||c.dipendente_nome||`${c.cognome||''} ${c.nome||''}`.trim()||'-';
+      const periodo = c.anno&&c.mese?`${fmtMonth(c.mese)} ${c.anno}`:(c.periodo||'-');
+      return `<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(nome)}<span class="small">${escapeHtml(periodo)}</span></div>
           <div class="li-amount">${euro(c.netto||c.netto_pagare||0)}</div>
-        </div><div class="li-bottom"><span class="badge info">${escapeHtml(c.tipo||'Cedolino')}</span><span class="li-meta">Lordo ${euro(c.lordo||0)}</span></div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">📄</div><div class="title">Nessun cedolino</div></div>'}</div>`;
-  }catch(e){throw e;}
+        </div>
+        <div class="li-bottom"><span class="badge info">${escapeHtml(c.tipo||'Cedolino')}</span><span class="li-meta">Lordo ${euro(c.lordo||0)}</span></div>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="icon">💼</div><div class="title">Nessun cedolino</div></div>'}</div>
+  `;
+  main.querySelectorAll('.month-selector .m').forEach(b=>{
+    b.onclick=()=>{state.ced.mese=b.dataset.mese?parseInt(b.dataset.mese):null;render_cedolini(main);};
+  });
 }
 </script><script>
-function statoAssegnoBadge(s){const m={vuoto:{cls:'neutral',label:'Vuoto'},compilato:{cls:'info',label:'Compilato'},emesso:{cls:'warning',label:'Emesso'},incassato:{cls:'success',label:'Incassato'},annullato:{cls:'danger',label:'Annullato'}}[s]||{cls:'neutral',label:s||'—'};return `<span class="badge ${m.cls}">${m.label}</span>`;}
-async function render_pagamenti(main){
-  state.pagamenti = state.pagamenti || {stato:''};
-  main.innerHTML = `<div class="search-bar">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="srchA" type="search" placeholder="Cerca numero o beneficiario…"></div>
-    <div class="chips" id="chipsA">
-      <div class="chip ${!state.pagamenti.stato?'active':''}" data-s="">Tutti</div>
-      <div class="chip ${state.pagamenti.stato==='vuoto'?'active':''}" data-s="vuoto">Vuoti</div>
-      <div class="chip ${state.pagamenti.stato==='compilato'?'active':''}" data-s="compilato">Compilati</div>
-      <div class="chip ${state.pagamenti.stato==='emesso'?'active':''}" data-s="emesso">Emessi</div>
-      <div class="chip ${state.pagamenti.stato==='incassato'?'active':''}" data-s="incassato">Incassati</div>
+async function render_presenze(main){
+  const now = new Date();
+  state.pres = state.pres || {mese:now.getMonth()+1};
+  const [pres, rich] = await Promise.all([
+    api(`/api/attendance/presenze-mese?anno=${ANNO}&mese=${state.pres.mese}`).catch(()=>[]),
+    api('/api/attendance/richieste-pending').catch(()=>[]),
+  ]);
+  const lPres = Array.isArray(pres)?pres:(pres.items||pres.presenze||[]);
+  const lRich = Array.isArray(rich)?rich:(rich.items||rich.richieste||[]);
+  main.innerHTML = `
+    <div class="stats">
+      <div class="stat accent"><div class="label">Presenze ${fmtMonth(state.pres.mese)}</div><div class="value">${lPres.length}</div></div>
+      <div class="stat warning"><div class="label">Richieste pending</div><div class="value">${lRich.length}</div></div>
     </div>
-    <div id="listA"><div class="loading"><span class="spinner"></span>Carico…</div></div>`;
-  main.querySelectorAll('#chipsA .chip').forEach(c=>{c.onclick=()=>{state.pagamenti.stato=c.dataset.s;render_pagamenti(main);};});
-  try{
-    const q = new URLSearchParams({skip:'0',limit:'500'});
-    if(state.pagamenti.stato) q.set('stato',state.pagamenti.stato);
-    const srch=($('srchA').value||'').trim();
-    if(srch) q.set('search',srch);
-    const list = await api('/api/assegni?'+q);
-    const data = Array.isArray(list)?list:(list.items||[]);
-    $('listA').innerHTML = data.length?data.map(a=>{
-      return `<div class="list-item"><div class="li-top">
-        <div class="li-title">N. ${escapeHtml(a.numero||'—')}<span class="small">${escapeHtml(a.beneficiario||'Nessun beneficiario')}</span></div>
-        <div class="li-amount">${a.importo!=null?euro(a.importo):'—'}</div>
-      </div><div class="li-bottom">${statoAssegnoBadge(a.stato)}<span class="li-meta">${a.data_emissione?'Emesso '+fmtDate(a.data_emissione):''}</span></div></div>`;
-    }).join(''):'<div class="empty"><div class="icon">🧾</div><div class="title">Nessun assegno</div></div>';
-  }catch(e){throw e;}
+    <div class="month-selector">
+      ${getMesi().map(m=>`<button class="m ${state.pres.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
+    </div>
+    ${lRich.length?`<div class="section-title">Richieste da approvare</div>
+      ${lRich.map(r=>`<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(r.dipendente_nome||r.dipendente||'-')}<span class="small">${escapeHtml(r.tipo||'-')} · ${fmtDate(r.data_inizio)} → ${fmtDate(r.data_fine)}</span></div>
+        </div>
+        <div class="li-bottom">
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-success" onclick="approvaRichiesta('${r.id||r._id}')">✓ Approva</button>
+            <button class="btn btn-sm btn-danger" onclick="rifiutaRichiesta('${r.id||r._id}')">✗ Rifiuta</button>
+          </div>
+        </div>
+      </div>`).join('')}`:''}
+    <div class="section-title">Presenze giornaliere (${lPres.length})</div>
+    <div>${lPres.length?lPres.slice(0,60).map(p=>`<div class="list-item">
+      <div class="li-top">
+        <div class="li-title">${escapeHtml(p.dipendente_nome||p.dipendente||'-')}<span class="small">${fmtDate(p.data)} · ${escapeHtml(p.tipo_turno||p.tipo||'-')}</span></div>
+        <div class="li-amount" style="font-size:13px">${p.ore||p.ore_lavorate||0}h</div>
+      </div>
+    </div>`).join(''):'<div class="empty"><div class="icon">🕐</div><div class="title">Nessuna presenza</div></div>'}</div>
+  `;
+  main.querySelectorAll('.month-selector .m').forEach(b=>{
+    b.onclick=()=>{state.pres.mese=parseInt(b.dataset.mese);render_presenze(main);};
+  });
+}
+async function approvaRichiesta(id){try{await api(`/api/attendance/richiesta-assenza/${id}/approva`,{method:'PUT'});toast('Approvata','success');reloadModule();}catch(e){toast('Errore: '+e.message,'error');}}
+async function rifiutaRichiesta(id){if(!confirm('Rifiutare?'))return;try{await api(`/api/attendance/richiesta-assenza/${id}/rifiuta`,{method:'PUT'});toast('Rifiutata','success');reloadModule();}catch(e){toast('Errore: '+e.message,'error');}}
+</script><script>
+async function render_verbali(main){
+  const [veic, nonAss] = await Promise.all([
+    api(`/api/noleggio/veicoli?anno=${ANNO}`).catch(()=>[]),
+    api('/api/noleggio/fatture-non-associate').catch(()=>[]),
+  ]);
+  const lVeic = Array.isArray(veic)?veic:(veic.items||veic.veicoli||[]);
+  const lNonAss = Array.isArray(nonAss)?nonAss:(nonAss.items||[]);
+  main.innerHTML = `
+    <div class="stats">
+      <div class="stat accent"><div class="label">Veicoli</div><div class="value">${lVeic.length}</div></div>
+      <div class="stat warning"><div class="label">Fatture non associate</div><div class="value">${lNonAss.length}</div></div>
+    </div>
+    <div class="section-title">Flotta (${lVeic.length})</div>
+    <div>${lVeic.length?lVeic.map(v=>`<div class="list-item">
+      <div class="li-top">
+        <div class="li-title">${escapeHtml(v.targa||'-')}<span class="small">${escapeHtml(v.modello||v.marca+' '+v.modello||'-')}</span></div>
+      </div>
+      <div class="li-bottom">
+        <span class="badge ${v.attivo===false?'neutral':'success'}">${v.attivo===false?'Inattivo':'In uso'}</span>
+        <span class="li-meta">${v.driver||v.driver_nome||''}</span>
+      </div>
+    </div>`).join(''):'<div class="empty"><div class="icon">🚗</div><div class="title">Nessun veicolo</div></div>'}</div>
+    ${lNonAss.length?`<div class="section-title">Fatture da associare</div>
+    <div>${lNonAss.slice(0,20).map(f=>`<div class="list-item">
+      <div class="li-top">
+        <div class="li-title">${escapeHtml(f.fornitore||f.cedente_denominazione||'-')}<span class="small">${escapeHtml(f.numero||'-')} · ${fmtDate(f.data_fattura)}</span></div>
+        <div class="li-amount">${euro(f.importo||0)}</div>
+      </div>
+    </div>`).join('')}</div>`:''}
+  `;
 }
 </script><script>
 async function render_documenti(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/documenti?skip=0&limit=100').catch(()=>api('/api/documenti-inbox?limit=100'));
-    const list = Array.isArray(data)?data:(data.items||data.documenti||[]);
-    main.innerHTML = `<div class="section-title">Documenti (${list.length})</div>
-      <div>${list.length?list.slice(0,50).map(d=>{
-        const name = d.filename||d.nome||d.titolo||'Documento';
-        const tipo = d.tipo||d.classificazione||d.categoria||'da classificare';
-        const stato = d.stato||d.status||'';
-        return `<div class="list-item"><div class="li-top">
+  const [stats, list] = await Promise.all([
+    api('/api/documenti/statistiche').catch(()=>null),
+    api('/api/documenti/lista?limit=100').catch(()=>[]),
+  ]);
+  const docs = Array.isArray(list)?list:(list.items||list.documenti||[]);
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat accent"><div class="label">Totali</div><div class="value">${stats?.totale||docs.length}</div></div>
+      <div class="stat success"><div class="label">Elaborati</div><div class="value">${stats?.elaborati||0}</div></div>
+      <div class="stat warning"><div class="label">Non associati</div><div class="value">${stats?.non_associati||0}</div></div>
+    </div>
+    <div class="section-title">Documenti recenti (${docs.length})</div>
+    <div>${docs.length?docs.slice(0,50).map(d=>{
+      const name = d.filename||d.nome||d.titolo||'Documento';
+      const tipo = d.tipo||d.classificazione||d.categoria||'da classificare';
+      const stato = d.stato||d.status||'';
+      const bClass = stato==='elaborato'?'success':(stato==='non_associato'||stato==='da_verificare'?'warning':'neutral');
+      return `<div class="list-item">
+        <div class="li-top">
           <div class="li-title">${escapeHtml(name)}<span class="small">${escapeHtml(tipo)} · ${fmtDate(d.data||d.data_acquisizione||d.created_at)}</span></div>
-        </div><div class="li-bottom"><span class="badge ${stato==='elaborato'?'success':(stato==='da_verificare'?'warning':'neutral')}">${escapeHtml(stato||'—')}</span><span class="li-meta">${escapeHtml(d.origine||'')}</span></div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">📂</div><div class="title">Inbox vuota</div></div>'}</div>`;
-  }catch(e){throw e;}
+        </div>
+        <div class="li-bottom"><span class="badge ${bClass}">${escapeHtml(stato||'-')}</span><span class="li-meta">${escapeHtml(d.origine||d.source||'')}</span></div>
+      </div>`;
+    }).join(''):'<div class="empty"><div class="icon">📂</div><div class="title">Inbox vuota</div></div>'}</div>
+  `;
 }
 </script><script>
-async function render_alerts(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/alerts?limit=100');
-    const list = Array.isArray(data)?data:(data.items||data.alerts||[]);
-    main.innerHTML = `<div class="section-title">Alert attivi (${list.length})</div>
-      <div>${list.length?list.map(a=>{
-        const sev = a.severity||a.priority||'warning';
-        const cls = sev==='high'||sev==='danger'?'danger':(sev==='info'?'info':'');
-        const icon = sev==='high'||sev==='danger'?'🚨':(sev==='info'?'ℹ️':'⚠️');
-        return `<div class="alert-card ${cls}"><div class="a-icon">${icon}</div><div class="a-body"><div class="a-title">${escapeHtml(a.title||a.message||a.descrizione||'Alert')}</div><div class="a-sub">${escapeHtml(a.category||a.tipo||'generico')} · ${fmtDate(a.created_at||a.data)}</div></div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">✅</div><div class="title">Nessun alert attivo</div></div>'}</div>`;
-  }catch(e){throw e;}
+async function render_riconciliazione(main){
+  const [mov, fat, stats] = await Promise.all([
+    api(`/api/estratto-conto-movimenti/movimenti?riconciliato=false&limit=100&anno=${ANNO}`).catch(()=>[]),
+    api(`/api/invoices/list?paid=false&limit=100&anno=${ANNO}`).catch(()=>[]),
+    api(`/api/riconciliazione-auto/stats-riconciliazione?anno=${ANNO}`).catch(()=>null),
+  ]);
+  const lMov = Array.isArray(mov)?mov:(mov.items||[]);
+  const lFat = Array.isArray(fat)?fat:(fat.items||[]);
+  main.innerHTML = `
+    <div class="stats">
+      <div class="stat warning"><div class="label">Movimenti aperti</div><div class="value">${lMov.length}</div><div class="sub">da riconciliare</div></div>
+      <div class="stat accent"><div class="label">Fatture aperte</div><div class="value">${lFat.length}</div></div>
+    </div>
+    ${stats?`<div class="card"><h3>📊 Stato riconciliazione</h3>
+      <div class="kv"><span class="k">Riconciliate</span><span class="v" style="color:var(--success);font-weight:800">${stats.riconciliate||0}</span></div>
+      <div class="kv"><span class="k">Match automatici</span><span class="v">${stats.auto_match||0}</span></div>
+      <div class="kv"><span class="k">Da verificare</span><span class="v" style="color:var(--warning);font-weight:800">${stats.da_verificare||0}</span></div>
+    </div>`:''}
+    <button class="btn btn-primary btn-block" onclick="avviaRiconciliazione()">▶️ Avvia riconciliazione automatica</button>
+    ${lMov.length?`<div class="section-title">Movimenti da riconciliare (${lMov.length})</div>
+    <div>${lMov.slice(0,20).map(m=>{
+      const imp=Number(m.importo||0);const pos=imp>=0;
+      return `<div class="list-item">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(m.descrizione||m.description||'-')}<span class="small">${fmtDate(m.data)}</span></div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`:''}
+  `;
 }
-</script><script>
-async function render_corrispettivi(main){
-  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const data = await api('/api/corrispettivi?skip=0&limit=60');
-    const list = Array.isArray(data)?data:(data.items||[]);
-    const tot = list.reduce((s,c)=>s+Number(c.totale||c.incasso||0),0);
-    main.innerHTML = `<div class="stats">
-        <div class="stat accent"><div class="label">Totale periodo</div><div class="value" style="font-size:18px">${euro(tot)}</div><div class="sub">${list.length} giornate</div></div>
-      </div>
-      <div class="section-title">Giornate recenti</div>
-      <div>${list.length?list.slice(0,60).map(c=>{
-        const contanti=Number(c.contanti||0);const pos=Number(c.pos||c.elettronico||0);
-        return `<div class="list-item"><div class="li-top">
-          <div class="li-title">${fmtDate(c.data)}<span class="small">Contanti ${euro(contanti)} · POS ${euro(pos)}</span></div>
-          <div class="li-amount">${euro(c.totale||c.incasso||(contanti+pos))}</div>
-        </div></div>`;
-      }).join(''):'<div class="empty"><div class="icon">🧾</div><div class="title">Nessun corrispettivo</div></div>'}</div>`;
-  }catch(e){throw e;}
+async function avviaRiconciliazione(){
+  if(!confirm('Avviare riconciliazione automatica?'))return;
+  try{await api('/api/riconciliazione-auto/riconcilia-estratto-conto',{method:'POST',body:JSON.stringify({anno:ANNO})});toast('Riconciliazione avviata','success');setTimeout(reloadModule,1500);}
+  catch(e){toast('Errore: '+e.message,'error');}
 }
 </script>
 </body>
