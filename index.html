@@ -185,7 +185,7 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
       <button class="pin-key ghost" disabled></button><button class="pin-key" data-k="0">0</button><button class="pin-key" data-k="DEL">&#9003;</button>
     </div>
   </div>
-  <div class="pin-foot">v5.0 - Mobile Suite</div>
+  <div class="pin-foot">v6.0 - Mobile Suite</div>
 </div>
 
 <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
@@ -478,30 +478,56 @@ async function render_prima_nota_cassa(main){
   if(state.pnc.mese) params.set('mese', String(state.pnc.mese));
   const data = await api(`/api/prima-nota/cassa?${params}`);
   const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.cassa||[]);
-
-  const entr = movs.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const entr = movs.filter(m=>Number(m.importo)>=0).reduce((s,m)=>s+Number(m.importo||0),0);
   const usc = movs.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
   const saldo = entr + usc;
-
+  // Totali per categoria (come nel gestionale2)
+  const totCorrisp = movs.filter(m=>(m.categoria||'').toLowerCase()==='corrispettivi').reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
+  const totPOS = movs.filter(m=>(m.categoria||'').toLowerCase()==='pos').reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
+  const totVers = movs.filter(m=>{const c=(m.categoria||'').toLowerCase();return c==='versamento'||c==='versamenti';}).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
+  const totFatt = movs.filter(m=>m.fattura_id||(m.categoria||'').toLowerCase().includes('fattura')).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
+  // Ordina per data desc
+  movs.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat success"><div class="label">Entrate</div><div class="value" style="font-size:17px">${euro(entr)}</div></div>
-      <div class="stat danger"><div class="label">Uscite</div><div class="value" style="font-size:17px">${euro(usc)}</div></div>
-      <div class="stat accent"><div class="label">Saldo</div><div class="value" style="font-size:17px">${euro(saldo)}</div></div>
+      <div class="stat success"><div class="label">Entrate (DARE)</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
+      <div class="stat danger"><div class="label">Uscite (AVERE)</div><div class="value" style="font-size:15px">${euro(Math.abs(usc))}</div></div>
+      <div class="stat accent"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldo)}</div></div>
+    </div>
+    <div class="stats" style="grid-template-columns:repeat(4,1fr);gap:6px">
+      <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Corrisp.</div><div class="value" style="font-size:12px;color:#ff9800">${euro(totCorrisp)}</div></div>
+      <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">POS</div><div class="value" style="font-size:12px;color:#1e3a5f">${euro(totPOS)}</div></div>
+      <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Versam.</div><div class="value" style="font-size:12px;color:#059669">${euro(totVers)}</div></div>
+      <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Fatture</div><div class="value" style="font-size:12px;color:#ef4444">${euro(totFatt)}</div></div>
+    </div>
+    <div class="card" style="padding:12px;background:#f8fafc;border:1px solid #e2e8f0">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px">⚡ Chiusure giornaliere</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn btn-warning btn-sm" style="padding:12px 8px;font-size:13px" onclick="apriFormCorrisp()">📊 Corrispettivo</button>
+        <button class="btn btn-sm" style="background:#1e3a5f;color:#fff;padding:12px 8px;font-size:13px" onclick="apriFormPOS()">💳 POS</button>
+        <button class="btn btn-success btn-sm" style="padding:12px 8px;font-size:13px" onclick="apriFormVers()">🏦 Versamento</button>
+        <button class="btn btn-sm" style="background:#f97316;color:#fff;padding:12px 8px;font-size:13px" onclick="apriFormAltro('cassa')">✏️ Altro</button>
+      </div>
     </div>
     <div class="month-selector">
-      <button class="m ${!state.pnc.mese?'active':''}" data-mese="">Anno</button>
+      <button class="m ${!state.pnc.mese?'active':''}" data-mese="">Tutti</button>
       ${getMesi().map(m=>`<button class="m ${state.pnc.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
     </div>
     <div class="section-title">Movimenti (${movs.length}) <span class="link" onclick="syncFatturePagate()">🔄 Sync fatture</span></div>
     <div id="lstC">${movs.length ? movs.map(m=>{
       const imp=Number(m.importo||0);const pos=imp>=0;
+      const cat = (m.categoria||'').toLowerCase();
+      const catColor = cat==='corrispettivi'?'#ff9800':(cat==='pos'?'#1e3a5f':(cat==='versamento'||cat==='versamenti'?'#059669':(m.fattura_id?'#ef4444':'#64748B')));
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
-          <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)} · ${escapeHtml(m.categoria||m.tipo||'')}</span></div>
+          <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
           <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
         </div>
-        ${m.riferimento||m.note ? `<div class="li-bottom"><span class="li-meta">${escapeHtml(m.riferimento||m.note||'')}</span></div>`:''}
+        <div class="li-bottom">
+          <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Entrata':'Uscita'))}</span>
+          ${m.provvisorio?'<span class="badge warning">Provvisorio</span>':''}
+          ${m.fattura_id?`<span class="li-meta">→ fattura ${String(m.fattura_id).slice(0,10)}</span>`:''}
+        </div>
       </div>`;
     }).join('') : '<div class="empty"><div class="icon">💰</div><div class="title">Nessun movimento cassa</div></div>'}</div>
   `;
@@ -511,7 +537,7 @@ async function render_prima_nota_cassa(main){
   main.querySelectorAll('.list-item[data-mov]').forEach(el=>{
     el.onclick = ()=>openMovimentoSheet('cassa', JSON.parse(decodeURIComponent(el.dataset.mov)));
   });
-  $('fab').classList.remove('hidden');
+  $('fab').classList.add('hidden');
 }
 
 async function syncFatturePagate(){
@@ -529,10 +555,14 @@ function openMovimentoSheet(tipo, m){
     <div class="kv"><span class="k">Importo</span><span class="v" style="color:${Number(m.importo)>=0?'var(--success)':'var(--danger)'};font-weight:800">${euro(m.importo||0)}</span></div>
     <div class="kv"><span class="k">Categoria</span><span class="v">${escapeHtml(m.categoria||'-')}</span></div>
     ${m.tipo?`<div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(m.tipo)}</span></div>`:''}
+    ${m.provvisorio?`<div class="kv"><span class="k">Stato</span><span class="v"><span class="badge warning">Provvisorio</span></span></div>`:''}
     ${m.riferimento?`<div class="kv"><span class="k">Riferimento</span><span class="v">${escapeHtml(m.riferimento)}</span></div>`:''}
     ${m.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(m.note)}</span></div>`:''}
-    ${m.fattura_id?`<div class="kv"><span class="k">Fattura collegata</span><span class="v">${escapeHtml(String(m.fattura_id).slice(0,20))}</span></div>`:''}
+    ${m.fattura_id?`<div class="kv"><span class="k">Fattura</span><span class="v" style="font-size:11px">${escapeHtml(String(m.fattura_id).slice(0,24))}</span></div>`:''}
     <div style="margin-top:16px;display:grid;gap:8px">
+      ${m.id?`<button class="btn btn-ghost btn-block" onclick='apriFormAltro("${tipo}",${JSON.stringify({id:m.id,data:(m.data||"").slice(0,10),importo:m.importo,descrizione:m.descrizione,categoria:m.categoria,tipo:m.tipo}).replace(/'/g,"&#39;")})'>✏️ Modifica</button>`:''}
+      ${m.id && tipo==='cassa' ? `<button class="btn btn-ghost btn-block" onclick="spostaMovimento('${m.id}','cassa','banca')">➡️ Sposta in banca</button>`:''}
+      ${m.id && tipo==='banca' ? `<button class="btn btn-ghost btn-block" onclick="spostaMovimento('${m.id}','banca','cassa')">⬅️ Sposta in cassa</button>`:''}
       ${m.id?`<button class="btn btn-danger btn-block" onclick="deleteMovimento('${tipo}','${m.id}')">🗑 Elimina</button>`:''}
       <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
     </div>`);
@@ -546,40 +576,131 @@ async function deleteMovimento(tipo, id){
   }catch(e){ toast('Errore: '+e.message,'error'); }
 }
 
-function openNuovoMovimento(tipo){
-  openSheet(`<h2>Nuovo movimento ${tipo}</h2>
-    <div class="field-row">
-      <div class="field"><label>Tipo</label>
-        <select id="nmTipo" class="select">
-          <option value="-1">Uscita</option>
-          <option value="1">Entrata</option>
-        </select>
-      </div>
-      <div class="field"><label>Importo (€)</label><input id="nmImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
-    </div>
-    <div class="field"><label>Data</label><input id="nmData" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-    <div class="field"><label>Descrizione</label><input id="nmDesc" class="input" placeholder="Es. Spesa caffè, Ricarica..."></div>
-    <div class="field"><label>Categoria</label><input id="nmCat" class="input" placeholder="Es. Spese minute"></div>
-    <button class="btn btn-primary btn-block" onclick="salvaMovimento('${tipo}')">Salva</button>
-    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+async function spostaMovimento(id, da, a){
+  if(!confirm(`Spostare da ${da} a ${a}?`)) return;
+  try{
+    await api(`/api/prima-nota/sposta/${id}?da=${da}&a=${a}`,{method:'POST'});
+    toast('Spostato','success');closeSheet();reloadModule();
+  }catch(e){
+    try{
+      await api(`/api/prima-nota/${da}/${id}/sposta`,{method:'POST',body:JSON.stringify({destinazione:a})});
+      toast('Spostato','success');closeSheet();reloadModule();
+    }catch(e2){toast('Errore: '+e.message,'error');}
+  }
 }
 
-async function salvaMovimento(tipo){
-  const imp = parseFloat($('nmImp').value)||0;
-  const segno = parseInt($('nmTipo').value);
+// --- FORM CHIUSURA CASSA ---
+function apriFormCorrisp(){
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>📊 Corrispettivo</h2>
+    <p class="muted" style="margin:0 0 14px;font-size:13px">Incasso giornaliero al LORDO IVA. Entra in cassa (DARE). Sarà sovrascritto quando arriva XML.</p>
+    <div class="field"><label>Data</label><input id="fCorrData" class="input" type="date" value="${oggi}"></div>
+    <div class="field"><label>Importo totale (€)</label><input id="fCorrImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="1250,00" autofocus></div>
+    <button class="btn btn-warning btn-block" onclick="salvaFormCorrisp()">💾 Salva corrispettivo</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('fCorrImp')?.focus(),100);
+}
+async function salvaFormCorrisp(){
+  const data=$('fCorrData').value, imp=parseFloat($('fCorrImp').value)||0;
+  if(imp<=0) return toast('Inserisci importo','error');
+  try{
+    await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
+      data, tipo:'entrata', importo:imp,
+      descrizione:`Corrispettivo giornaliero ${data} (provvisorio)`,
+      categoria:'Corrispettivi', source:'manual_entry', provvisorio:true
+    })});
+    toast('Corrispettivo salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function apriFormPOS(){
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>💳 POS</h2>
+    <p class="muted" style="margin:0 0 14px;font-size:13px">Pagamenti elettronici. Escono dalla cassa (AVERE). Sarà sovrascritto quando arriva XML.</p>
+    <div class="field"><label>Data</label><input id="fPosData" class="input" type="date" value="${oggi}"></div>
+    <div class="field"><label>Importo POS (€)</label><input id="fPosImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="450,00"></div>
+    <button class="btn btn-block" style="background:#1e3a5f;color:#fff" onclick="salvaFormPOS()">💾 Salva POS</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('fPosImp')?.focus(),100);
+}
+async function salvaFormPOS(){
+  const data=$('fPosData').value, imp=parseFloat($('fPosImp').value)||0;
+  if(imp<=0) return toast('Inserisci importo POS','error');
+  try{
+    await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
+      data, tipo:'uscita', importo:imp,
+      descrizione:`POS giornaliero ${data} (provvisorio)`,
+      categoria:'POS', source:'manual_pos', provvisorio:true
+    })});
+    toast('POS salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function apriFormVers(){
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>🏦 Versamento in banca</h2>
+    <p class="muted" style="margin:0 0 14px;font-size:13px">Contanti portati in banca. Escono dalla cassa (AVERE) ed entrano in banca.</p>
+    <div class="field"><label>Data</label><input id="fVersData" class="input" type="date" value="${oggi}"></div>
+    <div class="field"><label>Importo (€)</label><input id="fVersImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="800,00"></div>
+    <button class="btn btn-success btn-block" onclick="salvaFormVers()">💾 Salva versamento</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('fVersImp')?.focus(),100);
+}
+async function salvaFormVers(){
+  const data=$('fVersData').value, imp=parseFloat($('fVersImp').value)||0;
+  if(imp<=0) return toast('Inserisci importo','error');
+  try{
+    await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
+      data, tipo:'uscita', importo:imp,
+      descrizione:`Versamento in banca ${data}`,
+      categoria:'Versamento', source:'manual_entry'
+    })});
+    toast('Versamento salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function apriFormAltro(tipo, mov){
+  mov = mov || {};
+  const oggi = mov.data || new Date().toISOString().slice(0,10);
+  const titolo = mov.id ? 'Modifica movimento' : 'Nuovo movimento';
+  openSheet(`<h2>✏️ ${titolo}</h2>
+    <div class="field"><label>Data</label><input id="fAltroData" class="input" type="date" value="${oggi}"></div>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label><select id="fAltroTipo" class="select">
+        <option value="uscita" ${mov.tipo==='uscita'||!mov.tipo||Number(mov.importo||0)<0?'selected':''}>Uscita (−)</option>
+        <option value="entrata" ${mov.tipo==='entrata'||Number(mov.importo||0)>0?'selected':''}>Entrata (+)</option>
+      </select></div>
+      <div class="field"><label>Importo (€)</label><input id="fAltroImp" class="input" type="number" step="0.01" inputmode="decimal" value="${mov.importo?Math.abs(Number(mov.importo)):''}" placeholder="0,00"></div>
+    </div>
+    <div class="field"><label>Descrizione</label><input id="fAltroDesc" class="input" value="${escapeHtml(mov.descrizione||'')}" placeholder="Es. Spesa caffè, Rimborso..."></div>
+    <div class="field"><label>Categoria</label><input id="fAltroCat" class="input" value="${escapeHtml(mov.categoria||'')}" placeholder="Es. Spese minute"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaFormAltro('${tipo}','${mov.id||''}')">💾 Salva</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+async function salvaFormAltro(tipo, id){
+  const imp = parseFloat($('fAltroImp').value)||0;
   if(imp<=0) return toast('Importo non valido','error');
+  const desc = $('fAltroDesc').value.trim();
+  if(!desc) return toast('Descrizione obbligatoria','error');
   const body = {
-    tipo: tipo,
-    importo: imp*segno,
-    data: $('nmData').value,
-    descrizione: $('nmDesc').value.trim(),
-    categoria: $('nmCat').value.trim() || 'Manuale',
+    data:$('fAltroData').value,
+    tipo:$('fAltroTipo').value,
+    importo:imp,
+    descrizione:desc,
+    categoria:$('fAltroCat').value.trim()||($('fAltroTipo').value==='entrata'?'Incasso':'Spese'),
+    source:'manual_entry'
   };
   try{
-    await api(`/api/prima-nota/${tipo}`, {method:'POST', body:JSON.stringify(body)});
-    toast('Movimento salvato','success');haptic(30);closeSheet();reloadModule();
-  }catch(e){ toast('Errore: '+e.message,'error'); }
+    if(id){
+      await api(`/api/prima-nota/${tipo}/${id}`,{method:'PUT',body:JSON.stringify(body)});
+    }else{
+      await api(`/api/prima-nota/${tipo}`,{method:'POST',body:JSON.stringify(body)});
+    }
+    toast('Salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
+
+function openNuovoMovimento(tipo){ apriFormAltro(tipo); }
 </script><script>
 async function render_prima_nota_banca(main){
   state.pnb = state.pnb || {mese:null};
@@ -587,28 +708,46 @@ async function render_prima_nota_banca(main){
   if(state.pnb.mese) params.set('mese', String(state.pnb.mese));
   const data = await api(`/api/prima-nota/banca?${params}`);
   const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.banca||[]);
-  const entr = movs.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const entr = movs.filter(m=>Number(m.importo)>=0).reduce((s,m)=>s+Number(m.importo||0),0);
   const usc = movs.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
   const saldo = entr + usc;
+  movs.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat success"><div class="label">Entrate</div><div class="value" style="font-size:17px">${euro(entr)}</div></div>
-      <div class="stat danger"><div class="label">Uscite</div><div class="value" style="font-size:17px">${euro(usc)}</div></div>
-      <div class="stat accent"><div class="label">Saldo</div><div class="value" style="font-size:17px">${euro(saldo)}</div></div>
+      <div class="stat success"><div class="label">Accrediti</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
+      <div class="stat danger"><div class="label">Pagamenti</div><div class="value" style="font-size:15px">${euro(Math.abs(usc))}</div></div>
+      <div class="stat accent"><div class="label">Saldo</div><div class="value" style="font-size:15px">${euro(saldo)}</div></div>
+    </div>
+    <div class="alert-row info" style="margin-bottom:12px">
+      <div class="a-icon">ℹ️</div>
+      <div class="a-body">
+        <div class="a-title" style="font-size:12px">Gli accrediti includono POS, bonifici, depositi.</div>
+        <div class="a-sub" style="font-size:11px">I ricavi reali sono in Corrispettivi (sezione Cassa).</div>
+      </div>
+    </div>
+    <div class="card" style="padding:12px;background:#f8fafc;border:1px solid #e2e8f0">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px">⚡ Inserimento rapido banca</div>
+      <button class="btn btn-primary btn-block btn-sm" onclick="apriFormAltro('banca')">✏️ Nuovo movimento banca</button>
     </div>
     <div class="month-selector">
-      <button class="m ${!state.pnb.mese?'active':''}" data-mese="">Anno</button>
+      <button class="m ${!state.pnb.mese?'active':''}" data-mese="">Tutti</button>
       ${getMesi().map(m=>`<button class="m ${state.pnb.mese===m.n?'active':''}" data-mese="${m.n}">${m.label}</button>`).join('')}
     </div>
     <div class="section-title">Movimenti (${movs.length})</div>
     <div id="lstB">${movs.length ? movs.map(m=>{
       const imp=Number(m.importo||0);const pos=imp>=0;
+      const cat = (m.categoria||'').toLowerCase();
+      const catColor = cat==='pos'?'#1e3a5f':(cat==='bonifico'?'#5D29C7':(cat==='versamento'?'#059669':(m.fattura_id?'#ef4444':(pos?'#4caf50':'#64748B'))));
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
-          <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)} · ${escapeHtml(m.categoria||m.tipo||'')}</span></div>
+          <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
           <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
         </div>
-        ${m.riferimento||m.note ? `<div class="li-bottom"><span class="li-meta">${escapeHtml(m.riferimento||m.note||'')}</span></div>`:''}
+        <div class="li-bottom">
+          <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Accredito':'Pagamento'))}</span>
+          ${m.stato==='riconciliato'?'<span class="badge success">Riconciliato</span>':(m.stato==='da_verificare'?'<span class="badge warning">Da verificare</span>':'')}
+          ${m.fattura_id?`<span class="li-meta">→ fatt. ${String(m.fattura_id).slice(0,10)}</span>`:''}
+        </div>
       </div>`;
     }).join('') : '<div class="empty"><div class="icon">🏦</div><div class="title">Nessun movimento banca</div></div>'}</div>
   `;
@@ -618,7 +757,7 @@ async function render_prima_nota_banca(main){
   main.querySelectorAll('.list-item[data-mov]').forEach(el=>{
     el.onclick = ()=>openMovimentoSheet('banca', JSON.parse(decodeURIComponent(el.dataset.mov)));
   });
-  $('fab').classList.remove('hidden');
+  $('fab').classList.add('hidden');
 }
 </script><script>
 async function render_provvisori(main){
@@ -632,25 +771,28 @@ async function render_provvisori(main){
       <div class="stat"><div class="label">Totale</div><div class="value" style="font-size:17px">${euro(tot)}</div></div>
     </div>
     ${list.length ? `
-      <button class="btn btn-success btn-block" style="margin-bottom:12px" onclick="confermaTuttiProvvisori()">✅ Conferma tutti con suggerimento</button>
+      <button class="btn btn-success btn-block" style="margin-bottom:14px;padding:14px;font-size:15px" onclick="confermaTuttiProvvisori()">✅ Conferma tutti con suggerimento</button>
     `:''}
     <div class="section-title">Da classificare</div>
     <div id="lstP">${list.length ? list.map(p=>{
       const sug = p.suggerimento||'';
-      const badge = sug==='cassa'?'<span class="badge info">🏪 Cassa</span>':(sug==='banca'?'<span class="badge primary">🏦 Banca</span>':(sug==='sospesa'?'<span class="badge danger">⏳ Sospesa</span>':'<span class="badge neutral">-</span>'));
-      return `<div class="list-item">
+      const isCassa = sug==='cassa';
+      const isBanca = sug==='banca' || (!sug);
+      const isSosp = sug==='sospesa';
+      const sugBadge = isCassa?'<span class="badge" style="background:#ff9800;color:#fff">🏪 Cassa</span>':(isSosp?'<span class="badge danger">⏳ Sospesa</span>':'<span class="badge primary">🏦 Banca</span>');
+      const fid = encodeURIComponent(p.fattura_id||'');
+      return `<div class="list-item" style="padding:16px">
         <div class="li-top">
-          <div class="li-title">${escapeHtml(p.fornitore||'-')}<span class="small">N. ${escapeHtml(p.fattura_numero||'-')} · ${fmtDate(p.fattura_data)}</span></div>
-          <div class="li-amount">${euro(p.importo||0)}</div>
+          <div class="li-title" style="font-size:15px">${escapeHtml(p.fornitore||'-')}<span class="small" style="font-size:12px">N. ${escapeHtml(p.fattura_numero||'-')} · ${fmtDate(p.fattura_data)}</span></div>
+          <div class="li-amount" style="font-size:17px">${euro(p.importo||0)}</div>
         </div>
-        <div class="li-bottom">
-          ${badge}
-          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
-            <button class="btn btn-sm" style="background:#F1F5F9;color:#475569;padding:4px 8px;font-size:11px" onclick="confermaProvvisorio('${encodeURIComponent(p.fattura_id)}','cassa')">🏪</button>
-            <button class="btn btn-sm" style="background:#F1F5F9;color:#475569;padding:4px 8px;font-size:11px" onclick="confermaProvvisorio('${encodeURIComponent(p.fattura_id)}','banca')">🏦</button>
-            <button class="btn btn-sm" style="background:#F1F5F9;color:#475569;padding:4px 8px;font-size:11px" onclick="confermaProvvisorio('${encodeURIComponent(p.fattura_id)}','sospesa')">⏳</button>
-          </div>
+        <div style="margin-top:10px;margin-bottom:8px">${sugBadge}${p.stato_match?`<span class="badge neutral" style="margin-left:6px">${escapeHtml(p.stato_match)}</span>`:''}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+          <button class="btn btn-sm" style="padding:12px 4px;font-size:13px;background:${isCassa?'#ff9800':'#fff4e0'};color:${isCassa?'#fff':'#92400e'};border:1.5px solid ${isCassa?'#ff9800':'#ffd9a0'};font-weight:700" onclick="confermaProvvisorio('${fid}','cassa')">🏪 Cassa</button>
+          <button class="btn btn-sm" style="padding:12px 4px;font-size:13px;background:${isBanca&&sug==='banca'?'#5D29C7':'#EFE7FF'};color:${isBanca&&sug==='banca'?'#fff':'#5D29C7'};border:1.5px solid ${isBanca&&sug==='banca'?'#5D29C7':'#d4c4ff'};font-weight:700" onclick="confermaProvvisorio('${fid}','banca')">🏦 Banca</button>
+          <button class="btn btn-sm" style="padding:12px 4px;font-size:13px;background:${isSosp?'#dc2626':'#fef2f2'};color:${isSosp?'#fff':'#dc2626'};border:1.5px solid ${isSosp?'#dc2626':'#fca5a5'};font-weight:700" onclick="confermaProvvisorio('${fid}','sospesa')">⏳ Sospesa</button>
         </div>
+        <button class="btn btn-sm btn-ghost btn-block" style="margin-top:6px;padding:10px;font-size:12px" onclick="apriMistoProv('${fid}','${escapeHtml(p.fornitore||'')}',${Number(p.importo||0)},'${p.fattura_data||''}')">💳 Pagamento misto (cassa+banca)</button>
       </div>`;
     }).join('') : '<div class="empty"><div class="icon">✅</div><div class="title">Nessun provvisorio</div></div>'}</div>
   `;
@@ -658,10 +800,36 @@ async function render_provvisori(main){
 
 async function confermaProvvisorio(fidEnc, metodo){
   const fid = decodeURIComponent(fidEnc);
+  if(!fid) return toast('ID fattura mancante','error');
   try{
     await api('/api/prima-nota/provvisori/conferma', {method:'POST', body:JSON.stringify({fattura_id:fid, metodo})});
     toast(`Confermato: ${metodo}`,'success');haptic(30);reloadModule();
   }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+
+function apriMistoProv(fidEnc, fornitore, importo, fdata){
+  const fid = decodeURIComponent(fidEnc);
+  openSheet(`<h2>💳 Pagamento misto</h2>
+    <p class="muted" style="margin:0 0 14px;font-size:13px">${escapeHtml(fornitore)} · totale <b>${euro(importo)}</b></p>
+    <div class="field"><label>Importo pagato in CONTANTI (€)</label>
+      <input id="mixCassa" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+    <div class="muted" style="font-size:12px;margin-bottom:14px">La differenza verrà registrata come bonifico bancario.</div>
+    <button class="btn btn-primary btn-block" onclick="salvaMistoProv('${fidEnc}',${importo},'${fdata}')">💾 Registra pagamento misto</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+async function salvaMistoProv(fidEnc, totale, fdata){
+  const fid = decodeURIComponent(fidEnc);
+  const ci = parseFloat($('mixCassa').value)||0;
+  if(ci<=0) return toast('Inserisci importo cassa','error');
+  if(ci>totale) return toast('Supera il totale','error');
+  const bi = Math.round((totale-ci)*100)/100;
+  try{
+    await api('/api/pagamenti/registra',{method:'POST',body:JSON.stringify({fattura_id:fid,importo:ci,metodo:'contanti',data:fdata,note:`€${ci} di €${totale}`})});
+    if(bi>0){
+      await api('/api/pagamenti/registra',{method:'POST',body:JSON.stringify({fattura_id:fid,importo:bi,metodo:'bonifico',data:fdata,note:`Residuo banca €${bi}`})});
+    }
+    toast('Pagamento misto registrato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 
 async function confermaTuttiProvvisori(){
@@ -678,54 +846,139 @@ async function confermaTuttiProvvisori(){
 }
 </script><script>
 async function render_corrispettivi(main){
-  const data = await api(`/api/corrispettivi?anno=${ANNO}&limit=2500`);
-  const list = Array.isArray(data)?data:(data.items||data.corrispettivi||[]);
-  const totale = list.reduce((s,c)=>s+Number(c.totale||c.incasso||(Number(c.contanti||0)+Number(c.pos||c.elettronico||0))),0);
-  const tCont = list.reduce((s,c)=>s+Number(c.contanti||0),0);
-  const tPOS = list.reduce((s,c)=>s+Number(c.pos||c.elettronico||0),0);
+  const [corr, cassa] = await Promise.all([
+    api(`/api/corrispettivi?anno=${ANNO}&limit=2500`).catch(()=>[]),
+    api(`/api/prima-nota/cassa?anno=${ANNO}`).catch(()=>[]),
+  ]);
+  const listCorr = Array.isArray(corr)?corr:(corr.items||[]);
+  const listCassa = Array.isArray(cassa)?cassa:(cassa.items||cassa.movimenti||[]);
+  const perDay = {};
+  for(const c of listCorr){
+    const d = (c.data||'').slice(0,10); if(!d) continue;
+    perDay[d] = perDay[d] || {data:d, corrispettivo:0, pos:0, versamento:0, altro_entrate:0, altro_uscite:0, raw_corr:[], raw_cassa:[]};
+    perDay[d].corrispettivo += Number(c.totale||c.incasso||(Number(c.contanti||0)+Number(c.pos||c.elettronico||0))||0);
+    perDay[d].raw_corr.push(c);
+  }
+  for(const m of listCassa){
+    const d = (m.data||'').slice(0,10); if(!d) continue;
+    perDay[d] = perDay[d] || {data:d, corrispettivo:0, pos:0, versamento:0, altro_entrate:0, altro_uscite:0, raw_corr:[], raw_cassa:[]};
+    const cat = (m.categoria||'').toLowerCase();
+    const imp = Math.abs(Number(m.importo||0));
+    const isEntrata = Number(m.importo||0)>=0 || m.tipo==='entrata';
+    if(cat==='pos') perDay[d].pos += imp;
+    else if(cat==='versamento'||cat==='versamenti') perDay[d].versamento += imp;
+    else if(cat==='corrispettivi' && isEntrata) { /* già contato in raw_corr se presente */ }
+    else if(isEntrata) perDay[d].altro_entrate += imp;
+    else perDay[d].altro_uscite += imp;
+    perDay[d].raw_cassa.push(m);
+  }
+  // Se un giorno non ha corrispettivo XML ma solo provvisorio da cassa
+  for(const m of listCassa){
+    const d = (m.data||'').slice(0,10); if(!d) continue;
+    const cat = (m.categoria||'').toLowerCase();
+    if(cat==='corrispettivi' && (Number(m.importo||0)>0 || m.tipo==='entrata') && perDay[d] && perDay[d].raw_corr.length===0){
+      perDay[d].corrispettivo += Math.abs(Number(m.importo||0));
+    }
+  }
+  const days = Object.values(perDay).sort((a,b)=>b.data.localeCompare(a.data));
+  const tot_corr = days.reduce((s,d)=>s+d.corrispettivo,0);
+  const tot_pos  = days.reduce((s,d)=>s+d.pos,0);
+  const tot_vers = days.reduce((s,d)=>s+d.versamento,0);
+  const diff_cassa = tot_corr - tot_pos - tot_vers;
+  state._days_corr = perDay;
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat accent"><div class="label">Totale ${ANNO}</div><div class="value" style="font-size:16px">${euro(totale)}</div><div class="sub">${list.length} giornate</div></div>
-      <div class="stat"><div class="label">Contanti</div><div class="value" style="font-size:16px;color:var(--success)">${euro(tCont)}</div></div>
-      <div class="stat"><div class="label">POS</div><div class="value" style="font-size:16px;color:var(--info)">${euro(tPOS)}</div></div>
+      <div class="stat accent"><div class="label">Corrispettivi ${ANNO}</div><div class="value" style="font-size:15px">${euro(tot_corr)}</div><div class="sub">${days.length} giornate</div></div>
+      <div class="stat"><div class="label">POS (uscita)</div><div class="value" style="font-size:15px;color:var(--info)">${euro(tot_pos)}</div></div>
+      <div class="stat"><div class="label">Versamenti</div><div class="value" style="font-size:15px;color:var(--success)">${euro(tot_vers)}</div></div>
     </div>
-    <div class="section-title">Giornate (ultime 60)</div>
-    <div>${list.length ? list.slice(0,60).map(c=>{
-      const co=Number(c.contanti||0); const po=Number(c.pos||c.elettronico||0); const tot = Number(c.totale||c.incasso||(co+po));
-      return `<div class="list-item" data-id="${c.id||c._id||''}">
+    <div class="stats one">
+      <div class="stat ${diff_cassa>=0?'success':'danger'}">
+        <div class="label">Saldo cassa teorico ${ANNO}</div>
+        <div class="value">${euro(diff_cassa)}</div>
+        <div class="sub">Corrispettivi − POS − Versamenti</div>
+      </div>
+    </div>
+    <div class="section-title">Giornate (${days.length}) <span class="link" onclick="apriChiusuraOggi()">+ Chiusura oggi</span></div>
+    <div id="lstCorr">${days.length ? days.map(d=>{
+      const delta = d.corrispettivo - d.pos - d.versamento;
+      const hint = d.corrispettivo===0 ? '⚠ manca corrispettivo' : (d.pos===0 && d.versamento===0 ? '⚠ manca POS/versamento' : '');
+      return `<div class="list-item" data-day="${d.data}">
         <div class="li-top">
-          <div class="li-title">${fmtDate(c.data)}<span class="small">Contanti ${euro(co)} · POS ${euro(po)}</span></div>
-          <div class="li-amount positive">${euro(tot)}</div>
+          <div class="li-title">${fmtDate(d.data)}<span class="small">Corr. ${euro(d.corrispettivo)} · POS ${euro(d.pos)} · Vers. ${euro(d.versamento)}</span></div>
+          <div class="li-amount ${delta>=0?'positive':'negative'}">${euro(delta)}</div>
         </div>
+        ${hint?`<div class="li-bottom"><span class="badge warning">${hint}</span></div>`:''}
       </div>`;
-    }).join('') : '<div class="empty"><div class="icon">🧾</div><div class="title">Nessun corrispettivo</div></div>'}</div>
+    }).join('') : '<div class="empty"><div class="icon">🧾</div><div class="title">Nessuna giornata</div></div>'}</div>
   `;
+  main.querySelectorAll('.list-item[data-day]').forEach(el=>{
+    el.onclick = ()=>apriGiornataCorr(el.dataset.day);
+  });
   $('fab').classList.remove('hidden');
 }
 
-function openNuovoCorrispettivo(){
-  openSheet(`<h2>Nuovo corrispettivo</h2>
-    <div class="field"><label>Data</label><input id="corrData" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-    <div class="field-row">
-      <div class="field"><label>Contanti (€)</label><input id="corrCont" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
-      <div class="field"><label>POS (€)</label><input id="corrPos" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+function apriChiusuraOggi(){
+  const oggi = new Date().toISOString().slice(0,10);
+  apriGiornataCorr(oggi);
+}
+function openNuovoCorrispettivo(){ apriChiusuraOggi(); }
+
+function apriGiornataCorr(data){
+  const d = (state._days_corr||{})[data] || {data, corrispettivo:0, pos:0, versamento:0, altro_entrate:0, altro_uscite:0, raw_corr:[], raw_cassa:[]};
+  openSheet(`<h2>Chiusura ${fmtDate(data)}</h2>
+    <div class="stats three" style="margin-bottom:14px">
+      <div class="stat"><div class="label">Corr.</div><div class="value" style="font-size:15px">${euro(d.corrispettivo)}</div></div>
+      <div class="stat"><div class="label">POS</div><div class="value" style="font-size:15px">${euro(d.pos)}</div></div>
+      <div class="stat"><div class="label">Vers.</div><div class="value" style="font-size:15px">${euro(d.versamento)}</div></div>
     </div>
-    <button class="btn btn-primary btn-block" onclick="salvaCorrispettivo()">Salva</button>
-    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+    <div class="kv"><span class="k">Saldo cassa giorno</span><span class="v" style="font-weight:800;color:${(d.corrispettivo-d.pos-d.versamento)>=0?'var(--success)':'var(--danger)'}">${euro(d.corrispettivo-d.pos-d.versamento)}</span></div>
+    ${d.altro_entrate?`<div class="kv"><span class="k">Altre entrate</span><span class="v" style="color:var(--success)">+${euro(d.altro_entrate)}</span></div>`:''}
+    ${d.altro_uscite?`<div class="kv"><span class="k">Altre uscite</span><span class="v" style="color:var(--danger)">-${euro(d.altro_uscite)}</span></div>`:''}
+    <div style="margin:16px 0 10px;font-weight:800;font-size:15px">⚡ Registra chiusura</div>
+    <div class="field"><label>📊 Corrispettivo totale (€)</label><input id="cgCorr" class="input" type="number" step="0.01" inputmode="decimal" placeholder="Es. 1250,00"></div>
+    <div class="field"><label>💳 POS (uscita cassa) (€)</label><input id="cgPos" class="input" type="number" step="0.01" inputmode="decimal" placeholder="Es. 450,00"></div>
+    <div class="field"><label>🏦 Versamento in banca (€)</label><input id="cgVers" class="input" type="number" step="0.01" inputmode="decimal" placeholder="Es. 800,00"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaChiusura('${data}')">💾 Salva chiusura</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Chiudi</button>
+    ${(d.raw_corr.length||d.raw_cassa.length)?`
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+        <div class="section-title" style="margin:0 0 8px">Movimenti del giorno</div>
+        ${d.raw_corr.map(r=>`<div class="list-item"><div class="li-top"><div class="li-title">Corrispettivo XML${r.contanti?` · cont. ${euro(r.contanti)}`:''}${r.pos||r.elettronico?` · POS ${euro(r.pos||r.elettronico)}`:''}</div><div class="li-amount positive">+${euro(r.totale||r.incasso||(Number(r.contanti||0)+Number(r.pos||r.elettronico||0)))}</div></div></div>`).join('')}
+        ${d.raw_cassa.map(r=>{const imp=Number(r.importo||0);return `<div class="list-item"><div class="li-top"><div class="li-title">${escapeHtml(r.descrizione||r.categoria||'-')}<span class="small">${escapeHtml(r.categoria||'')}</span></div><div class="li-amount ${imp>=0?'positive':'negative'}">${imp>=0?'+':''}${euro(imp)}</div></div>${r.id?`<div class="li-bottom"><button class="btn btn-sm btn-danger" onclick="deleteMovimento('cassa','${r.id}')">🗑</button></div>`:''}</div>`;}).join('')}
+      </div>`:''}
+  `);
 }
 
-async function salvaCorrispettivo(){
-  const body = {
-    data: $('corrData').value,
-    contanti: parseFloat($('corrCont').value)||0,
-    pos: parseFloat($('corrPos').value)||0,
-  };
-  if(!body.data) return toast('Data richiesta','error');
-  if(body.contanti+body.pos<=0) return toast('Importo mancante','error');
+async function salvaChiusura(data){
+  const corr = parseFloat($('cgCorr').value)||0;
+  const pos  = parseFloat($('cgPos').value)||0;
+  const vers = parseFloat($('cgVers').value)||0;
+  if(corr===0 && pos===0 && vers===0) return toast('Inserisci almeno un importo','error');
   try{
-    await api('/api/corrispettivi', {method:'POST', body:JSON.stringify(body)});
-    toast('Corrispettivo salvato','success');closeSheet();reloadModule();
-  }catch(e){ toast('Errore: '+e.message,'error'); }
+    if(corr>0){
+      await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
+        data, tipo:'entrata', importo:corr,
+        descrizione:`Corrispettivo giornaliero ${data} (provvisorio)`,
+        categoria:'Corrispettivi', source:'manual_entry', provvisorio:true
+      })});
+    }
+    if(pos>0){
+      await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
+        data, tipo:'uscita', importo:pos,
+        descrizione:`POS giornaliero ${data} (provvisorio)`,
+        categoria:'POS', source:'manual_pos', provvisorio:true
+      })});
+    }
+    if(vers>0){
+      await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
+        data, tipo:'uscita', importo:vers,
+        descrizione:`Versamento in banca ${data}`,
+        categoria:'Versamento', source:'manual_entry'
+      })});
+    }
+    toast('Chiusura salvata','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_coerenza_pos(main){
