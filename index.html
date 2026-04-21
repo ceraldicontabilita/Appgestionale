@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Ceraldi · Pagamenti & Assegni</title>
+<title>Ceraldi · Gestionale Mobile</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -27,52 +27,67 @@
 html,body{margin:0;padding:0;height:100%;overscroll-behavior-y:none}
 body{font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;font-size:15px;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
-
 .app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
-.topbar{position:sticky;top:0;z-index:40;background:var(--sidebar);color:#fff;padding:calc(14px + var(--safe-top)) 16px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(30,27,75,.15)}
-.topbar .brand{display:flex;align-items:center;gap:10px}
-.topbar .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#8B5CF6 0%,#5D29C7 100%);display:grid;place-items:center;font-weight:800;color:#fff;font-size:15px}
+.topbar{position:sticky;top:0;z-index:40;background:var(--sidebar);color:#fff;padding:calc(12px + var(--safe-top)) 14px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(30,27,75,.15)}
+.topbar .menu-btn{width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer}
+.topbar .menu-btn:active{background:rgba(255,255,255,.2)}
+.topbar .title-wrap{flex:1;min-width:0}
 .topbar .title{font-weight:700;font-size:16px;letter-spacing:-.01em;line-height:1.1}
-.topbar .title small{display:block;font-weight:500;opacity:.7;font-size:11px;margin-top:2px}
-.topbar .actions{display:flex;gap:8px}
+.topbar .title-sub{font-weight:500;opacity:.65;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .actions{display:flex;gap:6px}
 .icon-btn{width:36px;height:36px;border-radius:10px;border:none;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s}
 .icon-btn:active{background:rgba(255,255,255,.2)}
-main{flex:1;padding:14px 14px calc(90px + var(--safe-bot));max-width:720px;margin:0 auto;width:100%}
-
-.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid var(--border);padding:8px 6px calc(8px + var(--safe-bot));display:grid;grid-template-columns:repeat(4,1fr);gap:2px;box-shadow:0 -4px 20px rgba(30,27,75,.06)}
-.nav-item{background:none;border:none;padding:8px 4px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-2);cursor:pointer;transition:color .15s,background .15s;font-size:11px;font-weight:600}
-.nav-item.active{color:var(--primary);background:var(--primary-soft)}
-.nav-item svg{width:22px;height:22px}
-
+main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margin:0 auto;width:100%}
+.drawer-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-overlay.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:320px;background:var(--sidebar);color:#fff;z-index:91;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding:calc(24px + var(--safe-top)) 0 calc(16px + var(--safe-bot))}
+.drawer.show{transform:translateX(0)}
+.drawer-head{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
+.drawer-head .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#8B5CF6 0%,#5D29C7 100%);display:grid;place-items:center;font-weight:800;font-size:18px}
+.drawer-head h2{margin:0;font-size:16px;font-weight:700}
+.drawer-head .sub{opacity:.6;font-size:11px;margin-top:2px}
+.drawer-nav{flex:1;overflow-y:auto;padding:10px}
+.drawer-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;color:rgba(255,255,255,.75);font-weight:600;font-size:14px;cursor:pointer;border:none;background:none;width:100%;text-align:left;margin-bottom:2px;transition:background .15s,color .15s}
+.drawer-item:active{background:rgba(255,255,255,.08)}
+.drawer-item.active{background:rgba(255,255,255,.12);color:#fff}
+.drawer-item svg{width:20px;height:20px;flex-shrink:0}
+.drawer-item .count{margin-left:auto;background:rgba(255,255,255,.15);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;min-width:24px;text-align:center}
+.drawer-item .count.urgent{background:var(--danger);color:#fff}
+.drawer-section{padding:10px 18px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);font-weight:700;margin-top:8px}
+.drawer-foot{padding:12px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.4);text-align:center}
 .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(93,41,199,.06);margin-bottom:12px}
 .card h2{margin:0 0 12px;font-size:18px;font-weight:700;letter-spacing:-.01em}
 .card h3{margin:0 0 8px;font-size:14px;font-weight:700}
 .muted{color:var(--text-2);font-size:13px}
-
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stats.three{grid-template-columns:1fr 1fr 1fr}
 .stat{background:var(--card);border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(93,41,199,.06)}
 .stat .label{font-size:11px;color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .stat .value{font-size:22px;font-weight:800;margin-top:6px;letter-spacing:-.02em;line-height:1}
 .stat .sub{font-size:12px;color:var(--text-2);margin-top:4px}
 .stat.accent{background:linear-gradient(135deg,#5D29C7 0%,#7B3FF2 100%);color:#fff}
 .stat.accent .label,.stat.accent .sub{color:rgba(255,255,255,.85)}
-
+.stat.success{background:linear-gradient(135deg,#00B884 0%,#00D69A 100%);color:#fff}
+.stat.success .label,.stat.success .sub{color:rgba(255,255,255,.85)}
+.stat.danger{background:linear-gradient(135deg,#F44336 0%,#FF5E50 100%);color:#fff}
+.stat.danger .label,.stat.danger .sub{color:rgba(255,255,255,.85)}
 .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .badge.success{background:var(--success-soft);color:#006B4F}
 .badge.warning{background:var(--warning-soft);color:#8B4900}
 .badge.danger{background:var(--danger-soft);color:#8B1A12}
 .badge.info{background:var(--info-soft);color:#0D4E8A}
 .badge.neutral{background:#E2E8F0;color:#475569}
-
+.badge.primary{background:var(--primary-soft);color:var(--primary)}
 .list-item{background:var(--card);border-radius:14px;padding:14px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 6px rgba(93,41,199,.05);transition:transform .1s}
 .list-item:active{transform:scale(.98)}
 .list-item .li-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
-.list-item .li-title{font-weight:700;font-size:14px;line-height:1.3;flex:1;min-width:0}
-.list-item .li-title .small{font-weight:500;color:var(--text-2);font-size:12px;display:block;margin-top:2px}
+.list-item .li-title{font-weight:700;font-size:14px;line-height:1.3;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.list-item .li-title .small{font-weight:500;color:var(--text-2);font-size:12px;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .list-item .li-amount{font-weight:800;font-size:15px;white-space:nowrap;letter-spacing:-.01em}
+.list-item .li-amount.positive{color:var(--success)}
+.list-item .li-amount.negative{color:var(--danger)}
 .list-item .li-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
 .list-item .li-meta{font-size:11px;color:var(--text-2)}
-
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:12px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:transform .1s,opacity .15s}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -83,21 +98,22 @@ main{flex:1;padding:14px 14px calc(90px + var(--safe-bot));max-width:720px;margi
 .btn-danger{background:var(--danger);color:#fff}
 .btn-block{width:100%}
 .btn-sm{padding:8px 14px;font-size:13px}
-
+.fab{position:fixed;bottom:calc(20px + var(--safe-bot));right:16px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#5D29C7 0%,#7B3FF2 100%);color:#fff;border:none;box-shadow:0 8px 24px rgba(93,41,199,.4);display:grid;place-items:center;cursor:pointer;z-index:30;transition:transform .1s}
+.fab:active{transform:scale(.92)}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
-.input,.select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s}
-.input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(93,41,199,.1)}
-
+.input,.select,.textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:15px;outline:none;transition:border-color .15s,box-shadow .15s;font-family:inherit}
+.textarea{resize:vertical;min-height:80px}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(93,41,199,.1)}
+.field-row{display:flex;gap:10px}
+.field-row .field{flex:1}
 .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 6px rgba(93,41,199,.05)}
 .search-bar input{flex:1;border:none;outline:none;font-size:14px;background:none}
 .search-bar svg{color:var(--text-2);flex-shrink:0}
-
-.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none;margin:0 -14px;padding-left:14px;padding-right:14px}
 .chips::-webkit-scrollbar{display:none}
 .chip{padding:7px 14px;border-radius:20px;background:#fff;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--text-2);transition:all .15s}
 .chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
-
 .sheet-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;align-items:flex-end}
 .sheet-overlay.show{opacity:1;pointer-events:auto}
 .sheet{background:#fff;width:100%;max-width:720px;margin:0 auto;border-radius:20px 20px 0 0;padding:8px 16px calc(24px + var(--safe-bot));max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:0 -4px 30px rgba(30,27,75,.2)}
@@ -108,8 +124,6 @@ main{flex:1;padding:14px 14px calc(90px + var(--safe-bot));max-width:720px;margi
 .sheet .kv:last-child{border:none}
 .sheet .kv .k{color:var(--text-2)}
 .sheet .kv .v{font-weight:600;text-align:right}
-
-/* ========= PIN SCREEN ========= */
 .pin-wrap{position:fixed;inset:0;z-index:300;background:linear-gradient(160deg,#1E1B4B 0%,#5D29C7 65%,#7B3FF2 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(40px + var(--safe-top)) 24px calc(28px + var(--safe-bot))}
 .pin-head{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:10px}
 .pin-head .logo{width:70px;height:70px;border-radius:20px;background:linear-gradient(135deg,#fff 0%,#EFE7FF 100%);display:grid;place-items:center;color:var(--primary);font-weight:800;font-size:30px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -125,41 +139,44 @@ main{flex:1;padding:14px 14px calc(90px + var(--safe-bot));max-width:720px;margi
 .pin-msg.err{color:#FFD4D0}
 .pin-msg.ok{color:#C6F5E4}
 .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:300px;width:100%;margin-top:8px}
-.pin-key{width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:28px;font-weight:500;cursor:pointer;display:grid;place-items:center;justify-self:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:transform .1s,background .15s;font-family:inherit}
+.pin-key{width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:28px;font-weight:500;cursor:pointer;display:grid;place-items:center;justify-self:center;transition:transform .1s,background .15s;font-family:inherit}
 .pin-key:active{background:rgba(255,255,255,.35);transform:scale(.94)}
 .pin-key.ghost{background:transparent;cursor:default}
 .pin-key:disabled{opacity:.35;cursor:not-allowed}
-.pin-foot{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px}
-.pin-link{background:none;border:none;color:#fff;opacity:.7;font-size:13px;font-weight:600;cursor:pointer;padding:8px 14px;border-radius:10px}
-.pin-link:active{opacity:1;background:rgba(255,255,255,.1)}
-.pin-locked{color:#FFD4D0;font-weight:700;font-size:14px}
-
-/* ========= SETUP ADMIN ========= */
-.setup-wrap{position:fixed;inset:0;z-index:310;background:#F0F4FA;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
-.setup-card{background:#fff;border-radius:22px;padding:26px 22px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(30,27,75,.2)}
-.setup-card h2{margin:0 0 6px;font-size:20px;font-weight:800;letter-spacing:-.02em}
-.setup-card .sub{color:var(--text-2);font-size:13px;margin-bottom:18px;line-height:1.5}
-
-.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(200%);bottom:calc(100px + var(--safe-bot));z-index:400;background:#0F172A;color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .3s cubic-bezier(.4,0,.2,1);max-width:92%;text-align:center}
+.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(200%);bottom:calc(30px + var(--safe-bot));z-index:400;background:#0F172A;color:#fff;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .3s cubic-bezier(.4,0,.2,1);max-width:92%;text-align:center}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{background:var(--success)}
 .toast.error{background:var(--danger)}
 .hidden{display:none!important}
 .empty{text-align:center;padding:40px 20px;color:var(--text-2)}
 .empty .icon{font-size:40px;margin-bottom:10px;opacity:.4}
+.empty .title{font-weight:700;margin-bottom:4px;color:var(--text)}
 .loading{text-align:center;padding:30px;color:var(--text-2);font-size:13px}
 .spinner{display:inline-block;width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.section-title{font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin:6px 4px 10px}
+.section-title{font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin:14px 4px 10px;display:flex;justify-content:space-between;align-items:center}
+.section-title .link{color:var(--primary);font-weight:600;text-transform:none;letter-spacing:0;cursor:pointer;font-size:12px}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.alert-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;margin-bottom:8px;background:var(--warning-soft)}
+.alert-card.danger{background:var(--danger-soft)}
+.alert-card.info{background:var(--info-soft)}
+.alert-card .a-icon{font-size:20px;flex-shrink:0}
+.alert-card .a-body{flex:1;min-width:0}
+.alert-card .a-title{font-weight:700;font-size:13px}
+.alert-card .a-sub{font-size:12px;color:var(--text-2);margin-top:2px}
+.module-placeholder{padding:40px 20px;text-align:center;background:var(--card);border-radius:16px;box-shadow:0 2px 10px rgba(93,41,199,.06)}
+.module-placeholder .icon{font-size:42px;margin-bottom:12px}
+.module-placeholder h3{margin:0 0 6px;font-size:16px}
+.module-placeholder p{font-size:13px;color:var(--text-2);margin:0 0 16px;line-height:1.5}
 </style>
 </head>
 <body>
 
-<!-- ============ PIN SCREEN ============ -->
+<!-- PIN SCREEN -->
 <div id="pinScreen" class="pin-wrap">
   <div class="pin-head">
     <div class="logo">C</div>
-    <h1>Ceraldi Mobile</h1>
+    <h1>Ceraldi Gestionale</h1>
     <div class="pin-sub">Inserisci il PIN per continuare</div>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;width:100%">
@@ -169,139 +186,64 @@ main{flex:1;padding:14px 14px calc(90px + var(--safe-bot));max-width:720px;margi
     </div>
     <div id="pinMsg" class="pin-msg"></div>
     <div id="pinPad" class="pin-pad">
-      <button class="pin-key" data-k="1">1</button>
-      <button class="pin-key" data-k="2">2</button>
-      <button class="pin-key" data-k="3">3</button>
-      <button class="pin-key" data-k="4">4</button>
-      <button class="pin-key" data-k="5">5</button>
-      <button class="pin-key" data-k="6">6</button>
-      <button class="pin-key" data-k="7">7</button>
-      <button class="pin-key" data-k="8">8</button>
-      <button class="pin-key" data-k="9">9</button>
-      <button class="pin-key ghost" disabled></button>
-      <button class="pin-key" data-k="0">0</button>
-      <button class="pin-key" data-k="DEL" aria-label="Cancella">⌫</button>
+      <button class="pin-key" data-k="1">1</button><button class="pin-key" data-k="2">2</button><button class="pin-key" data-k="3">3</button>
+      <button class="pin-key" data-k="4">4</button><button class="pin-key" data-k="5">5</button><button class="pin-key" data-k="6">6</button>
+      <button class="pin-key" data-k="7">7</button><button class="pin-key" data-k="8">8</button><button class="pin-key" data-k="9">9</button>
+      <button class="pin-key ghost" disabled></button><button class="pin-key" data-k="0">0</button><button class="pin-key" data-k="DEL">&#9003;</button>
     </div>
   </div>
-  <div class="pin-foot">
-    <div class="muted" style="color:rgba(255,255,255,.5);font-size:11px">v2.2 · PIN locale</div>
-  </div>
+  <div style="color:rgba(255,255,255,.5);font-size:11px">v3.0 · Mobile Suite</div>
 </div>
 
-<!-- v2.2 · PIN locale come gate, API chiamata senza JWT (impresasemplice.online non richiede auth) -->
+<!-- DRAWER SIDEBAR -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+<nav id="drawer" class="drawer">
+  <div class="drawer-head">
+    <div class="logo">C</div>
+    <div>
+      <h2>Ceraldi</h2>
+      <div class="sub">Gestionale Mobile</div>
+    </div>
+  </div>
+  <div class="drawer-nav" id="drawerNav"></div>
+  <div class="drawer-foot">v3.0 · chat-8</div>
+</nav>
 
-<!-- ============ APP ============ -->
+<!-- APP -->
 <div id="app" class="app hidden">
   <header class="topbar">
-    <div class="brand">
-      <div class="logo">C</div>
-      <div class="title"><span id="tabTitle">Dashboard</span><small id="apiHost">impresasemplice.online</small></div>
+    <button class="menu-btn" onclick="openDrawer()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="title-wrap">
+      <div class="title" id="topTitle">Dashboard</div>
+      <div class="title-sub" id="topSub">impresasemplice.online</div>
     </div>
     <div class="actions">
-      <button class="icon-btn" id="btnRefresh"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg></button>
-      <button class="icon-btn" id="btnLock" title="Blocca"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+      <button class="icon-btn" onclick="reloadModule()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg></button>
+      <button class="icon-btn" onclick="lockApp()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
     </div>
   </header>
-  <main>
-    <section id="pageDashboard" class="page">
-      <div class="stats">
-        <div class="stat accent"><div class="label">Fatture da pagare</div><div class="value" id="statUnpaidCount">—</div><div class="sub" id="statUnpaidAmount">€ 0,00</div></div>
-        <div class="stat"><div class="label">Scadute</div><div class="value" id="statOverdue" style="color:var(--danger)">—</div><div class="sub">richiedono azione</div></div>
-        <div class="stat"><div class="label">Assegni vuoti</div><div class="value" id="statAssegniVuoti">—</div><div class="sub">da compilare</div></div>
-        <div class="stat"><div class="label">Assegni emessi</div><div class="value" id="statAssegniEmessi" style="color:var(--warning)">—</div><div class="sub" id="statAssegniEmessiAmount">€ 0,00</div></div>
-      </div>
-      <div class="card">
-        <h3>Azioni rapide</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button class="btn btn-ghost btn-sm" onclick="goTab('fatture')">💰 Paga fattura</button>
-          <button class="btn btn-ghost btn-sm" onclick="openGeneraAssegni()">➕ Nuovo blocco</button>
-          <button class="btn btn-ghost btn-sm" onclick="goTab('assegni');setAssegnoFilter('vuoto')">📝 Compila assegno</button>
-          <button class="btn btn-ghost btn-sm" onclick="goTab('assegni');setAssegnoFilter('emesso')">✅ Incassa</button>
-        </div>
-      </div>
-      <div class="section-title">Ultime fatture non pagate</div>
-      <div id="dashRecentInvoices"></div>
-    </section>
-
-    <section id="pageFatture" class="page hidden">
-      <div class="search-bar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchFatture" type="search" placeholder="Cerca fornitore, numero fattura…"></div>
-      <div class="chips">
-        <div class="chip active" data-ff="unpaid">Da pagare</div>
-        <div class="chip" data-ff="overdue">Scadute</div>
-        <div class="chip" data-ff="all">Tutte</div>
-      </div>
-      <div id="listFatture"></div>
-    </section>
-
-    <section id="pageAssegni" class="page hidden">
-      <div class="search-bar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="searchAssegni" type="search" placeholder="Cerca numero o beneficiario…"></div>
-      <div class="chips" id="chipsAssegno">
-        <div class="chip active" data-stato="">Tutti</div>
-        <div class="chip" data-stato="vuoto">Vuoti</div>
-        <div class="chip" data-stato="compilato">Compilati</div>
-        <div class="chip" data-stato="emesso">Emessi</div>
-        <div class="chip" data-stato="incassato">Incassati</div>
-        <div class="chip" data-stato="annullato">Annullati</div>
-      </div>
-      <div id="listAssegni"></div>
-    </section>
-
-    <section id="pageMenu" class="page hidden">
-      <div class="card">
-        <h3>Strumenti</h3>
-        <button class="btn btn-primary btn-block" onclick="openGeneraAssegni()" style="margin-bottom:8px">➕ Genera blocco assegni</button>
-        <button class="btn btn-ghost btn-block" onclick="loadDashboard(true)">🔄 Ricarica dati</button>
-      </div>
-      <div class="card">
-        <h3>Sessione</h3>
-        <div class="kv" style="padding:6px 0;font-size:14px"><span class="muted">Utente</span><b id="infoUser">—</b></div>
-        <div class="kv" style="padding:6px 0;font-size:14px;border-top:1px solid var(--border)"><span class="muted">API</span><b id="infoApi" style="font-size:12px;word-break:break-all;max-width:60%">—</b></div>
-        <div class="kv" style="padding:6px 0;font-size:14px;border-top:1px solid var(--border)"><span class="muted">Token</span><b id="infoToken">—</b></div>
-        <div class="kv" style="padding:6px 0;font-size:14px;border-top:1px solid var(--border)"><span class="muted">Metodo</span><b>PIN locale</b></div>
-        <button class="btn btn-danger btn-block" style="margin-top:14px" onclick="lockApp()">🔒 Blocca ora</button>
-      </div>
-      <div class="muted" style="text-align:center;font-size:11px;margin-top:10px">Ceraldi Mobile · chat-8 · v2.2 (PIN locale · API aperta)</div>
-    </section>
-  </main>
-
-  <nav class="bottom-nav">
-    <button class="nav-item active" data-tab="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
-    <button class="nav-item" data-tab="fatture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>Fatture</button>
-    <button class="nav-item" data-tab="assegni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="7" y1="15" x2="10" y2="15"/></svg>Assegni</button>
-    <button class="nav-item" data-tab="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Altro</button>
-  </nav>
+  <main id="main"><!-- contenuto iniettato --></main>
+  <button id="fab" class="fab hidden" onclick="onFab()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 </div>
 
+<!-- SHEET -->
 <div id="sheetOverlay" class="sheet-overlay" onclick="if(event.target===this)closeSheet()">
-  <div class="sheet" id="sheetContent" onclick="event.stopPropagation()">
+  <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div id="sheetBody"></div>
   </div>
 </div>
 <div id="toast" class="toast"></div>
-
 <script>
-/* =====================================================================
-   CERALDI MOBILE v2 · PIN lock (141574) + JWT admin salvato in locale
-   ===================================================================== */
-
-// SHA-256 di "141574" — PIN fisso non in chiaro
 const PIN_HASH = '72e0837603bda6733feca2c118417d031d2df2c9574373df26c76c28a2c9c0b4';
-
-const LS = {
-  token:'ceraldi_mobile_token',
-  user:'ceraldi_mobile_user',
-  api:'ceraldi_mobile_api',
-  attempts:'ceraldi_mobile_pin_attempts',
-  lockUntil:'ceraldi_mobile_pin_lock',
-};
-
+const LS = { token:'ceraldi_mobile_token', user:'ceraldi_mobile_user', api:'ceraldi_mobile_api', attempts:'ceraldi_mobile_pin_attempts', lockUntil:'ceraldi_mobile_pin_lock' };
 let API_BASE = localStorage.getItem(LS.api) || 'https://impresasemplice.online';
-let TOKEN    = localStorage.getItem(LS.token) || '';
-let USER     = localStorage.getItem(LS.user) || '';
-
-let state = {tab:'dashboard', fattureFilter:'unpaid', fattureAll:[], assegniStato:'', assegniAll:[]};
+let TOKEN = localStorage.getItem(LS.token) || '';
 let pinBuffer = '';
+let currentModule = 'dashboard';
+let state = {};
 
 const $ = id => document.getElementById(id);
 const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n||0));
@@ -309,486 +251,548 @@ const fmtDate = d => { if(!d) return '—'; try{const s=typeof d==='string'?d.sl
 const debounce = (fn,ms=300)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
 const escapeHtml = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const haptic = (ms=10) => { if(navigator.vibrate) navigator.vibrate(ms); };
+async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+function toast(msg,type=''){const t=$('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast'+(type?' '+type:''),2800);}
 
-async function sha256(text){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-function toast(msg, type=''){
-  const t = $('toast'); t.textContent = msg; t.className = 'toast show '+type;
-  clearTimeout(t._h); t._h = setTimeout(()=>t.className='toast'+(type?' '+type:''), 2800);
-}
-
-/* ---------- PIN ---------- */
-function renderDots(){
-  $('pinDots').querySelectorAll('.pin-dot').forEach((d,i)=>{
-    d.classList.remove('err');
-    d.classList.toggle('filled', i < pinBuffer.length);
-  });
-}
-function pinError(msg){
-  const dots = $('pinDots');
-  dots.classList.add('pin-shake');
-  dots.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('err'));
-  const m = $('pinMsg'); m.textContent = msg; m.className = 'pin-msg err';
-  haptic([60,40,60]);
-  setTimeout(()=>{ dots.classList.remove('pin-shake'); pinBuffer=''; renderDots(); m.textContent=''; m.className='pin-msg'; }, 900);
-}
-function isLocked(){
-  const until = parseInt(localStorage.getItem(LS.lockUntil)||'0');
-  return until > Date.now() ? until : 0;
-}
-function setLockTimer(){
-  const until = isLocked();
-  if(!until){ enablePinPad(true); $('pinMsg').textContent=''; $('pinMsg').className='pin-msg'; return; }
-  enablePinPad(false);
-  const secs = Math.ceil((until - Date.now())/1000);
-  $('pinMsg').innerHTML = `<span class="pin-locked">🔒 Bloccato · riprova tra ${secs}s</span>`;
-  $('pinMsg').className = 'pin-msg err';
-  if(secs>0) setTimeout(setLockTimer, 1000);
-  else { localStorage.removeItem(LS.lockUntil); localStorage.removeItem(LS.attempts); enablePinPad(true); $('pinMsg').textContent=''; }
-}
-function enablePinPad(on){
-  $('pinPad').querySelectorAll('.pin-key').forEach(b=>{ if(!b.classList.contains('ghost')) b.disabled = !on; });
+// ======== API ========
+async function api(path,opts={}){
+  const url = API_BASE.replace(/\/$/,'') + path;
+  const headers = {'Content-Type':'application/json',...(opts.headers||{})};
+  if(TOKEN) headers['Authorization'] = 'Bearer '+TOKEN;
+  const res = await fetch(url,{...opts,headers});
+  if(!res.ok){let msg=`HTTP ${res.status}`;try{const j=await res.json();msg=j.detail||j.message||msg;}catch{}throw new Error(msg);}
+  return res.status===204?null:res.json();
 }
 
+// ======== PIN ========
+function renderDots(){$('pinDots').querySelectorAll('.pin-dot').forEach((d,i)=>{d.classList.remove('err');d.classList.toggle('filled',i<pinBuffer.length);});}
+function pinError(msg){const dots=$('pinDots');dots.classList.add('pin-shake');dots.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('err'));const m=$('pinMsg');m.textContent=msg;m.className='pin-msg err';haptic([60,40,60]);setTimeout(()=>{dots.classList.remove('pin-shake');pinBuffer='';renderDots();m.textContent='';m.className='pin-msg';},900);}
+function isLocked(){const u=parseInt(localStorage.getItem(LS.lockUntil)||'0');return u>Date.now()?u:0;}
+function setLockTimer(){const u=isLocked();if(!u){enablePinPad(true);return;}enablePinPad(false);const s=Math.ceil((u-Date.now())/1000);$('pinMsg').innerHTML=`🔒 Bloccato · ${s}s`;$('pinMsg').className='pin-msg err';if(s>0)setTimeout(setLockTimer,1000);else{localStorage.removeItem(LS.lockUntil);localStorage.removeItem(LS.attempts);enablePinPad(true);$('pinMsg').textContent='';}}
+function enablePinPad(on){$('pinPad').querySelectorAll('.pin-key').forEach(b=>{if(!b.classList.contains('ghost'))b.disabled=!on;});}
 async function onPinKey(k){
-  if(isLocked()) return;
-  haptic(10);
-  if(k === 'DEL'){ pinBuffer = pinBuffer.slice(0,-1); renderDots(); return; }
-  if(pinBuffer.length >= 6) return;
-  pinBuffer += k;
-  renderDots();
-  if(pinBuffer.length === 6){
-    const hash = await sha256(pinBuffer);
-    if(hash === PIN_HASH){
-      // PIN corretto → entro direttamente (nessuna chiamata server)
-      // In questa modalità "NO-PIN-API" le chiamate backend vanno senza JWT
-      localStorage.removeItem(LS.attempts);
-      localStorage.removeItem(LS.lockUntil);
-      TOKEN = '';  // nessun token, l'API è aperta
-      USER  = 'ceraldi';
-      localStorage.setItem(LS.api, API_BASE);
-      $('pinMsg').textContent = '✓ Accesso consentito'; $('pinMsg').className = 'pin-msg ok';
-      haptic(20);
-      setTimeout(()=>{ hidePin(); showApp(); }, 250);
+  if(isLocked())return;haptic(10);
+  if(k==='DEL'){pinBuffer=pinBuffer.slice(0,-1);renderDots();return;}
+  if(pinBuffer.length>=6)return;
+  pinBuffer+=k;renderDots();
+  if(pinBuffer.length===6){
+    const h = await sha256(pinBuffer);
+    if(h === PIN_HASH){
+      localStorage.removeItem(LS.attempts);localStorage.removeItem(LS.lockUntil);
+      $('pinMsg').textContent='✓ Accesso consentito';$('pinMsg').className='pin-msg ok';haptic(20);
+      setTimeout(()=>{$('pinScreen').classList.add('hidden');showApp();},250);
     }else{
-      let a = parseInt(localStorage.getItem(LS.attempts)||'0') + 1;
-      localStorage.setItem(LS.attempts, String(a));
-      if(a >= 5){
-        localStorage.setItem(LS.lockUntil, String(Date.now() + 30*1000));
-        pinError(`Troppi tentativi · bloccato 30s`);
-        setTimeout(setLockTimer, 500);
-      }else{
-        pinError(`PIN errato (${a}/5)`);
-      }
+      let a=parseInt(localStorage.getItem(LS.attempts)||'0')+1;localStorage.setItem(LS.attempts,String(a));
+      if(a>=5){localStorage.setItem(LS.lockUntil,String(Date.now()+30000));pinError(`Troppi tentativi · 30s`);setTimeout(setLockTimer,500);}
+      else pinError(`PIN errato (${a}/5)`);
     }
   }
 }
-document.querySelectorAll('#pinPad .pin-key').forEach(b=>{
-  if(b.dataset.k) b.addEventListener('click', ()=> onPinKey(b.dataset.k));
-});
-// Tastiera fisica (utile per debug desktop)
-document.addEventListener('keydown', e=>{
-  if($('pinScreen').classList.contains('hidden')) return;
-  if(/^[0-9]$/.test(e.key)) onPinKey(e.key);
-  else if(e.key === 'Backspace') onPinKey('DEL');
-});
+document.querySelectorAll('#pinPad .pin-key').forEach(b=>{if(b.dataset.k)b.addEventListener('click',()=>onPinKey(b.dataset.k));});
+document.addEventListener('keydown',e=>{if($('pinScreen').classList.contains('hidden'))return;if(/^[0-9]$/.test(e.key))onPinKey(e.key);else if(e.key==='Backspace')onPinKey('DEL');});
+function showPin(){pinBuffer='';renderDots();$('pinMsg').textContent='';$('pinMsg').className='pin-msg';$('pinScreen').classList.remove('hidden');$('app').classList.add('hidden');setLockTimer();}
+function lockApp(){$('app').classList.add('hidden');showPin();}
+function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.remove('hidden');try{$('topSub').textContent=new URL(API_BASE).host;}catch{$('topSub').textContent=API_BASE;}renderDrawer();goModule('dashboard');}
 
-function showPin(){
-  pinBuffer=''; renderDots();
-  $('pinMsg').textContent=''; $('pinMsg').className='pin-msg';
-  $('pinScreen').classList.remove('hidden');
-  $('app').classList.add('hidden');
-  setLockTimer();
-}
-function hidePin(){ $('pinScreen').classList.add('hidden'); }
-
-/* ---------- API ---------- */
-async function apiCall(path, opts={}, skipAuth=false){
-  const url = API_BASE.replace(/\/$/,'') + path;
-  const headers = {'Content-Type':'application/json', ...(opts.headers||{})};
-  if(TOKEN && !skipAuth) headers['Authorization'] = 'Bearer '+TOKEN;
-  const res = await fetch(url, {...opts, headers});
-  if(res.status === 401 && !skipAuth){
-    // In questa versione no-PIN-API il 401 significa che l'endpoint richiede
-    // auth che non abbiamo. Mostriamo un avviso ma non buttiamo fuori.
-    toast('Endpoint richiede login · ' + path, 'error');
-    throw new Error('401 Unauthorized');
+// ======== DRAWER ========
+const MODULES = [
+  {id:'dashboard',label:'Dashboard',group:'main',icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'},
+  {id:'fatture',label:'Fatture Ricevute',group:'passivo',icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/>'},
+  {id:'fornitori',label:'Fornitori',group:'passivo',icon:'<circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>'},
+  {id:'pagamenti',label:'Pagamenti & Assegni',group:'passivo',icon:'<rect x="2" y="6" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>'},
+  {id:'cassa',label:'Prima Nota Cassa',group:'banca',icon:'<path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4z"/>'},
+  {id:'banca',label:'Prima Nota Banca',group:'banca',icon:'<path d="M3 9l9-6 9 6v1H3zM5 10v8M10 10v8M14 10v8M19 10v8M3 18h18v2H3z"/>'},
+  {id:'f24',label:'F24 & Scadenze',group:'fiscale',icon:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'},
+  {id:'corrispettivi',label:'Corrispettivi',group:'fiscale',icon:'<line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'},
+  {id:'dipendenti',label:'Dipendenti',group:'hr',icon:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'},
+  {id:'cedolini',label:'Cedolini',group:'hr',icon:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'},
+  {id:'documenti',label:'Documenti / Inbox',group:'docs',icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'},
+  {id:'alerts',label:'Alert & Anomalie',group:'docs',icon:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'},
+];
+const MODULE_GROUPS = {main:'Principale',passivo:'Ciclo Passivo',banca:'Banca & Cassa',fiscale:'Fiscale',hr:'Personale',docs:'Documenti'};
+function renderDrawer(){
+  const nav = $('drawerNav');
+  let html = '';
+  let lastGroup = '';
+  for(const m of MODULES){
+    if(m.group !== lastGroup){
+      html += `<div class="drawer-section">${MODULE_GROUPS[m.group]||m.group}</div>`;
+      lastGroup = m.group;
+    }
+    html += `<button class="drawer-item ${m.id===currentModule?'active':''}" data-mod="${m.id}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${m.icon}</svg>
+      <span>${m.label}</span>
+      <span class="count hidden" id="cnt-${m.id}"></span>
+    </button>`;
   }
-  if(!res.ok){
-    let msg = `HTTP ${res.status}`;
-    try{ const j=await res.json(); msg = j.detail||j.message||msg; }catch{}
-    throw new Error(msg);
-  }
-  return res.status === 204 ? null : res.json();
-}
-const api = apiCall;
-
-function lockApp(){ $('app').classList.add('hidden'); showPin(); }
-
-/* ---------- Boot ---------- */
-showPin();  // sempre parte dal PIN
-
-function showApp(){
-  $('pinScreen').classList.add('hidden');
-  $('app').classList.remove('hidden');
-  try{ $('apiHost').textContent = new URL(API_BASE).host; }catch{ $('apiHost').textContent = API_BASE; }
-  $('infoUser').textContent = USER || 'ceraldi';
-  $('infoApi').textContent = API_BASE;
-  $('infoToken').textContent = TOKEN ? (TOKEN.slice(0,10)+'…') : '—';
-  goTab('dashboard');
-}
-
-document.querySelectorAll('.nav-item').forEach(b=>{ b.onclick = ()=> goTab(b.dataset.tab); });
-function goTab(tab){
-  state.tab = tab;
-  ['dashboard','fatture','assegni','menu'].forEach(t=>{
-    $('page'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('hidden', t!==tab);
+  nav.innerHTML = html;
+  nav.querySelectorAll('.drawer-item').forEach(el=>{
+    el.onclick = () => { closeDrawer(); goModule(el.dataset.mod); };
   });
-  document.querySelectorAll('.nav-item').forEach(b=> b.classList.toggle('active', b.dataset.tab===tab));
-  $('tabTitle').textContent = {dashboard:'Dashboard',fatture:'Fatture',assegni:'Assegni',menu:'Altro'}[tab];
-  if(tab==='dashboard') loadDashboard();
-  if(tab==='fatture')   loadFatture();
-  if(tab==='assegni')   loadAssegni();
 }
-$('btnRefresh').onclick = ()=>{
-  if(state.tab==='dashboard') loadDashboard(true);
-  else if(state.tab==='fatture') loadFatture(true);
-  else if(state.tab==='assegni') loadAssegni(true);
-};
-$('btnLock').onclick = lockApp;
+function openDrawer(){$('drawer').classList.add('show');$('drawerOverlay').classList.add('show');}
+function closeDrawer(){$('drawer').classList.remove('show');$('drawerOverlay').classList.remove('show');}
 
-/* ---------- DASHBOARD ---------- */
-async function loadDashboard(force=false){
-  if($('dashRecentInvoices').dataset.loaded && !force) return;
-  $('dashRecentInvoices').innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
-  try{
-    const [unpaid, overdue, aStats] = await Promise.all([
-      api('/api/invoices/unpaid?skip=0&limit=200').catch(()=>[]),
-      api('/api/invoices/overdue?skip=0&limit=500').catch(()=>[]),
-      api('/api/assegni/stats').catch(()=>({per_stato:{}})),
-    ]);
-    const list = Array.isArray(unpaid)?unpaid:(unpaid.items||[]);
-    const overdueList = Array.isArray(overdue)?overdue:(overdue.items||[]);
-    const totalUnpaid = list.reduce((s,i)=> s + Number(getResiduo(i)||0), 0);
-    $('statUnpaidCount').textContent = list.length;
-    $('statUnpaidAmount').textContent = euro(totalUnpaid);
-    $('statOverdue').textContent = overdueList.length;
-    const perStato = aStats.per_stato || {};
-    $('statAssegniVuoti').textContent = (perStato.vuoto||{}).count || 0;
-    const em = perStato.emesso || {count:0,totale:0};
-    $('statAssegniEmessi').textContent = em.count || 0;
-    $('statAssegniEmessiAmount').textContent = euro(em.totale||0);
-    const top5 = list.slice(0,5);
-    $('dashRecentInvoices').innerHTML = top5.length ? top5.map(fatturaCardHTML).join('') : '<div class="empty"><div class="icon">✅</div>Nessuna fattura da pagare</div>';
-    $('dashRecentInvoices').dataset.loaded = '1';
-    bindFattureClicks($('dashRecentInvoices'));
-  }catch(e){ $('dashRecentInvoices').innerHTML = `<div class="empty">Errore: ${escapeHtml(e.message)}</div>`; }
+// ======== ROUTER ========
+function goModule(id){
+  currentModule = id;
+  const mod = MODULES.find(m=>m.id===id);
+  if(!mod) return;
+  $('topTitle').textContent = mod.label;
+  document.querySelectorAll('.drawer-item').forEach(el=>el.classList.toggle('active', el.dataset.mod===id));
+  $('fab').classList.add('hidden');  // default: FAB nascosto
+  const main = $('main');
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  // Dispatch al renderer giusto
+  const fn = window['render_'+id];
+  if(typeof fn === 'function') fn(main).catch(e => renderError(main, e));
+  else renderPlaceholder(main, mod);
 }
-
-/* ---------- FATTURE ---------- */
-function getResiduo(f){
-  if(f.residuo!=null) return f.residuo;
-  const t = Number(f.importo_totale||f.totale||0);
-  const p = Number(f.importo_pagato||f.pagato||0);
-  return Math.max(0, t-p);
-}
-function getStatoFattura(f){
-  const r = Number(getResiduo(f));
-  const t = Number(f.importo_totale||f.totale||0);
-  if(r <= 0.01) return {label:'Pagata', cls:'success'};
-  if(r < t) return {label:'Parziale', cls:'warning'};
-  if(f.data_scadenza && new Date(f.data_scadenza) < new Date()) return {label:'Scaduta', cls:'danger'};
-  return {label:'Da pagare', cls:'info'};
-}
-function fatturaCardHTML(f){
-  const st = getStatoFattura(f);
-  const sup = f.cedente_denominazione||f.supplier_name||f.fornitore_denominazione||'—';
-  const num = f.numero_fattura||f.numero||'—';
-  const res = getResiduo(f);
-  const fid = f.id||f.invoice_key||f._id;
-  return `<div class="list-item" data-fattura="${encodeURIComponent(fid)}">
-    <div class="li-top"><div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(num)} · ${fmtDate(f.data_fattura)}</span></div><div class="li-amount">${euro(res)}</div></div>
-    <div class="li-bottom"><span class="badge ${st.cls}">${st.label}</span><span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div>
+function reloadModule(){ goModule(currentModule); }
+function renderPlaceholder(main, mod){
+  main.innerHTML = `<div class="module-placeholder">
+    <div class="icon">🚧</div>
+    <h3>${mod.label}</h3>
+    <p>Questo modulo sarà implementato nella prossima chat.<br>Per ora vedi gli altri moduli dal menu ☰</p>
+    <button class="btn btn-primary" onclick="goModule('dashboard')">Torna alla Dashboard</button>
   </div>`;
 }
-async function loadFatture(force=false){
-  const c = $('listFatture');
-  c.innerHTML = '<div class="loading"><span class="spinner"></span>Carico fatture…</div>';
-  try{
-    let path = '/api/invoices/unpaid?skip=0&limit=500';
-    if(state.fattureFilter==='overdue') path='/api/invoices/overdue?skip=0&limit=500';
-    if(state.fattureFilter==='all')     path='/api/invoices/list?skip=0&limit=500';
-    const data = await api(path);
-    state.fattureAll = Array.isArray(data)?data:(data.items||[]);
-    renderFatture();
-  }catch(e){ c.innerHTML = `<div class="empty">Errore: ${escapeHtml(e.message)}</div>`; }
+function renderError(main, e){
+  main.innerHTML = `<div class="module-placeholder">
+    <div class="icon">⚠️</div>
+    <h3>Dati non disponibili</h3>
+    <p>Il backend ha risposto: <b>${escapeHtml(e.message)}</b><br><br>Possibili cause: endpoint non configurato, autenticazione richiesta, o servizio momentaneamente giù.</p>
+    <button class="btn btn-primary" onclick="reloadModule()">Riprova</button>
+  </div>`;
 }
-function renderFatture(){
-  const q = ($('searchFatture').value||'').toLowerCase().trim();
-  let list = state.fattureAll;
-  if(q) list = list.filter(f=>{
-    const txt = [f.cedente_denominazione,f.supplier_name,f.fornitore_denominazione,f.numero_fattura,f.numero,f.cedente_piva].filter(Boolean).join(' ').toLowerCase();
-    return txt.includes(q);
+
+// ======== SHEET ========
+function openSheet(html){$('sheetBody').innerHTML=html;$('sheetOverlay').classList.add('show');document.body.style.overflow='hidden';}
+function closeSheet(){$('sheetOverlay').classList.remove('show');document.body.style.overflow='';}
+
+// ======== FAB ========
+function onFab(){
+  const handlers = { cassa:openAddCassa, banca:openAddBanca, fatture:null, assegni:null };
+  const h = handlers[currentModule];
+  if(h) h(); else toast('Azione non disponibile in questo modulo','error');
+}
+
+// ======== BOOT ========
+showPin();
+</script>
+<script>
+async function render_dashboard(main){
+  // Ogni chiamata è best-effort: se una fallisce, la ignoro
+  const [unpaid, overdue, aStats, assegniStats, alerts] = await Promise.all([
+    api('/api/invoices/unpaid?skip=0&limit=200').catch(()=>[]),
+    api('/api/invoices/overdue?skip=0&limit=500').catch(()=>[]),
+    api('/api/cash?skip=0&limit=500').catch(()=>[]),
+    api('/api/assegni/stats').catch(()=>({per_stato:{}})),
+    api('/api/alerts?limit=5').catch(()=>[]),
+  ]);
+  const lUnpaid = Array.isArray(unpaid)?unpaid:(unpaid.items||[]);
+  const lOverdue = Array.isArray(overdue)?overdue:(overdue.items||[]);
+  const lCash = Array.isArray(aStats)?aStats:(aStats.items||[]);
+  const unpaidTot = lUnpaid.reduce((s,i)=>s+Number(getResiduo(i)||0),0);
+  const cashEntr = lCash.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const cashUsc  = lCash.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
+  const cashSaldo = cashEntr + cashUsc;
+  const perStato = (assegniStats||{}).per_stato||{};
+  const assVuoti = (perStato.vuoto||{}).count||0;
+  const assEmessi = (perStato.emesso||{}).count||0;
+  const lAlerts = Array.isArray(alerts)?alerts:(alerts.items||alerts.alerts||[]);
+
+  main.innerHTML = `
+    <div class="stats">
+      <div class="stat accent">
+        <div class="label">Da pagare</div>
+        <div class="value">${lUnpaid.length}</div>
+        <div class="sub">${euro(unpaidTot)}</div>
+      </div>
+      <div class="stat danger">
+        <div class="label">Scadute</div>
+        <div class="value">${lOverdue.length}</div>
+        <div class="sub">richiedono azione</div>
+      </div>
+      <div class="stat">
+        <div class="label">Cassa oggi</div>
+        <div class="value" style="color:${cashSaldo>=0?'var(--success)':'var(--danger)'}">${euro(cashSaldo)}</div>
+        <div class="sub">${lCash.length} movimenti</div>
+      </div>
+      <div class="stat">
+        <div class="label">Assegni</div>
+        <div class="value">${assVuoti + assEmessi}</div>
+        <div class="sub">${assVuoti} vuoti · ${assEmessi} emessi</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Azioni rapide</h3>
+      <div class="action-grid">
+        <button class="btn btn-ghost btn-sm" onclick="goModule('cassa')">💰 Nuova spesa cassa</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('fatture')">📄 Paga fattura</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('pagamenti')">🧾 Assegni</button>
+        <button class="btn btn-ghost btn-sm" onclick="goModule('f24')">⚠️ Scadenze F24</button>
+      </div>
+    </div>
+
+    ${lAlerts.length ? `
+      <div class="section-title">Alert recenti <span class="link" onclick="goModule('alerts')">Vedi tutti</span></div>
+      ${lAlerts.slice(0,3).map(a => `
+        <div class="alert-card ${a.severity==='danger'||a.priority==='high'?'danger':(a.severity==='info'?'info':'')}">
+          <div class="a-icon">⚠️</div>
+          <div class="a-body">
+            <div class="a-title">${escapeHtml(a.title||a.message||a.descrizione||'Alert')}</div>
+            <div class="a-sub">${escapeHtml(a.category||a.tipo||'generico')}</div>
+          </div>
+        </div>`).join('')}
+    ` : ''}
+
+    ${lUnpaid.length ? `
+      <div class="section-title">Prossime fatture da pagare <span class="link" onclick="goModule('fatture')">Tutte</span></div>
+      <div>${lUnpaid.slice(0,3).map(fatturaCardHTML).join('')}</div>
+    ` : ''}
+  `;
+  main.querySelectorAll('.list-item[data-fattura]').forEach(el=>{
+    el.onclick = () => openFatturaSheet(decodeURIComponent(el.dataset.fattura));
   });
-  const c = $('listFatture');
-  c.innerHTML = list.length ? list.map(fatturaCardHTML).join('') : '<div class="empty"><div class="icon">📭</div>Nessuna fattura trovata</div>';
-  bindFattureClicks(c);
 }
-function bindFattureClicks(container){
-  container.querySelectorAll('.list-item[data-fattura]').forEach(el=>{
-    el.onclick = ()=> openFatturaSheet(decodeURIComponent(el.dataset.fattura));
-  });
-}
-document.querySelectorAll('.chips .chip[data-ff]').forEach(c=>{
-  c.onclick = ()=>{
-    document.querySelectorAll('.chips .chip[data-ff]').forEach(x=>x.classList.remove('active'));
-    c.classList.add('active');
-    state.fattureFilter = c.dataset.ff;
-    loadFatture();
+</script><script>
+function getResiduo(f){if(f.residuo!=null)return f.residuo;const t=Number(f.importo_totale||f.totale||0);const p=Number(f.importo_pagato||f.pagato||0);return Math.max(0,t-p);}
+function getStatoFattura(f){const r=Number(getResiduo(f));const t=Number(f.importo_totale||f.totale||0);if(r<=0.01)return{label:'Pagata',cls:'success'};if(r<t)return{label:'Parziale',cls:'warning'};if(f.data_scadenza&&new Date(f.data_scadenza)<new Date())return{label:'Scaduta',cls:'danger'};return{label:'Da pagare',cls:'info'};}
+function fatturaCardHTML(f){const st=getStatoFattura(f);const sup=f.cedente_denominazione||f.supplier_name||f.fornitore_denominazione||'—';const num=f.numero_fattura||f.numero||'—';const res=getResiduo(f);const fid=f.id||f.invoice_key||f._id;return`<div class="list-item" data-fattura="${encodeURIComponent(fid)}"><div class="li-top"><div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(num)} · ${fmtDate(f.data_fattura)}</span></div><div class="li-amount">${euro(res)}</div></div><div class="li-bottom"><span class="badge ${st.cls}">${st.label}</span><span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div></div>`;}
+
+async function render_fatture(main){
+  state.fatture = state.fatture || {filter:'unpaid', list:[]};
+  main.innerHTML = `
+    <div class="search-bar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="srchF" type="search" placeholder="Cerca fornitore, numero…">
+    </div>
+    <div class="chips">
+      <div class="chip ${state.fatture.filter==='unpaid'?'active':''}" data-ff="unpaid">Da pagare</div>
+      <div class="chip ${state.fatture.filter==='overdue'?'active':''}" data-ff="overdue">Scadute</div>
+      <div class="chip ${state.fatture.filter==='all'?'active':''}" data-ff="all">Tutte</div>
+    </div>
+    <div id="listF"><div class="loading"><span class="spinner"></span>Carico…</div></div>`;
+  main.querySelectorAll('.chip[data-ff]').forEach(c=>{c.onclick=()=>{state.fatture.filter=c.dataset.ff;render_fatture(main);};});
+  let path = '/api/invoices/unpaid?skip=0&limit=500';
+  if(state.fatture.filter==='overdue') path='/api/invoices/overdue?skip=0&limit=500';
+  if(state.fatture.filter==='all') path='/api/invoices/list?skip=0&limit=500';
+  const data = await api(path);
+  state.fatture.list = Array.isArray(data)?data:(data.items||[]);
+  const renderList = ()=>{
+    const q=($('srchF').value||'').toLowerCase().trim();
+    let list=state.fatture.list;
+    if(q)list=list.filter(f=>[f.cedente_denominazione,f.supplier_name,f.numero_fattura,f.numero].filter(Boolean).join(' ').toLowerCase().includes(q));
+    $('listF').innerHTML = list.length?list.map(fatturaCardHTML).join(''):'<div class="empty"><div class="icon">📭</div><div class="title">Nessuna fattura</div></div>';
+    $('listF').querySelectorAll('.list-item[data-fattura]').forEach(el=>{el.onclick=()=>openFatturaSheet(decodeURIComponent(el.dataset.fattura));});
   };
-});
-$('searchFatture').addEventListener('input', debounce(renderFatture, 200));
+  renderList();
+  $('srchF').addEventListener('input', debounce(renderList,200));
+}
 
 async function openFatturaSheet(fid){
-  openSheetHTML('<div class="loading"><span class="spinner"></span>Carico dettaglio…</div>');
+  openSheet('<div class="loading"><span class="spinner"></span>Carico…</div>');
   try{
     const f = await api('/api/invoices/'+encodeURIComponent(fid));
-    const sup = f.cedente_denominazione||f.supplier_name||f.fornitore_denominazione||'—';
-    const num = f.numero_fattura||f.numero||'—';
-    const tot = Number(f.importo_totale||f.totale||0);
-    const pag = Number(f.importo_pagato||f.pagato||0);
-    const res = getResiduo(f);
-    const st = getStatoFattura(f);
-    $('sheetBody').innerHTML = `
-      <h2>Fattura</h2>
+    const sup=f.cedente_denominazione||f.supplier_name||'—';const num=f.numero_fattura||f.numero||'—';
+    const tot=Number(f.importo_totale||f.totale||0);const pag=Number(f.importo_pagato||f.pagato||0);const res=getResiduo(f);const st=getStatoFattura(f);
+    $('sheetBody').innerHTML=`<h2>Fattura</h2>
       <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(sup)}</span></div>
       <div class="kv"><span class="k">Numero</span><span class="v">${escapeHtml(num)}</span></div>
-      <div class="kv"><span class="k">Data fattura</span><span class="v">${fmtDate(f.data_fattura)}</span></div>
+      <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(f.data_fattura)}</span></div>
       ${f.data_scadenza?`<div class="kv"><span class="k">Scadenza</span><span class="v">${fmtDate(f.data_scadenza)}</span></div>`:''}
       <div class="kv"><span class="k">Totale</span><span class="v">${euro(tot)}</span></div>
       <div class="kv"><span class="k">Pagato</span><span class="v">${euro(pag)}</span></div>
       <div class="kv"><span class="k">Residuo</span><span class="v" style="color:var(--danger);font-weight:800">${euro(res)}</span></div>
       <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${st.cls}">${st.label}</span></span></div>
-      ${res > 0.01 ? `
-        <div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border)">
-          <h3>💳 Registra pagamento</h3>
-          <div class="field"><label>Importo (€)</label><input id="payAmount" class="input" type="number" step="0.01" min="0.01" value="${res.toFixed(2)}" inputmode="decimal"></div>
-          <div class="field"><label>Metodo</label>
-            <select id="payMethod" class="select">
-              <option value="banca">Banca (bonifico)</option>
-              <option value="assegno">Assegno</option>
-              <option value="cassa">Cassa</option>
-              <option value="carta">Carta</option>
-              <option value="altro">Altro</option>
-            </select>
-          </div>
-          <button class="btn btn-success btn-block" onclick="registraPagamento('${encodeURIComponent(f.id||f.invoice_key||f._id)}')">✅ Registra pagamento</button>
-        </div>`:''}
+      ${res>0.01?`<div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border)">
+        <h3>💳 Registra pagamento</h3>
+        <div class="field"><label>Importo</label><input id="payA" class="input" type="number" step="0.01" value="${res.toFixed(2)}" inputmode="decimal"></div>
+        <div class="field"><label>Metodo</label><select id="payM" class="select"><option value="banca">Banca</option><option value="assegno">Assegno</option><option value="cassa">Cassa</option><option value="carta">Carta</option></select></div>
+        <button class="btn btn-success btn-block" onclick="registraPagamento('${encodeURIComponent(f.id||f.invoice_key||f._id)}')">✅ Registra pagamento</button>
+      </div>`:''}
       <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`;
-  }catch(e){
-    $('sheetBody').innerHTML = `<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;
-  }
+  }catch(e){$('sheetBody').innerHTML=`<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;}
 }
 async function registraPagamento(fidEnc){
-  const fid = decodeURIComponent(fidEnc);
-  const amount = parseFloat($('payAmount').value);
-  const method = $('payMethod').value;
-  if(!(amount > 0)) return toast('Importo non valido','error');
+  const fid=decodeURIComponent(fidEnc);const amount=parseFloat($('payA').value);const method=$('payM').value;
+  if(!(amount>0))return toast('Importo non valido','error');
+  try{await api(`/api/invoices/${encodeURIComponent(fid)}/payment?${new URLSearchParams({amount:String(amount),payment_method:method})}`,{method:'POST'});toast('Pagamento registrato','success');haptic(30);closeSheet();reloadModule();}
+  catch(e){toast('Errore: '+e.message,'error');}
+}
+</script><script>
+async function render_fornitori(main){
+  main.innerHTML = `<div class="search-bar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="srchFor" type="search" placeholder="Cerca per nome o P.IVA…"></div>
+    <div id="listFor"><div class="loading"><span class="spinner"></span>Carico…</div></div>`;
   try{
-    const q = new URLSearchParams({amount:String(amount), payment_method:method});
-    await api(`/api/invoices/${encodeURIComponent(fid)}/payment?${q}`, {method:'POST'});
-    toast('Pagamento registrato','success'); haptic(30);
-    closeSheet();
-    $('dashRecentInvoices').dataset.loaded = '';
-    if(state.tab==='dashboard') loadDashboard(true);
-    if(state.tab==='fatture') loadFatture(true);
-  }catch(e){ toast('Errore: '+e.message,'error'); }
-}
-
-/* ---------- ASSEGNI ---------- */
-function statoAssegnoBadge(stato){
-  const map = {vuoto:{cls:'neutral',label:'Vuoto'},compilato:{cls:'info',label:'Compilato'},emesso:{cls:'warning',label:'Emesso'},incassato:{cls:'success',label:'Incassato'},annullato:{cls:'danger',label:'Annullato'}};
-  const m = map[stato] || {cls:'neutral',label:stato||'—'};
-  return `<span class="badge ${m.cls}">${m.label}</span>`;
-}
-function assegnoCardHTML(a){
-  const id = a.id || a.numero;
-  return `<div class="list-item" data-assegno="${encodeURIComponent(id)}">
-    <div class="li-top"><div class="li-title">N. ${escapeHtml(a.numero||'—')}<span class="small">${escapeHtml(a.beneficiario||'Nessun beneficiario')}</span></div><div class="li-amount">${a.importo!=null?euro(a.importo):'—'}</div></div>
-    <div class="li-bottom">${statoAssegnoBadge(a.stato)}<span class="li-meta">${a.data_emissione?'Emesso '+fmtDate(a.data_emissione):''}</span></div>
-  </div>`;
-}
-async function loadAssegni(){
-  const c = $('listAssegni');
-  c.innerHTML = '<div class="loading"><span class="spinner"></span>Carico assegni…</div>';
-  try{
-    const q = new URLSearchParams({skip:'0', limit:'500'});
-    if(state.assegniStato) q.set('stato', state.assegniStato);
-    const srch = ($('searchAssegni').value||'').trim();
-    if(srch) q.set('search', srch);
-    const list = await api('/api/assegni?'+q);
-    state.assegniAll = Array.isArray(list) ? list : (list.items||[]);
-    renderAssegni();
-  }catch(e){ c.innerHTML = `<div class="empty">Errore: ${escapeHtml(e.message)}</div>`; }
-}
-function renderAssegni(){
-  const c = $('listAssegni');
-  c.innerHTML = state.assegniAll.length ? state.assegniAll.map(assegnoCardHTML).join('') : '<div class="empty"><div class="icon">🧾</div>Nessun assegno</div>';
-  c.querySelectorAll('.list-item[data-assegno]').forEach(el=>{
-    el.onclick = ()=> openAssegnoSheet(decodeURIComponent(el.dataset.assegno));
-  });
-}
-document.querySelectorAll('#chipsAssegno .chip').forEach(c=>{ c.onclick = ()=> setAssegnoFilter(c.dataset.stato); });
-function setAssegnoFilter(stato){
-  state.assegniStato = stato || '';
-  document.querySelectorAll('#chipsAssegno .chip').forEach(x=> x.classList.toggle('active', (x.dataset.stato||'')===(stato||'')));
-  loadAssegni();
-}
-$('searchAssegni').addEventListener('input', debounce(loadAssegni, 350));
-
-async function openAssegnoSheet(aid){
-  openSheetHTML('<div class="loading"><span class="spinner"></span>Carico assegno…</div>');
-  try{
-    const a = await api('/api/assegni/'+encodeURIComponent(aid));
-    const stato = a.stato || 'vuoto';
-    $('sheetBody').innerHTML = `
-      <h2>Assegno N. ${escapeHtml(a.numero||'—')}</h2>
-      <div class="kv"><span class="k">Stato</span><span class="v">${statoAssegnoBadge(stato)}</span></div>
-      <div class="kv"><span class="k">Beneficiario</span><span class="v">${escapeHtml(a.beneficiario||'—')}</span></div>
-      <div class="kv"><span class="k">Importo</span><span class="v">${a.importo!=null?euro(a.importo):'—'}</span></div>
-      <div class="kv"><span class="k">Causale</span><span class="v">${escapeHtml(a.causale||'—')}</span></div>
-      <div class="kv"><span class="k">Data emissione</span><span class="v">${fmtDate(a.data_emissione)}</span></div>
-      ${a.fattura_collegata?`<div class="kv"><span class="k">Fattura collegata</span><span class="v">${escapeHtml(String(a.numero_fattura||a.fattura_collegata))}</span></div>`:''}
-      ${stato==='vuoto' ? compilaFormHTML(a) : ''}
-      <div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border)">
-        <h3>Azioni</h3>
-        <div style="display:grid;gap:8px">
-          ${stato==='vuoto' || stato==='compilato' ? `<button class="btn btn-ghost btn-block" onclick="openCollegaFatturaSheet('${encodeURIComponent(a.id||a.numero)}')">🔗 Collega a fattura</button>`:''}
-          ${stato==='compilato' ? `<button class="btn btn-warning btn-block" onclick="azioneAssegno('${encodeURIComponent(a.id||a.numero)}','emetti')">📤 Emetti</button>`:''}
-          ${stato==='emesso' ? `<button class="btn btn-success btn-block" onclick="azioneAssegno('${encodeURIComponent(a.id||a.numero)}','incassa')">💰 Incassa</button>`:''}
-          ${stato!=='annullato' && stato!=='incassato' ? `<button class="btn btn-danger btn-block" onclick="azioneAssegno('${encodeURIComponent(a.id||a.numero)}','annulla')">⛔ Annulla</button>`:''}
-          <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
-        </div>
-      </div>`;
-  }catch(e){
-    $('sheetBody').innerHTML = `<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;
-  }
-}
-function compilaFormHTML(a){
-  return `<div style="margin-top:16px;padding-top:16px;border-top:2px solid var(--border)">
-    <h3>📝 Compila</h3>
-    <div class="field"><label>Beneficiario</label><input id="fBenef" class="input" value="${escapeHtml(a.beneficiario||'')}" placeholder="Ragione sociale"></div>
-    <div class="field"><label>Importo (€)</label><input id="fImporto" class="input" type="number" step="0.01" inputmode="decimal" value="${a.importo??''}"></div>
-    <div class="field"><label>Causale</label><input id="fCausale" class="input" value="${escapeHtml(a.causale||'')}" placeholder="Es. Pagamento fattura nr…"></div>
-    <button class="btn btn-primary btn-block" onclick="salvaAssegno('${encodeURIComponent(a.id||a.numero)}')">💾 Salva compilazione</button>
-  </div>`;
-}
-async function salvaAssegno(aidEnc){
-  const aid = decodeURIComponent(aidEnc);
-  const body = {beneficiario:$('fBenef').value.trim()||null, importo:parseFloat($('fImporto').value)||null, causale:$('fCausale').value.trim()||null, stato:'compilato'};
-  try{
-    await api('/api/assegni/'+encodeURIComponent(aid), {method:'PUT', body:JSON.stringify(body)});
-    toast('Assegno compilato','success'); haptic(30);
-    closeSheet();
-    if(state.tab==='assegni') loadAssegni();
-  }catch(e){ toast('Errore: '+e.message,'error'); }
-}
-async function azioneAssegno(aidEnc, azione){
-  const aid = decodeURIComponent(aidEnc);
-  const conf = {emetti:'Emettere questo assegno?',incassa:'Marcare come incassato?',annulla:'Annullare questo assegno?'};
-  if(!confirm(conf[azione])) return;
-  try{
-    await api(`/api/assegni/${encodeURIComponent(aid)}/${azione}`, {method:'POST', body:JSON.stringify({})});
-    toast({emetti:'Assegno emesso',incassa:'Incassato ✅',annulla:'Annullato'}[azione],'success'); haptic(30);
-    closeSheet();
-    if(state.tab==='assegni') loadAssegni();
-    if(state.tab==='dashboard') loadDashboard(true);
-  }catch(e){ toast('Errore: '+e.message,'error'); }
-}
-
-async function openCollegaFatturaSheet(aidEnc){
-  openSheetHTML(`
-    <h2>🔗 Collega assegno a fattura</h2>
-    <div class="search-bar" style="margin-bottom:10px">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="collegaSearch" type="search" placeholder="Cerca fornitore o numero…" autofocus>
-    </div>
-    <div id="collegaList"><div class="loading"><span class="spinner"></span>Carico fatture…</div></div>
-    <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="closeSheet()">Annulla</button>`);
-  try{
-    const data = await api('/api/invoices/unpaid?skip=0&limit=500');
-    const list = Array.isArray(data)?data:(data.items||[]);
+    const data = await api('/api/fornitori?skip=0&limit=500');
+    const list = Array.isArray(data)?data:(data.items||data.fornitori||[]);
     const render = ()=>{
-      const q = ($('collegaSearch').value||'').toLowerCase().trim();
-      const filt = q ? list.filter(f=>{
-        const t = [f.cedente_denominazione,f.supplier_name,f.numero_fattura,f.numero].filter(Boolean).join(' ').toLowerCase();
-        return t.includes(q);
-      }) : list;
-      $('collegaList').innerHTML = filt.length
-        ? filt.slice(0,50).map(f=>{
-            const fid = f.id||f.invoice_key||f._id;
-            const sup = f.cedente_denominazione||f.supplier_name||'—';
-            return `<div class="list-item" onclick="doCollega('${aidEnc}','${encodeURIComponent(fid)}')">
-              <div class="li-top"><div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(f.numero_fattura||f.numero||'')} · ${fmtDate(f.data_fattura)}</span></div><div class="li-amount">${euro(getResiduo(f))}</div></div>
-            </div>`;
-          }).join('')
-        : '<div class="empty">Nessuna fattura</div>';
+      const q=($('srchFor').value||'').toLowerCase().trim();
+      let filt=list;
+      if(q)filt=list.filter(f=>{const t=[f.anagrafica?.ragione_sociale, f.ragione_sociale, f.denominazione, f.anagrafica?.piva, f.piva].filter(Boolean).join(' ').toLowerCase();return t.includes(q);});
+      $('listFor').innerHTML = filt.length?filt.slice(0,100).map(f=>{
+        const name = f.anagrafica?.ragione_sociale || f.ragione_sociale || f.denominazione || '—';
+        const piva = f.anagrafica?.piva || f.piva || '';
+        const metodo = f.metodo_pagamento || f.pagamento || null;
+        const badge = metodo ? `<span class="badge info">${escapeHtml(metodo)}</span>` : `<span class="badge warning">Metodo mancante</span>`;
+        return `<div class="list-item" data-for="${encodeURIComponent(f.id||f._id||'')}">
+          <div class="li-top"><div class="li-title">${escapeHtml(name)}<span class="small">${piva?'P.IVA '+piva:''}</span></div></div>
+          <div class="li-bottom">${badge}<span class="li-meta">${f.num_fatture?f.num_fatture+' fatture':''}</span></div>
+        </div>`;
+      }).join(''):'<div class="empty"><div class="icon">🏢</div><div class="title">Nessun fornitore</div></div>';
+      $('listFor').querySelectorAll('.list-item[data-for]').forEach(el=>{el.onclick=()=>openFornitoreSheet(decodeURIComponent(el.dataset.for), list);});
     };
     render();
-    $('collegaSearch').addEventListener('input', debounce(render, 200));
-  }catch(e){ $('collegaList').innerHTML = `<div class="empty">Errore: ${escapeHtml(e.message)}</div>`; }
+    $('srchFor').addEventListener('input', debounce(render,200));
+  }catch(e){throw e;}
 }
-async function doCollega(aidEnc, fidEnc){
-  const aid = decodeURIComponent(aidEnc);
-  const fid = decodeURIComponent(fidEnc);
+function openFornitoreSheet(fid, list){
+  const f = list.find(x=>(x.id||x._id)===fid);
+  if(!f){toast('Fornitore non trovato','error');return;}
+  const a = f.anagrafica || f;
+  openSheet(`<h2>${escapeHtml(a.ragione_sociale||f.denominazione||'Fornitore')}</h2>
+    <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(a.piva||f.piva||'—')}</span></div>
+    <div class="kv"><span class="k">C.F.</span><span class="v">${escapeHtml(a.cf||f.cf||'—')}</span></div>
+    <div class="kv"><span class="k">PEC</span><span class="v">${escapeHtml(a.pec||f.pec||'—')}</span></div>
+    <div class="kv"><span class="k">Email</span><span class="v">${escapeHtml(a.email||f.email||'—')}</span></div>
+    <div class="kv"><span class="k">Telefono</span><span class="v">${escapeHtml(a.telefono||f.telefono||'—')}</span></div>
+    <div class="kv"><span class="k">Metodo pagamento</span><span class="v">${escapeHtml(f.metodo_pagamento||f.pagamento||'non definito')}</span></div>
+    <div class="kv"><span class="k">IBAN</span><span class="v" style="font-size:11px">${escapeHtml(f.iban||a.iban||'—')}</span></div>
+    <div style="margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+}
+</script><script>
+async function render_cassa(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
   try{
-    await api(`/api/assegni/${encodeURIComponent(aid)}/collega-fattura`, {method:'POST', body:JSON.stringify({fattura_id: fid})});
-    toast('Assegno collegato alla fattura','success'); haptic(30);
-    closeSheet();
-    if(state.tab==='assegni') loadAssegni();
-  }catch(e){ toast('Errore: '+e.message,'error'); }
+    const data = await api('/api/cash?skip=0&limit=200');
+    const list = Array.isArray(data)?data:(data.items||[]);
+    const entr = list.filter(m=>Number(m.importo)>0).reduce((s,m)=>s+Number(m.importo||0),0);
+    const usc = list.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
+    const saldo = entr + usc;
+    main.innerHTML = `<div class="stats">
+        <div class="stat ${saldo>=0?'success':'danger'}"><div class="label">Saldo cassa</div><div class="value">${euro(saldo)}</div><div class="sub">${list.length} movimenti</div></div>
+        <div class="stat"><div class="label">Entrate · Uscite</div><div class="value" style="font-size:15px;line-height:1.3">+${euro(entr)}<br>${euro(usc)}</div></div>
+      </div>
+      <div class="section-title">Movimenti recenti <span class="link" onclick="openAddCassa()">+ Nuovo</span></div>
+      <div id="listC">${list.length?list.slice(0,50).map(m=>{
+        const imp=Number(m.importo||0);const pos=imp>=0;
+        const desc=m.descrizione||m.causale||'—';
+        return `<div class="list-item"><div class="li-top">
+          <div class="li-title">${escapeHtml(desc)}<span class="small">${fmtDate(m.data||m.data_movimento)} · ${escapeHtml(m.causale||m.categoria||'')}</span></div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+        </div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">💰</div><div class="title">Nessun movimento</div></div>'}</div>`;
+    $('fab').classList.remove('hidden');
+  }catch(e){throw e;}
 }
-
-function openGeneraAssegni(){
-  openSheetHTML(`
-    <h2>➕ Nuovo blocco assegni</h2>
-    <div class="muted" style="font-size:13px;margin-bottom:12px">Inserisci il numero del <b>primo</b> assegno (formato PREFISSO-NUMERO) e quanti generare.</div>
-    <div class="field"><label>Numero primo assegno</label><input id="gNumero" class="input" placeholder="0208769182-11"></div>
-    <div class="field"><label>Quantità</label><input id="gQuantita" class="input" type="number" min="1" max="100" value="10" inputmode="numeric"></div>
-    <button class="btn btn-primary btn-block" onclick="doGeneraAssegni()">Genera</button>
+function openAddCassa(){
+  openSheet(`<h2>💰 Nuovo movimento cassa</h2>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label><select id="cType" class="select"><option value="-1">Uscita</option><option value="1">Entrata</option></select></div>
+      <div class="field"><label>Importo (€)</label><input id="cImp" class="input" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0,00"></div>
+    </div>
+    <div class="field"><label>Descrizione</label><input id="cDesc" class="input" placeholder="Es. Caffè · Ricarica registratore · ..."></div>
+    <div class="field"><label>Causale</label><select id="cCaus" class="select">
+      <option>Spesa minuta</option><option>Acquisto merce</option><option>Rimborso</option>
+      <option>Versamento da banca</option><option>Prelievo per banca</option><option>Altro</option>
+    </select></div>
+    <div class="field"><label>Data</label><input id="cData" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaCassa()">Salva movimento</button>
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
 }
-async function doGeneraAssegni(){
-  const numero_primo = $('gNumero').value.trim();
-  const quantita = parseInt($('gQuantita').value)||0;
-  if(!numero_primo || !quantita) return toast('Compila tutti i campi','error');
+async function salvaCassa(){
+  const imp = parseFloat($('cImp').value)||0;
+  const tipo = parseInt($('cType').value);
+  if(imp<=0)return toast('Importo non valido','error');
+  const body = {
+    importo: imp*tipo,
+    descrizione: $('cDesc').value.trim(),
+    causale: $('cCaus').value,
+    data: $('cData').value,
+    origine: 'mobile'
+  };
   try{
-    const r = await api('/api/assegni/genera', {method:'POST', body:JSON.stringify({numero_primo, quantita})});
-    toast(`Generati ${quantita} assegni · da ${r.primo} a ${r.ultimo}`,'success'); haptic(30);
-    closeSheet();
-    if(state.tab==='assegni') loadAssegni();
-    if(state.tab==='dashboard') loadDashboard(true);
-  }catch(e){ toast('Errore: '+e.message,'error'); }
+    await api('/api/cash',{method:'POST',body:JSON.stringify(body)});
+    toast('Movimento registrato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
-
-function openSheetHTML(html){ $('sheetBody').innerHTML = html; $('sheetOverlay').classList.add('show'); document.body.style.overflow='hidden'; }
-function closeSheet(){ $('sheetOverlay').classList.remove('show'); document.body.style.overflow=''; }
-
-window.closeSheet = closeSheet;
-window.openGeneraAssegni = openGeneraAssegni;
-window.doGeneraAssegni = doGeneraAssegni;
-window.openCollegaFatturaSheet = openCollegaFatturaSheet;
-window.doCollega = doCollega;
-window.registraPagamento = registraPagamento;
-window.salvaAssegno = salvaAssegno;
-window.azioneAssegno = azioneAssegno;
-window.setAssegnoFilter = setAssegnoFilter;
-window.goTab = goTab;
-window.loadDashboard = loadDashboard;
-window.lockApp = lockApp;
+</script><script>
+async function render_banca(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  try{
+    const data = await api('/api/estratto-conto-movimenti?skip=0&limit=100').catch(()=>api('/api/bank/statements?skip=0&limit=100'));
+    const list = Array.isArray(data)?data:(data.items||data.movimenti||[]);
+    const entr = list.filter(m=>Number(m.importo||m.amount)>0).reduce((s,m)=>s+Number(m.importo||m.amount||0),0);
+    const usc = list.filter(m=>Number(m.importo||m.amount)<0).reduce((s,m)=>s+Number(m.importo||m.amount||0),0);
+    main.innerHTML = `<div class="stats three">
+        <div class="stat"><div class="label">Entrate</div><div class="value" style="color:var(--success);font-size:17px">${euro(entr)}</div></div>
+        <div class="stat"><div class="label">Uscite</div><div class="value" style="color:var(--danger);font-size:17px">${euro(usc)}</div></div>
+        <div class="stat"><div class="label">Saldo</div><div class="value" style="font-size:17px">${euro(entr+usc)}</div></div>
+      </div>
+      <div class="section-title">Ultimi movimenti</div>
+      <div>${list.length?list.slice(0,50).map(m=>{
+        const imp=Number(m.importo||m.amount||0);const pos=imp>=0;
+        const desc=m.descrizione||m.description||m.causale||'Movimento';
+        const stato=m.stato||m.status||'';
+        const badge = stato ? `<span class="badge ${stato==='riconciliato'?'success':(stato==='da_verificare'?'warning':'neutral')}">${escapeHtml(stato)}</span>` : '';
+        return `<div class="list-item"><div class="li-top">
+          <div class="li-title">${escapeHtml(desc)}<span class="small">${fmtDate(m.data||m.data_movimento||m.date)}</span></div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+        </div><div class="li-bottom">${badge}<span class="li-meta"></span></div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">🏦</div><div class="title">Nessun movimento</div></div>'}</div>`;
+  }catch(e){throw e;}
+}
+</script><script>
+async function render_f24(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  try{
+    const data = await api('/api/f24?skip=0&limit=100');
+    const list = Array.isArray(data)?data:(data.items||[]);
+    const totOpen = list.filter(f=>!f.pagato&&!f.data_pagamento).reduce((s,f)=>s+Number(f.importo||0),0);
+    const scaduti = list.filter(f=>!f.pagato&&f.data_scadenza&&new Date(f.data_scadenza)<new Date()).length;
+    main.innerHTML = `<div class="stats">
+        <div class="stat accent"><div class="label">F24 aperti</div><div class="value">${list.filter(f=>!f.pagato).length}</div><div class="sub">${euro(totOpen)}</div></div>
+        <div class="stat danger"><div class="label">Scaduti</div><div class="value">${scaduti}</div><div class="sub">non pagati</div></div>
+      </div>
+      <div class="section-title">F24 recenti</div>
+      <div>${list.length?list.slice(0,30).map(f=>{
+        const pagato = f.pagato||f.data_pagamento;
+        const scaduto = !pagato&&f.data_scadenza&&new Date(f.data_scadenza)<new Date();
+        const badge = pagato?'<span class="badge success">Pagato</span>':(scaduto?'<span class="badge danger">Scaduto</span>':'<span class="badge warning">Aperto</span>');
+        return `<div class="list-item"><div class="li-top">
+          <div class="li-title">F24 ${escapeHtml(f.periodo||f.mese+'/'+f.anno||'')}<span class="small">${f.codici_tributo?'Tributi: '+escapeHtml(String(f.codici_tributo).slice(0,40)):'—'}</span></div>
+          <div class="li-amount">${euro(f.importo||0)}</div>
+        </div><div class="li-bottom">${badge}<span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">📋</div><div class="title">Nessun F24</div></div>'}</div>`;
+  }catch(e){throw e;}
+}
+</script><script>
+async function render_dipendenti(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  try{
+    const data = await api('/api/dipendenti?skip=0&limit=200');
+    const list = Array.isArray(data)?data:(data.items||data.dipendenti||[]);
+    const att = list.filter(d=>d.stato==='attivo'||d.is_active).length;
+    const ces = list.filter(d=>d.stato==='cessato'||!d.is_active).length;
+    main.innerHTML = `<div class="stats">
+        <div class="stat accent"><div class="label">Totale</div><div class="value">${list.length}</div><div class="sub">in organico</div></div>
+        <div class="stat success"><div class="label">Attivi</div><div class="value">${att}</div><div class="sub">${ces} cessati</div></div>
+      </div>
+      <div class="section-title">Elenco dipendenti</div>
+      <div>${list.length?list.map(d=>{
+        const nome = `${d.cognome||''} ${d.nome||''}`.trim() || d.nome_completo || '—';
+        const attivo = d.stato==='attivo'||d.is_active;
+        return `<div class="list-item"><div class="li-top">
+          <div class="li-title">${escapeHtml(nome)}<span class="small">${escapeHtml(d.mansione||d.ruolo||'—')}</span></div>
+        </div><div class="li-bottom">${attivo?'<span class="badge success">Attivo</span>':'<span class="badge neutral">Cessato</span>'}<span class="li-meta">${d.iban_cedolino?'IBAN OK':(d.iban?'IBAN':'No IBAN')}</span></div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">👥</div><div class="title">Nessun dipendente</div></div>'}</div>`;
+  }catch(e){throw e;}
+}
+</script><script>
+async function render_cedolini(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  try{
+    const data = await api('/api/cedolini?skip=0&limit=100');
+    const list = Array.isArray(data)?data:(data.items||data.cedolini||[]);
+    main.innerHTML = `<div class="section-title">Cedolini recenti (${list.length})</div>
+      <div>${list.length?list.slice(0,50).map(c=>{
+        const nome = c.nome_dipendente || c.dipendente_nome || `${c.cognome||''} ${c.nome||''}`.trim() || '—';
+        const periodo = c.anno&&c.mese?`${c.mese}/${c.anno}`:(c.periodo||'');
+        return `<div class="list-item"><div class="li-top">
+          <div class="li-title">${escapeHtml(nome)}<span class="small">Periodo ${escapeHtml(periodo)}</span></div>
+          <div class="li-amount">${euro(c.netto||c.netto_pagare||0)}</div>
+        </div><div class="li-bottom"><span class="badge info">${escapeHtml(c.tipo||'Cedolino')}</span><span class="li-meta">Lordo ${euro(c.lordo||0)}</span></div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">📄</div><div class="title">Nessun cedolino</div></div>'}</div>`;
+  }catch(e){throw e;}
+}
+</script><script>
+function statoAssegnoBadge(s){const m={vuoto:{cls:'neutral',label:'Vuoto'},compilato:{cls:'info',label:'Compilato'},emesso:{cls:'warning',label:'Emesso'},incassato:{cls:'success',label:'Incassato'},annullato:{cls:'danger',label:'Annullato'}}[s]||{cls:'neutral',label:s||'—'};return `<span class="badge ${m.cls}">${m.label}</span>`;}
+async function render_pagamenti(main){
+  state.pagamenti = state.pagamenti || {stato:''};
+  main.innerHTML = `<div class="search-bar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="srchA" type="search" placeholder="Cerca numero o beneficiario…"></div>
+    <div class="chips" id="chipsA">
+      <div class="chip ${!state.pagamenti.stato?'active':''}" data-s="">Tutti</div>
+      <div class="chip ${state.pagamenti.stato==='vuoto'?'active':''}" data-s="vuoto">Vuoti</div>
+      <div class="chip ${state.pagamenti.stato==='compilato'?'active':''}" data-s="compilato">Compilati</div>
+      <div class="chip ${state.pagamenti.stato==='emesso'?'active':''}" data-s="emesso">Emessi</div>
+      <div class="chip ${state.pagamenti.stato==='incassato'?'active':''}" data-s="incassato">Incassati</div>
+    </div>
+    <div id="listA"><div class="loading"><span class="spinner"></span>Carico…</div></div>`;
+  main.querySelectorAll('#chipsA .chip').forEach(c=>{c.onclick=()=>{state.pagamenti.stato=c.dataset.s;render_pagamenti(main);};});
+  try{
+    const q = new URLSearchParams({skip:'0',limit:'500'});
+    if(state.pagamenti.stato) q.set('stato',state.pagamenti.stato);
+    const srch=($('srchA').value||'').trim();
+    if(srch) q.set('search',srch);
+    const list = await api('/api/assegni?'+q);
+    const data = Array.isArray(list)?list:(list.items||[]);
+    $('listA').innerHTML = data.length?data.map(a=>{
+      return `<div class="list-item"><div class="li-top">
+        <div class="li-title">N. ${escapeHtml(a.numero||'—')}<span class="small">${escapeHtml(a.beneficiario||'Nessun beneficiario')}</span></div>
+        <div class="li-amount">${a.importo!=null?euro(a.importo):'—'}</div>
+      </div><div class="li-bottom">${statoAssegnoBadge(a.stato)}<span class="li-meta">${a.data_emissione?'Emesso '+fmtDate(a.data_emissione):''}</span></div></div>`;
+    }).join(''):'<div class="empty"><div class="icon">🧾</div><div class="title">Nessun assegno</div></div>';
+  }catch(e){throw e;}
+}
+</script><script>
+async function render_documenti(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  try{
+    const data = await api('/api/documenti?skip=0&limit=100').catch(()=>api('/api/documenti-inbox?limit=100'));
+    const list = Array.isArray(data)?data:(data.items||data.documenti||[]);
+    main.innerHTML = `<div class="section-title">Documenti (${list.length})</div>
+      <div>${list.length?list.slice(0,50).map(d=>{
+        const name = d.filename||d.nome||d.titolo||'Documento';
+        const tipo = d.tipo||d.classificazione||d.categoria||'da classificare';
+        const stato = d.stato||d.status||'';
+        return `<div class="list-item"><div class="li-top">
+          <div class="li-title">${escapeHtml(name)}<span class="small">${escapeHtml(tipo)} · ${fmtDate(d.data||d.data_acquisizione||d.created_at)}</span></div>
+        </div><div class="li-bottom"><span class="badge ${stato==='elaborato'?'success':(stato==='da_verificare'?'warning':'neutral')}">${escapeHtml(stato||'—')}</span><span class="li-meta">${escapeHtml(d.origine||'')}</span></div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">📂</div><div class="title">Inbox vuota</div></div>'}</div>`;
+  }catch(e){throw e;}
+}
+</script><script>
+async function render_alerts(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  try{
+    const data = await api('/api/alerts?limit=100');
+    const list = Array.isArray(data)?data:(data.items||data.alerts||[]);
+    main.innerHTML = `<div class="section-title">Alert attivi (${list.length})</div>
+      <div>${list.length?list.map(a=>{
+        const sev = a.severity||a.priority||'warning';
+        const cls = sev==='high'||sev==='danger'?'danger':(sev==='info'?'info':'');
+        const icon = sev==='high'||sev==='danger'?'🚨':(sev==='info'?'ℹ️':'⚠️');
+        return `<div class="alert-card ${cls}"><div class="a-icon">${icon}</div><div class="a-body"><div class="a-title">${escapeHtml(a.title||a.message||a.descrizione||'Alert')}</div><div class="a-sub">${escapeHtml(a.category||a.tipo||'generico')} · ${fmtDate(a.created_at||a.data)}</div></div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">✅</div><div class="title">Nessun alert attivo</div></div>'}</div>`;
+  }catch(e){throw e;}
+}
+</script><script>
+async function render_corrispettivi(main){
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Carico…</div>';
+  try{
+    const data = await api('/api/corrispettivi?skip=0&limit=60');
+    const list = Array.isArray(data)?data:(data.items||[]);
+    const tot = list.reduce((s,c)=>s+Number(c.totale||c.incasso||0),0);
+    main.innerHTML = `<div class="stats">
+        <div class="stat accent"><div class="label">Totale periodo</div><div class="value" style="font-size:18px">${euro(tot)}</div><div class="sub">${list.length} giornate</div></div>
+      </div>
+      <div class="section-title">Giornate recenti</div>
+      <div>${list.length?list.slice(0,60).map(c=>{
+        const contanti=Number(c.contanti||0);const pos=Number(c.pos||c.elettronico||0);
+        return `<div class="list-item"><div class="li-top">
+          <div class="li-title">${fmtDate(c.data)}<span class="small">Contanti ${euro(contanti)} · POS ${euro(pos)}</span></div>
+          <div class="li-amount">${euro(c.totale||c.incasso||(contanti+pos))}</div>
+        </div></div>`;
+      }).join(''):'<div class="empty"><div class="icon">🧾</div><div class="title">Nessun corrispettivo</div></div>'}</div>`;
+  }catch(e){throw e;}
+}
 </script>
 </body>
 </html>
