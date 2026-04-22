@@ -464,8 +464,33 @@ async function onPinKey(k){
     const h = await sha256(pinBuffer);
     if(h===PIN_HASH){
       localStorage.removeItem(LS.attempts);localStorage.removeItem(LS.lockUntil);
-      $('pinMsg').textContent='Accesso ok';$('pinMsg').className='pin-msg ok';haptic(20);
-      setTimeout(()=>{$('pinScreen').classList.add('hidden');showApp();},200);
+      $('pinMsg').textContent='Verifica server...';$('pinMsg').className='pin-msg';
+      // FIX CRITICO: il PIN è valido localmente, ora chiediamo al backend
+      // un JWT vero chiamando /api/auth/pin-login. Senza questo TOKEN resta vuoto
+      // e tutte le API successive danno 401 "Authentication required".
+      const pinPlaintext = pinBuffer;  // salva prima che venga resettato
+      try{
+        const url = API_BASE.replace(/\/$/,'') + '/api/auth/pin-login';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({pin: pinPlaintext})
+        });
+        if(!res.ok){
+          const err = await res.text();
+          throw new Error(`HTTP ${res.status}: ${err.slice(0,200)}`);
+        }
+        const data = await res.json();
+        if(!data.access_token) throw new Error('Server non ha restituito access_token');
+        TOKEN = data.access_token;
+        localStorage.setItem(LS.token, TOKEN);
+        $('pinMsg').textContent='Accesso ok';$('pinMsg').className='pin-msg ok';haptic(20);
+        setTimeout(()=>{$('pinScreen').classList.add('hidden');showApp();},200);
+      }catch(e){
+        $('pinMsg').textContent='Server: '+e.message.slice(0,60);
+        $('pinMsg').className='pin-msg err';
+        setTimeout(()=>{pinBuffer='';renderDots();$('pinMsg').textContent='';$('pinMsg').className='pin-msg';},3500);
+      }
     }else{
       let a=parseInt(localStorage.getItem(LS.attempts)||'0')+1;localStorage.setItem(LS.attempts,String(a));
       if(a>=5){localStorage.setItem(LS.lockUntil,String(Date.now()+30000));pinError(`Troppi tentativi`);setTimeout(setLockTimer,500);}
