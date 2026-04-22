@@ -905,10 +905,14 @@ async function render_dashboard(main){
   const lBuste = Array.isArray(busteDP)?busteDP:(busteDP?.items||[]);
   const lF24 = Array.isArray(f24DP)?f24DP:(f24DP?.items||[]);
 
-  // Ricavo/Costo/Utile da bilancio
-  const ric = bilancio?.ricavi || bilancio?.totale_ricavi || 0;
-  const cos = Math.abs(bilancio?.costi || bilancio?.totale_costi || 0);
-  const utile = bilancio?.utile || bilancio?.risultato || (ric - cos);
+  // Backend /api/dashboard/bilancio-istantaneo restituisce:
+  //   { ricavi: {totale, imponibile, ...}, costi: {totale, imponibile}, iva: {debito,credito,saldo,...}, bilancio: {utile_lordo,...}, documenti: {fatture_ricevute, corrispettivi} }
+  // L'app prima leggeva bilancio.ricavi direttamente (oggetto) e lo passava a euro() → 0,00€.
+  const ric = Number(bilancio?.ricavi?.totale ?? bilancio?.totale_ricavi ?? 0);
+  const cos = Math.abs(Number(bilancio?.costi?.totale ?? bilancio?.totale_costi ?? 0));
+  const utile = Number(bilancio?.bilancio?.utile_lordo ?? bilancio?.utile ?? bilancio?.risultato ?? (ric - cos));
+  const nFattRic = Number(bilancio?.documenti?.fatture_ricevute ?? 0);
+  const nCorrisp = Number(bilancio?.documenti?.corrispettivi ?? 0);
 
   main.innerHTML = `
     <div class="stats">
@@ -929,6 +933,25 @@ async function render_dashboard(main){
       <div class="stat"><div class="label">Buste paga</div><div class="value" style="font-size:19px;color:var(--warning)">${lBuste.length}</div><div class="sub">da pagare</div></div>
       <div class="stat"><div class="label">F24</div><div class="value" style="font-size:19px;color:var(--danger)">${lF24.length}</div><div class="sub">da pagare</div></div>
     </div>
+
+    ${bilancio?.iva ? `
+    <div class="card">
+      <h3>€ IVA ${ANNO}</h3>
+      <div class="stats three">
+        <div class="stat danger"><div class="label">Debito</div><div class="value" style="font-size:14px">${euro(bilancio.iva.debito||0)}</div></div>
+        <div class="stat success"><div class="label">Credito</div><div class="value" style="font-size:14px">${euro(bilancio.iva.credito||0)}</div></div>
+        <div class="stat ${Number(bilancio.iva.saldo)>=0?'danger':'success'}"><div class="label">${Number(bilancio.iva.saldo)>=0?'Da versare':'A credito'}</div><div class="value" style="font-size:14px">${euro(Math.abs(Number(bilancio.iva.saldo||0)))}</div></div>
+      </div>
+    </div>` : ''}
+
+    ${(nFattRic||nCorrisp) ? `
+    <div class="card">
+      <h3>📄 Documenti ${ANNO}</h3>
+      <div class="stats">
+        <div class="stat"><div class="label">Fatture ricevute</div><div class="value" style="font-size:20px">${nFattRic}</div></div>
+        <div class="stat"><div class="label">Corrispettivi</div><div class="value" style="font-size:20px">${nCorrisp}</div></div>
+      </div>
+    </div>` : ''}
 
     ${statoR ? `
     <div class="card">
@@ -974,10 +997,15 @@ async function render_prima_nota_cassa(main){
   if(state.pnc.mese) params.set('mese', String(state.pnc.mese));
   const data = await api(`/api/prima-nota/cassa?${params}`);
   const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.cassa||[]);
-  const entr = movs.filter(m=>Number(m.importo)>=0).reduce((s,m)=>s+Number(m.importo||0),0);
-  const usc = movs.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
-  const saldo = entr + usc;
-  // Totali per categoria (come nel gestionale2)
+  // Il backend restituisce tipo='entrata'/'uscita' + importo POSITIVO, e totali aggregati già calcolati.
+  // Usali se presenti, altrimenti ricalcola.
+  const isEntrata = m => m.tipo==='entrata' || Number(m.importo)>0 && !m.tipo;
+  const entr = Number(data.totale_entrate ?? movs.filter(m=>isEntrata(m)).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0));
+  const usc  = Number(data.totale_uscite  ?? movs.filter(m=>!isEntrata(m)).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0));
+  const saldoAnno = Number(data.saldo_anno ?? (entr - usc));
+  const saldoTot  = Number(data.saldo ?? saldoAnno);
+  // Totali per categoria (client-side)
+  const signedImp = m => (isEntrata(m) ? 1 : -1) * Math.abs(Number(m.importo||0));
   const totCorrisp = movs.filter(m=>(m.categoria||'').toLowerCase()==='corrispettivi').reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
   const totPOS = movs.filter(m=>(m.categoria||'').toLowerCase()==='pos').reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
   const totVers = movs.filter(m=>{const c=(m.categoria||'').toLowerCase();return c==='versamento'||c==='versamenti';}).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
@@ -986,10 +1014,18 @@ async function render_prima_nota_cassa(main){
   movs.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat success"><div class="label">Entrate (DARE)</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
-      <div class="stat danger"><div class="label">Uscite (AVERE)</div><div class="value" style="font-size:15px">${euro(Math.abs(usc))}</div></div>
-      <div class="stat accent"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldo)}</div></div>
+      <div class="stat success"><div class="label">Entrate ${ANNO}</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
+      <div class="stat danger"><div class="label">Uscite ${ANNO}</div><div class="value" style="font-size:15px">${euro(usc)}</div></div>
+      <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldoAnno)}</div></div>
     </div>
+    ${Math.abs(saldoTot - saldoAnno) > 0.01 ? `
+    <div class="alert-row ${saldoTot<0?'danger':'info'}" style="margin-bottom:12px">
+      <div class="a-icon">💼</div>
+      <div class="a-body">
+        <div class="a-title" style="font-size:12px">Saldo complessivo cassa: ${euro(saldoTot)}</div>
+        <div class="a-sub" style="font-size:11px">Include saldi anni precedenti (${euro(Number(data.saldo_precedente||0))})</div>
+      </div>
+    </div>` : ''}
     <div class="stats" style="grid-template-columns:repeat(4,1fr);gap:6px">
       <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Corrisp.</div><div class="value" style="font-size:12px;color:#ff9800">${euro(totCorrisp)}</div></div>
       <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">POS</div><div class="value" style="font-size:12px;color:#1e3a5f">${euro(totPOS)}</div></div>
@@ -1011,13 +1047,14 @@ async function render_prima_nota_cassa(main){
     </div>
     <div class="section-title">Movimenti (${movs.length}) <span class="link" onclick="syncFatturePagate()">🔄 Sync fatture</span></div>
     <div id="lstC">${movs.length ? movs.map(m=>{
-      const imp=Number(m.importo||0);const pos=imp>=0;
+      const imp = Math.abs(Number(m.importo||0));
+      const pos = isEntrata(m);
       const cat = (m.categoria||'').toLowerCase();
       const catColor = cat==='corrispettivi'?'#ff9800':(cat==='pos'?'#1e3a5f':(cat==='versamento'||cat==='versamenti'?'#059669':(m.fattura_id?'#ef4444':'#64748B')));
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
-          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':'-'}${euro(imp)}</div>
         </div>
         <div class="li-bottom">
           <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Entrata':'Uscita'))}</span>
@@ -1248,16 +1285,26 @@ async function render_prima_nota_banca(main){
   if(state.pnb.mese) params.set('mese', String(state.pnb.mese));
   const data = await api(`/api/prima-nota/banca?${params}`);
   const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.banca||[]);
-  const entr = movs.filter(m=>Number(m.importo)>=0).reduce((s,m)=>s+Number(m.importo||0),0);
-  const usc = movs.filter(m=>Number(m.importo)<0).reduce((s,m)=>s+Number(m.importo||0),0);
-  const saldo = entr + usc;
+  const isEntrata = m => m.tipo==='entrata' || (Number(m.importo)>0 && !m.tipo);
+  const entr = Number(data.totale_entrate ?? movs.filter(isEntrata).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0));
+  const usc  = Number(data.totale_uscite  ?? movs.filter(m=>!isEntrata(m)).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0));
+  const saldoAnno = Number(data.saldo_anno ?? (entr - usc));
+  const saldoTot = Number(data.saldo ?? saldoAnno);
   movs.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   main.innerHTML = `
     <div class="stats three">
       <div class="stat success"><div class="label">Accrediti</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
-      <div class="stat danger"><div class="label">Pagamenti</div><div class="value" style="font-size:15px">${euro(Math.abs(usc))}</div></div>
-      <div class="stat accent"><div class="label">Saldo</div><div class="value" style="font-size:15px">${euro(saldo)}</div></div>
+      <div class="stat danger"><div class="label">Pagamenti</div><div class="value" style="font-size:15px">${euro(usc)}</div></div>
+      <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldoAnno)}</div></div>
     </div>
+    ${Math.abs(saldoTot - saldoAnno) > 0.01 ? `
+    <div class="alert-row ${saldoTot<0?'danger':'info'}" style="margin-bottom:12px">
+      <div class="a-icon">🏦</div>
+      <div class="a-body">
+        <div class="a-title" style="font-size:12px">Saldo complessivo banca: ${euro(saldoTot)}</div>
+        <div class="a-sub" style="font-size:11px">Include saldi anni precedenti (${euro(Number(data.saldo_precedente||0))})</div>
+      </div>
+    </div>` : ''}
     <div class="alert-row info" style="margin-bottom:12px">
       <div class="a-icon">ℹ️</div>
       <div class="a-body">
@@ -1275,13 +1322,14 @@ async function render_prima_nota_banca(main){
     </div>
     <div class="section-title">Movimenti (${movs.length})</div>
     <div id="lstB">${movs.length ? movs.map(m=>{
-      const imp=Number(m.importo||0);const pos=imp>=0;
+      const imp = Math.abs(Number(m.importo||0));
+      const pos = isEntrata(m);
       const cat = (m.categoria||'').toLowerCase();
       const catColor = cat==='pos'?'#1e3a5f':(cat==='bonifico'?'#5D29C7':(cat==='versamento'?'#059669':(m.fattura_id?'#ef4444':(pos?'#4caf50':'#64748B'))));
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
-          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':'-'}${euro(imp)}</div>
         </div>
         <div class="li-bottom">
           <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Accredito':'Pagamento'))}</span>
@@ -1303,13 +1351,26 @@ async function render_prima_nota_banca(main){
 async function render_provvisori(main){
   const data = await api(`/api/prima-nota/provvisori?anno=${ANNO}`);
   const list = Array.isArray(data)?data:(data.items||data.provvisori||[]);
-  const tot = list.reduce((s,p)=>s+Number(p.importo||0),0);
+  // Il backend fornisce gli aggregati già calcolati
+  const totImp = list.reduce((s,p)=>s+Number(p.importo||0),0);
+  const nTot = Number(data.totale ?? list.length);
+  const nCassa = Number(data.totale_cassa ?? 0);
+  const nBanca = Number(data.totale_banca ?? 0);
+  const nConf = Number(data.confermati ?? 0);
+  const nProb = Number(data.probabili ?? 0);
+  const nAttesa = Number(data.in_attesa ?? list.length);
 
   main.innerHTML = `
-    <div class="stats">
-      <div class="stat warning"><div class="label">Provvisori</div><div class="value">${list.length}</div><div class="sub">fatture da classificare</div></div>
-      <div class="stat"><div class="label">Totale</div><div class="value" style="font-size:17px">${euro(tot)}</div></div>
+    <div class="stats three">
+      <div class="stat warning"><div class="label">Da classificare</div><div class="value">${nTot}</div><div class="sub">fatture</div></div>
+      <div class="stat accent"><div class="label">Importo totale</div><div class="value" style="font-size:15px">${euro(totImp)}</div></div>
+      <div class="stat ${nConf+nProb>0?'success':''}"><div class="label">Auto-match</div><div class="value">${nConf+nProb}</div><div class="sub">${nConf} confermati</div></div>
     </div>
+    ${(nCassa || nBanca) ? `
+    <div class="stats">
+      <div class="stat"><div class="label">Suggeriti cassa</div><div class="value" style="font-size:14px;color:#ff9800">${euro(nCassa)}</div></div>
+      <div class="stat"><div class="label">Suggeriti banca</div><div class="value" style="font-size:14px;color:#5D29C7">${euro(nBanca)}</div></div>
+    </div>`:''}
     ${list.length ? `
       <button class="btn btn-success btn-block" style="margin-bottom:14px;padding:14px;font-size:15px" onclick="confermaTuttiProvvisori()">✅ Conferma tutti con suggerimento</button>
     `:''}
@@ -1326,7 +1387,7 @@ async function render_provvisori(main){
           <div class="li-title" style="font-size:15px">${escapeHtml(p.fornitore||'-')}<span class="small" style="font-size:12px">N. ${escapeHtml(p.fattura_numero||'-')} · ${fmtDate(p.fattura_data)}</span></div>
           <div class="li-amount" style="font-size:17px">${euro(p.importo||0)}</div>
         </div>
-        <div style="margin-top:10px;margin-bottom:8px">${sugBadge}${p.stato_match?`<span class="badge neutral" style="margin-left:6px">${escapeHtml(p.stato_match)}</span>`:''}</div>
+        <div style="margin-top:10px;margin-bottom:8px">${sugBadge}${p.stato_match?`<span class="badge neutral" style="margin-left:6px">${escapeHtml(p.stato_match)}</span>`:''}${p.metodo_xml?`<span class="li-meta" style="margin-left:6px">XML: ${escapeHtml(p.metodo_xml)}</span>`:''}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
           <button class="btn btn-sm" style="padding:12px 4px;font-size:13px;background:${isCassa?'#ff9800':'#fff4e0'};color:${isCassa?'#fff':'#92400e'};border:1.5px solid ${isCassa?'#ff9800':'#ffd9a0'};font-weight:700" onclick="confermaProvvisorio('${fid}','cassa')">🏪 Cassa</button>
           <button class="btn btn-sm" style="padding:12px 4px;font-size:13px;background:${isBanca&&sug==='banca'?'#5D29C7':'#EFE7FF'};color:${isBanca&&sug==='banca'?'#fff':'#5D29C7'};border:1.5px solid ${isBanca&&sug==='banca'?'#5D29C7':'#d4c4ff'};font-weight:700" onclick="confermaProvvisorio('${fid}','banca')">🏦 Banca</button>
@@ -2147,7 +2208,44 @@ async function render_iva(main){
   state.iva = state.iva || {mese: null};
   const annuale = state.iva.mese ? null : await api(`/api/iva/annual/${ANNO}`).catch(()=>null);
   const mensile = state.iva.mese ? await api(`/api/iva/monthly/${ANNO}/${state.iva.mese}`).catch(()=>null) : null;
-  const data = mensile || annuale || {};
+  const raw = mensile || annuale || {};
+
+  // Backend in annuale ritorna {anno, monthly_data:[{mese, iva_debito, iva_credito, saldo, ...}]}
+  // Backend in mensile ritorna {anno, mese, daily_data:[{data, iva_debito, ...}], totali?} e alcuni campi aggregati
+  // Normalizza entrambi i casi in un unico oggetto 'data' con iva_debito/iva_credito/saldo aggregati
+  let data = {};
+  if(annuale && Array.isArray(annuale.monthly_data)){
+    data.iva_debito = annuale.monthly_data.reduce((s,m)=>s+Number(m.iva_debito||0),0);
+    data.iva_credito = annuale.monthly_data.reduce((s,m)=>s+Number(m.iva_credito||0),0);
+    data.imponibile_netto = annuale.monthly_data.reduce((s,m)=>s+Number(m.imponibile_netto||0),0);
+    data.saldo = data.iva_debito - data.iva_credito;
+    // Ultimo mese con dati → stato progressivo
+    const ultimoMese = [...annuale.monthly_data].reverse().find(m=>m.fatture_count||m.corrispettivi_count||m.iva_debito||m.iva_credito);
+    if(ultimoMese){
+      data.saldo_progressivo = Number(ultimoMese.saldo_progressivo||0);
+      data.stato_progressivo = ultimoMese.stato_progressivo;
+      data.importo_da_versare = Number(ultimoMese.importo_da_versare||0);
+    }
+    data.monthly_data = annuale.monthly_data;
+  } else if(mensile) {
+    // Prova a calcolare aggregati dal daily_data se i totali non sono esposti direttamente
+    if(Array.isArray(mensile.daily_data)){
+      data.iva_debito = mensile.daily_data.reduce((s,d)=>s+Number(d.iva_debito||0),0);
+      data.iva_credito = mensile.daily_data.reduce((s,d)=>s+Number(d.iva_credito||0),0);
+      data.imponibile_netto = mensile.daily_data.reduce((s,d)=>s+Number(d.imponibile_netto||0),0);
+      data.saldo = data.iva_debito - data.iva_credito;
+      // Prendi ultimo giorno con saldo_progressivo
+      const ultG = [...mensile.daily_data].reverse().find(d=>d.has_data);
+      if(ultG) data.saldo_progressivo = Number(ultG.saldo_progressivo||0);
+    }
+    // Se invece il backend espone campi al top-level li usa direttamente
+    Object.assign(data, {
+      iva_debito: data.iva_debito || mensile.iva_debito,
+      iva_credito: data.iva_credito || mensile.iva_credito,
+      saldo: data.saldo || mensile.saldo,
+    });
+    data.daily_data = mensile.daily_data;
+  }
 
   main.innerHTML = `
     <div class="month-selector">
@@ -2157,24 +2255,46 @@ async function render_iva(main){
     <div class="stats">
       <div class="stat accent">
         <div class="label">IVA a debito</div>
-        <div class="value" style="font-size:17px">${euro(data.iva_debito||data.iva_vendite||0)}</div>
+        <div class="value" style="font-size:17px">${euro(Number(data.iva_debito||0))}</div>
       </div>
       <div class="stat success">
         <div class="label">IVA a credito</div>
-        <div class="value" style="font-size:17px">${euro(data.iva_credito||data.iva_acquisti||0)}</div>
+        <div class="value" style="font-size:17px">${euro(Number(data.iva_credito||0))}</div>
       </div>
     </div>
     <div class="stats one">
-      <div class="stat ${(data.saldo||data.iva_da_versare)>=0?'danger':'success'}">
+      <div class="stat ${Number(data.saldo||0)>=0?'danger':'success'}">
         <div class="label">${state.iva.mese?`${fmtMonth(state.iva.mese)} ${ANNO}`:`Anno ${ANNO}`}</div>
-        <div class="value">${euro(data.saldo||data.iva_da_versare||((data.iva_debito||0)-(data.iva_credito||0)))}</div>
-        <div class="sub">${(data.saldo||data.iva_da_versare||0)>=0?'da versare':'a credito'}</div>
+        <div class="value">${euro(Math.abs(Number(data.saldo||0)))}</div>
+        <div class="sub">${Number(data.saldo||0)>=0?'a debito':'a credito'}</div>
       </div>
     </div>
-    ${data.dettaglio?`<div class="card"><h3>Dettaglio</h3><pre style="font-size:11px;overflow-x:auto">${escapeHtml(JSON.stringify(data.dettaglio,null,2))}</pre></div>`:''}
+    ${data.imponibile_netto ? `
+    <div class="card">
+      <h3>Imponibile ${state.iva.mese?fmtMonth(state.iva.mese):ANNO}</h3>
+      <div class="value" style="font-size:20px">${euro(Number(data.imponibile_netto))}</div>
+    </div>` : ''}
+    ${data.monthly_data ? `
+    <div class="card">
+      <h3>Dettaglio mensile</h3>
+      ${data.monthly_data.filter(m=>m.fatture_count||m.corrispettivi_count||m.iva_debito||m.iva_credito).map(m=>`
+        <div class="list-item" data-mese-iva="${m.mese}">
+          <div class="li-top">
+            <div class="li-title">${escapeHtml(m.mese_nome)}<span class="small">${m.fatture_count} fatt · ${m.corrispettivi_count} corr</span></div>
+            <div class="li-amount ${Number(m.saldo)>=0?'negative':'positive'}">${euro(Math.abs(Number(m.saldo||0)))}</div>
+          </div>
+          <div class="li-bottom">
+            <span class="badge ${Number(m.saldo)>=0?'danger':'success'}">${m.stato||(Number(m.saldo)>=0?'Debito':'Credito')}</span>
+            <span class="li-meta">D: ${euro(m.iva_debito)} · C: ${euro(m.iva_credito)}</span>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
   `;
   main.querySelectorAll('.month-selector .m').forEach(b=>{
     b.onclick=()=>{state.iva.mese = b.dataset.mese?parseInt(b.dataset.mese):null; render_iva(main);};
+  });
+  main.querySelectorAll('.list-item[data-mese-iva]').forEach(el=>{
+    el.onclick=()=>{state.iva.mese=parseInt(el.dataset.meseIva); render_iva(main);};
   });
 }
 </script><script>
