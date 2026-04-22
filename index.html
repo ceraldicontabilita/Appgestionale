@@ -1561,13 +1561,22 @@ async function render_fatture(main){
     <div id="lstF"><div class="loading"><span class="spinner"></span>Carico...</div></div>
   `;
   main.querySelectorAll('.chip[data-f]').forEach(c=>{ c.onclick = ()=>{ state.fat.filt = c.dataset.f; render_fatture(main); }; });
-  let path;
-  if(state.fat.filt==='unpaid') path=`/api/invoices/unpaid?anno=${ANNO}&skip=0&limit=500`;
-  else if(state.fat.filt==='overdue') path=`/api/invoices/overdue?anno=${ANNO}&skip=0&limit=500`;
-  else if(state.fat.filt==='paid') path=`/api/invoices/list?anno=${ANNO}&paid=true&skip=0&limit=500`;
-  else path=`/api/invoices/list?anno=${ANNO}&skip=0&limit=500`;
+  // FIX: /api/invoices/list|unpaid|overdue ritornano sempre vuoto sul backend di produzione.
+  // L'endpoint funzionante è /api/invoices (senza /list). Il filtro pagato/scaduto lo facciamo client-side
+  // sui campi total_amount / importo_pagato / data_scadenza / stato / pagato.
+  const path = `/api/invoices?anno=${ANNO}&limit=1000`;
   const data = await api(path);
-  const list = Array.isArray(data)?data:(data.items||[]);
+  const listRaw = Array.isArray(data)?data:(data.items||data.invoices||data.fatture||[]);
+  // Normalizza campi per confronti (gestisce schema diversi)
+  const list = listRaw.filter(f => {
+    const res = getResiduo(f);
+    const isPagata = (f.pagato===true) || (f.stato==='pagata') || (f.status==='paid') || res<=0.01;
+    const isScaduta = !isPagata && f.data_scadenza && new Date(f.data_scadenza) < new Date();
+    if(state.fat.filt === 'unpaid')  return !isPagata;
+    if(state.fat.filt === 'overdue') return isScaduta;
+    if(state.fat.filt === 'paid')    return isPagata;
+    return true;  // 'all'
+  });
   const renderList = ()=>{
     const q=($('srchF').value||'').toLowerCase().trim();
     state.fat.srch = q;
@@ -2516,11 +2525,16 @@ async function render_documenti(main){
 async function render_riconciliazione(main){
   const [mov, fat, stats] = await Promise.all([
     api(`/api/estratto-conto-movimenti/movimenti?riconciliato=false&limit=100&anno=${ANNO}`).catch(()=>[]),
-    api(`/api/invoices/list?paid=false&limit=100&anno=${ANNO}`).catch(()=>[]),
+    api(`/api/invoices?anno=${ANNO}&limit=500`).catch(()=>[]),
     api(`/api/riconciliazione-auto/stats-riconciliazione?anno=${ANNO}`).catch(()=>null),
   ]);
   const lMov = Array.isArray(mov)?mov:(mov.items||[]);
-  const lFat = Array.isArray(fat)?fat:(fat.items||[]);
+  const lFatAll = Array.isArray(fat)?fat:(fat.items||fat.invoices||[]);
+  // Filtra non pagate client-side (endpoint /api/invoices/list ritorna sempre vuoto in produzione)
+  const lFat = lFatAll.filter(f => {
+    const res = (f.residuo!=null) ? f.residuo : Math.max(0, Number(f.importo_totale||f.totale||0) - Number(f.importo_pagato||f.pagato||0));
+    return !(f.pagato===true || f.stato==='pagata' || f.status==='paid' || res<=0.01);
+  });
   main.innerHTML = `
     <div class="stats">
       <div class="stat warning"><div class="label">Movimenti aperti</div><div class="value">${lMov.length}</div><div class="sub">da riconciliare</div></div>
