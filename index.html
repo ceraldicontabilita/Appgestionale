@@ -1592,11 +1592,13 @@ async function render_fatture(main){
   const path = `/api/invoices?anno=${ANNO}&limit=1000`;
   const data = await api(path);
   const listRaw = Array.isArray(data)?data:(data.items||data.invoices||data.fatture||[]);
-  // Normalizza campi per confronti (gestisce schema diversi)
+  // Normalizza campi per confronti (gestisce schema backend: total_amount/importo_totale, ecc.)
   const list = listRaw.filter(f => {
+    const tot = Number(f.total_amount || f.importo_totale || f.totale || 0);
     const res = getResiduo(f);
-    const isPagata = (f.pagato===true) || (f.stato==='pagata') || (f.status==='paid') || res<=0.01;
-    const isScaduta = !isPagata && f.data_scadenza && new Date(f.data_scadenza) < new Date();
+    const isPagata = (f.pagato===true) || (f.stato==='pagata') || (f.status==='paid') || (res<=0.01 && tot>0);
+    const dataScad = f.data_scadenza || f.due_date;
+    const isScaduta = !isPagata && dataScad && new Date(dataScad) < new Date();
     if(state.fat.filt === 'unpaid')  return !isPagata;
     if(state.fat.filt === 'overdue') return isScaduta;
     if(state.fat.filt === 'paid')    return isPagata;
@@ -1607,7 +1609,7 @@ async function render_fatture(main){
     state.fat.srch = q;
     let filt = list;
     if(q) filt = list.filter(f=>{
-      const t = [f.cedente_denominazione,f.supplier_name,f.fornitore_denominazione,f.numero_fattura,f.numero,f.cedente_piva].filter(Boolean).join(' ').toLowerCase();
+      const t = [f.cedente_denominazione,f.supplier_name,f.fornitore_denominazione,f.invoice_number,f.numero_fattura,f.numero,f.cedente_piva,f.supplier_vat].filter(Boolean).join(' ').toLowerCase();
       return t.includes(q);
     });
     $('lstF').innerHTML = filt.length ? filt.map(fatturaCardHTML).join('') : '<div class="empty"><div class="icon">📭</div><div class="title">Nessuna fattura</div></div>';
@@ -1617,33 +1619,52 @@ async function render_fatture(main){
   $('srchF').addEventListener('input', debounce(renderList,200));
 }
 
-function getResiduo(f){if(f.residuo!=null)return f.residuo;const t=Number(f.importo_totale||f.totale||0);const p=Number(f.importo_pagato||f.pagato||0);return Math.max(0,t-p);}
+function getResiduo(f){
+  if(f.residuo!=null) return Number(f.residuo);
+  // FIX: il backend usa total_amount (en) o importo_totale (it)
+  const t = Number(f.total_amount || f.importo_totale || f.totale || 0);
+  const p = Number(f.importo_pagato || f.amount_paid || 0);
+  // ATTENZIONE: f.pagato a volte è BOOLEAN ("pagata sì/no"), NON l'importo pagato.
+  // Non usarlo come numero. Se è booleano true e residuo sconosciuto, la fattura è pagata -> residuo 0.
+  if(f.pagato === true || f.stato === 'pagata' || f.status === 'paid') return 0;
+  return Math.max(0, t - p);
+}
 function fatturaCardHTML(f){
-  const res=getResiduo(f);
-  const sup=f.cedente_denominazione||f.supplier_name||f.fornitore_denominazione||'-';
-  const num=f.numero_fattura||f.numero||'-';
-  const fid=f.id||f.invoice_key||f._id||'';
-  const pag=res<=0.01;
-  const scad=!pag&&f.data_scadenza&&new Date(f.data_scadenza)<new Date();
-  const badge=pag?'<span class="badge success">Pagata</span>':(scad?'<span class="badge danger">Scaduta</span>':'<span class="badge info">Da pagare</span>');
+  const res = getResiduo(f);
+  const sup = f.cedente_denominazione || f.supplier_name || f.fornitore_denominazione || f.fornitore_ragione_sociale || '-';
+  const num = f.invoice_number || f.numero_fattura || f.numero_documento || f.numero || '-';
+  const fid = f.id || f.invoice_key || f._id || '';
+  const dataFatt = f.data_fattura || f.invoice_date || f.data_documento || '';
+  const dataScad = f.data_scadenza || f.due_date || '';
+  const tot = Number(f.total_amount || f.importo_totale || f.totale || 0);
+  const isPagata = (f.pagato === true) || (f.stato === 'pagata') || (f.status === 'paid') || (res <= 0.01 && tot > 0);
+  const isScaduta = !isPagata && dataScad && new Date(dataScad) < new Date();
+  const badge = isPagata
+    ? '<span class="badge success">Pagata</span>'
+    : (isScaduta ? '<span class="badge danger">Scaduta</span>' : '<span class="badge info">Da pagare</span>');
   return `<div class="list-item" data-fid="${encodeURIComponent(fid)}">
     <div class="li-top">
-      <div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(num)} · ${fmtDate(f.data_fattura)}</span></div>
-      <div class="li-amount">${euro(pag?(f.importo_totale||f.totale||0):res)}</div>
+      <div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(num)} · ${fmtDate(dataFatt)}</span></div>
+      <div class="li-amount">${euro(isPagata ? tot : (res > 0 ? res : tot))}</div>
     </div>
-    <div class="li-bottom">${badge}<span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div>
+    <div class="li-bottom">${badge}<span class="li-meta">${dataScad ? 'Scad. '+fmtDate(dataScad) : ''}</span></div>
   </div>`;
 }
 
 async function openFatturaSheet(fid){
   openSheet('<div class="loading"><span class="spinner"></span>Carico...</div>');
   try{
-    const f = await api('/api/invoices/'+encodeURIComponent(fid));
-    const sup=f.cedente_denominazione||f.supplier_name||'-';
-    const num=f.numero_fattura||f.numero||'-';
-    const tot=Number(f.importo_totale||f.totale||0);
-    const pag=Number(f.importo_pagato||f.pagato||0);
-    const res=getResiduo(f);
+    // FIX: /api/invoices/{id} è rotto in produzione (ritorna sempre {success,count:0,invoices:[]}).
+    // L'endpoint corretto per il dettaglio è /api/fatture/{id} che ritorna 53+ campi completi.
+    const f = await api('/api/fatture/'+encodeURIComponent(fid));
+    const sup = f.cedente_denominazione || f.supplier_name || f.fornitore_denominazione || f.fornitore_ragione_sociale || '-';
+    const num = f.invoice_number || f.numero_fattura || f.numero_documento || f.numero || '-';
+    const piva = f.cedente_piva || f.supplier_vat || f.supplier_piva || (f.fornitore && f.fornitore.partita_iva) || '-';
+    const dataFatt = f.data_fattura || f.invoice_date || '';
+    const dataScad = f.data_scadenza || f.due_date || '';
+    const tot = Number(f.total_amount || f.importo_totale || f.totale || 0);
+    const pag = Number(f.importo_pagato || f.amount_paid || 0);
+    const res = getResiduo(f);
     const foto = Array.isArray(f.foto_allegate) ? f.foto_allegate : [];
     const fotoHtml = foto.length ? `
       <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
@@ -1661,10 +1682,10 @@ async function openFatturaSheet(fid){
 
     $('sheetBody').innerHTML=`<h2>Fattura</h2>
       <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(sup)}</span></div>
-      <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(f.cedente_piva||f.supplier_piva||'-')}</span></div>
+      <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(piva)}</span></div>
       <div class="kv"><span class="k">Numero</span><span class="v">${escapeHtml(num)}</span></div>
-      <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(f.data_fattura)}</span></div>
-      ${f.data_scadenza?`<div class="kv"><span class="k">Scadenza</span><span class="v">${fmtDate(f.data_scadenza)}</span></div>`:''}
+      <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(dataFatt)}</span></div>
+      ${dataScad?`<div class="kv"><span class="k">Scadenza</span><span class="v">${fmtDate(dataScad)}</span></div>`:''}
       <div class="kv"><span class="k">Totale</span><span class="v">${euro(tot)}</span></div>
       <div class="kv"><span class="k">Pagato</span><span class="v" style="color:var(--success)">${euro(pag)}</span></div>
       <div class="kv"><span class="k">Residuo</span><span class="v" style="color:${res>0.01?'var(--danger)':'var(--success)'};font-weight:800">${euro(res)}</span></div>
