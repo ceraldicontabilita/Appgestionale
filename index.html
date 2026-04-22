@@ -275,7 +275,7 @@ async function aiCallVision(base64, mediaType, prompt, maxTokens=2048){
 }
 
 // === PROMPT estrazione FATTURA (da primanota di Valerio Ceraldi) ===
-const PROMPT_FATTURA = `Sei un esperto di fatture italiane e DDT. Analizza il documento.
+const PROMPT_FATTURA_BASE = `Sei un esperto di fatture italiane e DDT. Analizza il documento.
 
 STEP 1 — IDENTIFICA TIPO DOCUMENTO:
 - "fattura" → ha "Fattura", "Fatt.", "FT", IVA calcolata, totale lordo
@@ -294,6 +294,80 @@ STEP 2 — ESTRAI CON RAGIONAMENTO:
 
 STEP 3 — Rispondi SOLO con JSON valido, nessun testo prima o dopo:
 {"tipo_documento":"fattura","fornitore":"","numero_fattura":"","numero_ddt":"","data":"YYYY-MM-DD","data_scadenza":"","importo":0,"pagamento":"","iban":"","partita_iva":""}`;
+
+// Cache correzioni OCR caricate dal server. Aggiornata a ogni login e dopo ogni invio.
+let _ocrCorrezioni = [];
+// Ultima lettura grezza fatta da Claude (per calcolare diff utente dopo salvataggio)
+let _aiLastRead = null;
+// Foto scattata durante scan AI (per allegarla alla fattura dopo la creazione)
+let _aiLastFoto = null;  // {base64, mediaType}
+
+async function caricaCorrezioniOCR(){
+  try{
+    const r = await api('/api/ocr-fatture/correzioni?limit=200');
+    _ocrCorrezioni = Array.isArray(r) ? r : (r.items || []);
+  }catch(e){ _ocrCorrezioni = []; }  // endpoint ancora non deployato? nessun problema, funziona lo stesso
+}
+
+function buildPromptFattura(fornitoreHint){
+  // Se non ci sono correzioni, usa prompt base (comportamento pre-apprendimento)
+  if(!_ocrCorrezioni || !_ocrCorrezioni.length) return PROMPT_FATTURA_BASE;
+
+  // Raggruppa per campo, preferendo correzioni dello stesso fornitore se noto
+  const normForn = s => String(s||'').toLowerCase().replace(/[.,]/g,'').trim().replace(/\s+/g,' ');
+  const fornKey = normForn(fornitoreHint||'');
+  const perCampo = {};
+  for(const c of _ocrCorrezioni){
+    if(!c.campo || !c.sbagliato || !c.corretto) continue;
+    perCampo[c.campo] = perCampo[c.campo] || [];
+    perCampo[c.campo].push(c);
+  }
+  // Ordina dando priorità al fornitore corrente, poi ts decrescente
+  for(const k of Object.keys(perCampo)){
+    perCampo[k].sort((a,b)=>{
+      const aMatch = fornKey && a.fornitore_norm===fornKey ? 0 : 1;
+      const bMatch = fornKey && b.fornitore_norm===fornKey ? 0 : 1;
+      if(aMatch!==bMatch) return aMatch-bMatch;
+      return (b.ts_epoch||0) - (a.ts_epoch||0);
+    });
+    perCampo[k] = perCampo[k].slice(0, 5);  // max 5 esempi per campo (contiene il prompt)
+  }
+  const keys = Object.keys(perCampo);
+  if(!keys.length) return PROMPT_FATTURA_BASE;
+
+  let add = '\n\n═══ CORREZIONI APPRESE ═══\nApplica OBBLIGATORIAMENTE queste regole basate su correzioni precedenti dell\'utente:';
+  for(const campo of keys){
+    for(const c of perCampo[campo]){
+      const ctx = c.fornitore ? ` (fornitore "${c.fornitore}")` : '';
+      add += `\n- campo "${campo}"${ctx}: se leggi qualcosa simile a "${c.sbagliato}", usa "${c.corretto}"`;
+    }
+  }
+  add += '\n\nATTENZIONE: applica le regole sopra anche se il documento mostra una variante leggermente diversa.';
+  return PROMPT_FATTURA_BASE + add;
+}
+
+// Invia al server il diff tra lettura AI e dati confermati dall'utente
+async function inviaCorrezioneOCR(aiRead, userFinal, invoiceId){
+  if(!aiRead || !userFinal) return;
+  try{
+    const r = await api('/api/ocr-fatture/correzione', {
+      method: 'POST',
+      body: JSON.stringify({
+        ai_read: aiRead,
+        user_final: userFinal,
+        fornitore_context: userFinal.fornitore || aiRead.fornitore || '',
+        invoice_id: invoiceId || null,
+      }),
+    });
+    if(r && r.correzioni_registrate > 0){
+      // Aggiorna cache locale così la prossima scansione ne beneficia subito
+      await caricaCorrezioniOCR();
+    }
+  }catch(e){
+    // Silenzioso: se l'endpoint non è ancora deployato l'app continua a funzionare
+    console.warn('[OCR] inviaCorrezioneOCR:', e.message);
+  }
+}
 
 const PROMPT_ASSEGNO = `Sei un esperto di assegni bancari italiani. Analizza la foto dell'assegno.
 
@@ -403,7 +477,7 @@ document.querySelectorAll('#pinPad .pin-key').forEach(b=>{if(b.dataset.k)b.addEv
 document.addEventListener('keydown',e=>{if($('pinScreen').classList.contains('hidden'))return;if(/^[0-9]$/.test(e.key))onPinKey(e.key);else if(e.key==='Backspace')onPinKey('DEL');});
 function showPin(){pinBuffer='';renderDots();$('pinMsg').textContent='';$('pinMsg').className='pin-msg';$('pinScreen').classList.remove('hidden');$('app').classList.add('hidden');setLockTimer();}
 function lockApp(){$('app').classList.add('hidden');showPin();}
-function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.remove('hidden');renderDrawer();goModule('dashboard');}
+function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.remove('hidden');renderDrawer();goModule('dashboard');caricaCorrezioniOCR();}
 
 // ====== MODULI ======
 const MODULES = [
@@ -578,7 +652,13 @@ async function scanFattura(){
       <div style="margin-top:6px;font-size:13px;color:var(--text-2)">Claude sta analizzando la fattura</div>
     </div>`);
     try{
-      const dati = await aiCallVision(base64, mediaType, PROMPT_FATTURA);
+      // Prima scansione: non abbiamo ancora un fornitore noto, uso prompt senza hint
+      const prompt = buildPromptFattura(null);
+      const dati = await aiCallVision(base64, mediaType, prompt);
+      // Salva la lettura originale AI per poter calcolare il diff quando l'utente conferma
+      _aiLastRead = {...dati};
+      // Salva anche la foto, così dopo il salvataggio possiamo allegarla alla fattura
+      _aiLastFoto = {base64, mediaType};
       apriFormFatturaDaAI(dati, base64, mediaType);
     }catch(e){
       openSheet(`<h2>⚠️ Errore lettura</h2>
@@ -644,19 +724,71 @@ async function salvaFatturaAI(){
   if(!body.numero_fattura) return toast('Numero obbligatorio','error');
   if(!body.data_fattura) return toast('Data obbligatoria','error');
   if(body.importo_totale<=0) return toast('Importo non valido','error');
+
+  // Costruisci versione "user_final" con stessa struttura di ai_read (per diff)
+  const userFinal = {
+    tipo_documento: body.tipo_documento,
+    fornitore: body.fornitore_denominazione,
+    numero_fattura: body.numero_fattura,
+    data: body.data_fattura,
+    data_scadenza: body.data_scadenza || '',
+    importo: body.importo_totale,
+    pagamento: body.metodo_pagamento || '',
+    iban: body.iban || '',
+    partita_iva: body.partita_iva || '',
+  };
+
+  let createdId = null;
   try{
     // Prova endpoint paga-manuale (se la fattura è già pagata) o crea manuale
-    await api('/api/fatture-ricevute/paga-manuale',{method:'POST',body:JSON.stringify(body)});
+    const r = await api('/api/fatture-ricevute/paga-manuale',{method:'POST',body:JSON.stringify(body)});
+    createdId = r?.id || r?.invoice_id || r?.invoice_key || null;
     toast('Fattura salvata','success');haptic(30);closeSheet();
     if(currentModule==='fatture') reloadModule();
   }catch(e){
     // Fallback generico
     try{
-      await api('/api/invoices',{method:'POST',body:JSON.stringify(body)});
+      const r = await api('/api/invoices',{method:'POST',body:JSON.stringify(body)});
+      createdId = r?.id || r?.invoice_id || r?.invoice_key || null;
       toast('Fattura salvata','success');haptic(30);closeSheet();
       if(currentModule==='fatture') reloadModule();
-    }catch(e2){ toast('Errore: '+e.message,'error'); }
+    }catch(e2){ toast('Errore: '+e.message,'error'); return; }
   }
+
+  // ═══ Azioni post-salvataggio (non bloccanti) ═══
+  // 1. Registra correzioni OCR per apprendimento futuro
+  if(_aiLastRead){
+    inviaCorrezioneOCR(_aiLastRead, userFinal, createdId);
+  }
+  // 2. Allega la foto scattata alla fattura appena creata
+  if(_aiLastFoto && createdId){
+    allegaFotoABase64(createdId, _aiLastFoto.base64, _aiLastFoto.mediaType)
+      .catch(err => console.warn('[FOTO] upload fallito:', err.message));
+  }
+  // Reset stato scansione
+  _aiLastRead = null;
+  _aiLastFoto = null;
+}
+
+// Carica una foto (dataURL/base64) come allegato di una fattura esistente.
+// Il backend si aspetta multipart/form-data.
+async function allegaFotoABase64(invoiceId, base64, mediaType){
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], {type: mediaType||'image/jpeg'});
+  const fd = new FormData();
+  fd.append('file', blob, 'fattura_scatto.jpg');
+
+  const url = API_BASE.replace(/\/$/,'') + `/api/invoices/${encodeURIComponent(invoiceId)}/foto`;
+  const headers = {};
+  if(TOKEN) headers['Authorization'] = 'Bearer '+TOKEN;
+  const res = await fetch(url, {method:'POST', headers, body: fd});
+  if(!res.ok){
+    const t = await res.text();
+    throw new Error(`HTTP ${res.status}: ${t.slice(0,200)}`);
+  }
+  return res.json();
 }
 
 function apriFormFatturaManuale(){
@@ -1478,6 +1610,21 @@ async function openFatturaSheet(fid){
     const tot=Number(f.importo_totale||f.totale||0);
     const pag=Number(f.importo_pagato||f.pagato||0);
     const res=getResiduo(f);
+    const foto = Array.isArray(f.foto_allegate) ? f.foto_allegate : [];
+    const fotoHtml = foto.length ? `
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <h3 style="margin:0">📷 Foto allegate (${foto.length})</h3>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          ${foto.map(ph => `
+            <div style="position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#000" onclick="apriFotoFattura('${encodeURIComponent(fid)}','${ph.id}')">
+              <img src="${API_BASE.replace(/\/$/,'')}/api/invoices/${encodeURIComponent(fid)}/foto/${ph.id}${TOKEN?'':''}" style="width:100%;height:100%;object-fit:cover" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\\'color:#fff;font-size:11px;padding:8px;text-align:center\\'>Foto non disponibile</div>'">
+              <button onclick="event.stopPropagation();eliminaFotoFattura('${encodeURIComponent(fid)}','${ph.id}')" style="position:absolute;top:4px;right:4px;background:rgba(220,38,38,.92);color:#fff;border:none;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer;display:grid;place-items:center">×</button>
+            </div>`).join('')}
+        </div>
+      </div>` : '';
+
     $('sheetBody').innerHTML=`<h2>Fattura</h2>
       <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(sup)}</span></div>
       <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(f.cedente_piva||f.supplier_piva||'-')}</span></div>
@@ -1498,8 +1645,52 @@ async function openFatturaSheet(fid){
           <div class="field"><label>Data pagamento</label><input id="pagD" class="input" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
           <button class="btn btn-success btn-block" onclick="registraPagamentoFattura('${encodeURIComponent(fid)}')">Registra</button>
         </div>`:''}
-      <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`;
+      ${fotoHtml}
+      <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn btn-primary" onclick="allegaFotoFatturaUI('${encodeURIComponent(fid)}')">📷 Allega foto</button>
+        <button class="btn btn-ghost" onclick="closeSheet()">Chiudi</button>
+      </div>`;
   }catch(e){$('sheetBody').innerHTML=`<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;}
+}
+
+// Allega foto alla fattura (tramite camera). Riusa il pattern di apriCamera.
+function allegaFotoFatturaUI(fidEnc){
+  const fid = decodeURIComponent(fidEnc);
+  apriCamera('Scatta foto fattura', async (base64, mediaType)=>{
+    openSheet(`<div style="padding:40px 20px;text-align:center">
+      <div class="spinner" style="width:40px;height:40px"></div>
+      <div style="margin-top:16px;font-weight:700">Caricamento foto...</div>
+    </div>`);
+    try{
+      await allegaFotoABase64(fid, base64, mediaType);
+      toast('Foto allegata','success');haptic(20);
+      // Riapri il dettaglio fattura aggiornato
+      openFatturaSheet(fid);
+    }catch(e){
+      toast('Errore: '+e.message, 'error');
+      openFatturaSheet(fid);
+    }
+  });
+}
+
+async function eliminaFotoFattura(fidEnc, fotoId){
+  if(!confirm('Eliminare questa foto?')) return;
+  const fid = decodeURIComponent(fidEnc);
+  try{
+    await api(`/api/invoices/${encodeURIComponent(fid)}/foto/${fotoId}`, {method:'DELETE'});
+    toast('Foto eliminata','success');
+    openFatturaSheet(fid);
+  }catch(e){
+    toast('Errore: '+e.message, 'error');
+  }
+}
+
+function apriFotoFattura(fidEnc, fotoId){
+  const fid = decodeURIComponent(fidEnc);
+  const url = API_BASE.replace(/\/$/,'') + `/api/invoices/${encodeURIComponent(fid)}/foto/${fotoId}`;
+  openSheet(`<h2>📷 Foto allegata</h2>
+    <img src="${url}" style="width:100%;max-height:70vh;object-fit:contain;border-radius:10px;background:#000">
+    <button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="closeSheet()">Chiudi</button>`);
 }
 
 async function registraPagamentoFattura(fidEnc){
