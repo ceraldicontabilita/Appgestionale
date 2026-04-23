@@ -1923,6 +1923,10 @@ async function apriDettaglioCoerenzaMese(mese){
   chiusMese.forEach(m => {
     const r = ensure(m.data);
     r.posReale += Number(m.importo||0);
+    // Se il movimento è stato modificato da mobile, segnalo per UI
+    if(m.modificato_da_mobile || m.source === 'chiusura_pos_mobile' || m.creato_da_mobile){
+      r.modificatoDaMobile = true;
+    }
   });
   versMese.forEach(m => {
     const r = ensure(m.data);
@@ -1971,6 +1975,9 @@ async function apriDettaglioCoerenzaMese(mese){
   }, {tot:0, posXML:0, posReale:0, cash:0});
   const nGgAnomali = giorni.filter(g => g.stato === 'differenza' || g.stato === 'mancante' || g.stato === 'mancante_chiusura' || g.stato === 'error').length;
 
+  // Salvo lo stato corrente su una var di modulo così apriModificaPosReale può rileggerlo senza rifare i calcoli
+  state._coerenzaPOS = { mese: mese, giorni: giorni };
+
   // Genera righe tabella
   const rows = giorni.map(g => {
     const dt = new Date(g.data + 'T00:00:00');
@@ -1981,10 +1988,10 @@ async function apriDettaglioCoerenzaMese(mese){
     const rowBg = isAnom ? '#fef3c7' : '';
     const diffDisplay = diffPos === null ? '—' : (diffPos > 0 ? '+' : '') + euro(diffPos);
     const diffColor = diffPos === null ? '#94a3b8' : (Math.abs(diffPos) < 1 ? '#16a34a' : '#dc2626');
-    return `<div style="display:grid;grid-template-columns:52px 1fr 1fr 1fr 1fr;gap:6px;padding:10px 6px;border-bottom:1px solid #e2e8f0;font-size:11px;background:${rowBg};align-items:center">
+    return `<div data-modifica-data="${g.data}" style="display:grid;grid-template-columns:52px 1fr 1fr 1fr 1fr;gap:6px;padding:10px 6px;border-bottom:1px solid #e2e8f0;font-size:11px;background:${rowBg};align-items:center;cursor:pointer" onclick="apriModificaPosReale('${g.data}')">
       <div style="color:#475569;font-weight:600;font-size:10px">${dowLbl} ${giorno}</div>
       <div style="text-align:right;color:#5D29C7;font-weight:600">${g.elettronicoXML ? euro(g.elettronicoXML) : '<span style="color:#cbd5e1">—</span>'}</div>
-      <div style="text-align:right;color:${g.posReale>0?'#0891b2':'#cbd5e1'};font-weight:600">${g.posReale ? euro(g.posReale) : '—'}</div>
+      <div style="text-align:right;color:${g.posReale>0?'#0891b2':'#cbd5e1'};font-weight:600">${g.posReale ? euro(g.posReale) : '—'}${g.modificatoDaMobile?' <span style="font-size:9px;color:#f59e0b" title="modificato da app">✏️</span>':''}</div>
       <div style="text-align:right;color:${diffColor};font-weight:700">${diffDisplay}</div>
       <div style="text-align:right;color:${g.saldoCassa>=0?'#16a34a':'#dc2626'};font-weight:700">${euro(g.saldoCassa)}</div>
     </div>`;
@@ -2011,9 +2018,106 @@ async function apriDettaglioCoerenzaMese(mese){
       <div><b style="color:#0891b2">POS reale</b>: chiusura giornaliera registrata in banca (fonte: prima nota)</div>
       <div><b>Diff POS</b>: XML − reale. Se &lt;1€ sei coerente. "—" = chiusura non ancora registrata.</div>
       <div><b>Saldo €</b>: cassa contanti progressiva del mese (contanti XML − versamenti banca)</div>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0"><b>💡 Tap su una riga</b> per correggere il POS reale del giorno</div>
     </div>
     <button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="closeSheet()">Chiudi</button>
   </div>`;
+}
+
+function apriModificaPosReale(dataStr){
+  // Trova il giorno nel dettaglio corrente
+  const cur = state._coerenzaPOS;
+  if(!cur){ return; }
+  const g = cur.giorni.find(x => x.data === dataStr);
+  if(!g){ return; }
+  const dt = new Date(dataStr + 'T00:00:00');
+  const dataLabel = dt.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const xml = Number(g.elettronicoXML || 0);
+  const posReale = Number(g.posReale || 0);
+  const diffAttuale = posReale > 0 ? (xml - posReale) : null;
+  const valoreSuggerito = xml > 0 ? xml.toFixed(2) : posReale.toFixed(2);
+
+  openSheet(`<div style="padding-bottom:12px">
+    <h2 style="margin-bottom:4px">Modifica POS reale</h2>
+    <div style="font-size:13px;color:#64748B;text-transform:capitalize;margin-bottom:16px">${dataLabel}</div>
+
+    <div style="background:#EDE7FF;padding:12px;border-radius:8px;margin-bottom:12px">
+      <div style="font-size:10px;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.3px">POS XML dichiarato</div>
+      <div style="font-size:20px;font-weight:800;color:#5D29C7">${xml > 0 ? euro(xml) : '— nessun dato XML —'}</div>
+    </div>
+
+    <div style="background:#e0f2fe;padding:12px;border-radius:8px;margin-bottom:12px">
+      <div style="font-size:10px;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.3px">POS reale attuale</div>
+      <div style="font-size:18px;font-weight:800;color:#0891b2">${posReale > 0 ? euro(posReale) : '— non registrato —'}</div>
+      ${g.modificatoDaMobile?'<div style="font-size:10px;color:#f59e0b;margin-top:4px">✏️ Già modificato da app mobile</div>':''}
+    </div>
+
+    <div class="field" style="margin-top:16px">
+      <label style="font-size:12px;font-weight:700;color:#334155">Nuovo importo POS reale (€)</label>
+      <input id="nuovoPosReale" class="input" type="number" step="0.01" min="0" inputmode="decimal"
+             value="${valoreSuggerito}" style="font-size:17px;font-weight:700;text-align:right;padding:14px">
+      ${xml > 0 ? `<div style="margin-top:6px"><button class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 10px" onclick="document.getElementById('nuovoPosReale').value='${xml.toFixed(2)}'">📋 Copia da XML (${euro(xml)})</button></div>` : ''}
+    </div>
+
+    <div class="field" style="margin-top:12px">
+      <label style="font-size:12px;font-weight:700;color:#334155">Nota (opzionale)</label>
+      <input id="notaPosReale" class="input" type="text" placeholder="es. Correzione chiusura sbagliata" maxlength="200">
+    </div>
+
+    ${diffAttuale !== null && Math.abs(diffAttuale) > 5 ? `
+    <div class="alert-row warning" style="margin-top:12px">
+      <div class="a-icon">⚠️</div>
+      <div class="a-body">
+        <div class="a-title" style="font-size:12px">Differenza attuale: ${euro(diffAttuale)}</div>
+        <div class="a-sub" style="font-size:11px">Tap sul bottone "Copia da XML" per correggere automaticamente</div>
+      </div>
+    </div>` : ''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
+      <button class="btn btn-ghost" onclick="closeSheet()">Annulla</button>
+      <button class="btn btn-primary" onclick="salvaModificaPosReale('${dataStr}')">💾 Salva</button>
+    </div>
+  </div>`);
+
+  // Focus automatico sul campo
+  setTimeout(()=>{
+    const inp = document.getElementById('nuovoPosReale');
+    if(inp){ inp.focus(); inp.select(); }
+  }, 100);
+}
+
+async function salvaModificaPosReale(dataStr){
+  const inp = document.getElementById('nuovoPosReale');
+  const nota = (document.getElementById('notaPosReale')?.value || '').trim();
+  if(!inp){ return; }
+  const valore = parseFloat(String(inp.value).replace(',','.'));
+  if(isNaN(valore) || valore < 0){
+    toast('Importo non valido', 'error');
+    inp.focus();
+    return;
+  }
+  // Disabilita bottoni durante il salvataggio
+  try{
+    const body = { data: dataStr, importo: Math.round(valore*100)/100 };
+    if(nota) body.note = nota;
+    const resp = await api('/api/pos-corrispettivi/chiusura-giornaliera', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    });
+    if(resp.action === 'noop'){
+      toast('Nessuna modifica (importo identico)', 'info');
+    } else {
+      toast(resp.action === 'created' ? 'Chiusura POS creata' : 'POS reale aggiornato', 'success');
+      haptic(30);
+    }
+    closeSheet();
+    // Riapri il dettaglio del mese per mostrare la modifica
+    const mese = state._coerenzaPOS?.mese;
+    if(mese) apriDettaglioCoerenzaMese(mese);
+    else reloadModule();
+  }catch(e){
+    toast('Errore salvataggio: '+(e?.message||'server'), 'error');
+  }
 }
 async function riconciliaPosGiorno(data){
   if(!confirm(`Riconciliare POS del ${fmtDate(data)}?`))return;
