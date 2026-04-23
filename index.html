@@ -437,11 +437,49 @@ function chiudiCamera(){
   closeSheet();
 }
 
+// ====== JWT helpers ======
+// Decodifica payload di un JWT senza verificare la firma (la firma la controlla il server).
+// Serve solo a leggere l'exp per sapere se ha senso riusare il token o se è scaduto.
+function decodeJWT(token){
+  try{
+    const part = token.split('.')[1];
+    if(!part) return null;
+    const b64 = part.replace(/-/g,'+').replace(/_/g,'/');
+    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length%4)) : '';
+    return JSON.parse(atob(b64 + pad));
+  }catch{ return null; }
+}
+// true se il JWT è presente, decodificabile ed exp è nel futuro (con margine di sicurezza).
+function isTokenValid(token, marginSec=30){
+  if(!token) return false;
+  const p = decodeJWT(token);
+  if(!p || !p.exp) return false;
+  return (p.exp * 1000) > (Date.now() + marginSec*1000);
+}
+// Logout "soft": butta il token e rimanda al PIN (non distrugge API_BASE né la chiave AI).
+function forceLogout(reason){
+  TOKEN = '';
+  localStorage.removeItem(LS.token);
+  if(reason) toast(reason, 'error');
+  showPin();
+}
+
 async function api(path, opts={}){
   const url = API_BASE.replace(/\/$/,'') + path;
   const headers = {'Content-Type':'application/json',...(opts.headers||{})};
   if(TOKEN) headers['Authorization']='Bearer '+TOKEN;
-  const res = await fetch(url,{...opts,headers});
+  let res;
+  try{
+    res = await fetch(url,{...opts,headers});
+  }catch(netErr){
+    // Errori di rete (offline, DNS, CORS) — messaggio più chiaro del "Failed to fetch"
+    throw new Error('Connessione al server fallita');
+  }
+  // 401/403: JWT scaduto/revocato/mancante → torna al PIN invece di lasciare l'app in stato rotto
+  if(res.status===401 || res.status===403){
+    forceLogout('Sessione scaduta, reinserisci il PIN');
+    throw new Error('Sessione scaduta');
+  }
   if(!res.ok){let msg=`HTTP ${res.status}`;try{const j=await res.json();msg=j.detail||j.message||msg;}catch{}throw new Error(msg);}
   if(res.status===204) return null;
   const ct = res.headers.get('content-type')||'';
@@ -501,7 +539,14 @@ async function onPinKey(k){
 document.querySelectorAll('#pinPad .pin-key').forEach(b=>{if(b.dataset.k)b.addEventListener('click',()=>onPinKey(b.dataset.k));});
 document.addEventListener('keydown',e=>{if($('pinScreen').classList.contains('hidden'))return;if(/^[0-9]$/.test(e.key))onPinKey(e.key);else if(e.key==='Backspace')onPinKey('DEL');});
 function showPin(){pinBuffer='';renderDots();$('pinMsg').textContent='';$('pinMsg').className='pin-msg';$('pinScreen').classList.remove('hidden');$('app').classList.add('hidden');setLockTimer();}
-function lockApp(){$('app').classList.add('hidden');showPin();}
+function lockApp(){
+  // "Blocca" esplicito: rimuoviamo anche il token così al rientro si passa
+  // sempre dal PIN + pin-login, evitando stati incoerenti.
+  TOKEN='';
+  localStorage.removeItem(LS.token);
+  $('app').classList.add('hidden');
+  showPin();
+}
 function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.remove('hidden');renderDrawer();goModule('dashboard');caricaCorrezioniOCR();}
 
 // ====== MODULI ======
@@ -853,6 +898,10 @@ async function allegaFotoABase64(invoiceId, base64, mediaType){
   const headers = {};
   if(TOKEN) headers['Authorization'] = 'Bearer '+TOKEN;
   const res = await fetch(url, {method:'POST', headers, body: fd});
+  if(res.status===401 || res.status===403){
+    forceLogout('Sessione scaduta, reinserisci il PIN');
+    throw new Error('Sessione scaduta');
+  }
   if(!res.ok){
     const t = await res.text();
     throw new Error(`HTTP ${res.status}: ${t.slice(0,200)}`);
@@ -933,7 +982,15 @@ function apriFormAssegnoManuale(){
   apriFormAssegnoDaAI({stato:'compilato'}, null, null);
 }
 
-showPin();
+// ====== BOOTSTRAP ======
+// Se abbiamo già un JWT valido saltiamo il PIN (evita ridigitazione ogni volta
+// che si apre l'app). Il PIN resta come fallback se il token è scaduto/assente.
+if(isTokenValid(TOKEN)){
+  showApp();
+}else{
+  if(TOKEN){ TOKEN=''; localStorage.removeItem(LS.token); }
+  showPin();
+}
 </script>
 <script>
 async function render_dashboard(main){
