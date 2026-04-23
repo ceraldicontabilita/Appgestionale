@@ -507,6 +507,7 @@ function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.rem
 // ====== MODULI ======
 const MODULES = [
   {id:'dashboard', group:'main', icon:'📊', label:'Dashboard'},
+  {id:'costi-ricorrenti', group:'main', icon:'💡', label:'Costi Ricorrenti'},
   {id:'prima-nota-cassa', group:'banca', icon:'💰', label:'Prima Nota Cassa'},
   {id:'prima-nota-banca', group:'banca', icon:'🏦', label:'Prima Nota Banca'},
   {id:'provvisori', group:'banca', icon:'⏳', label:'Prima Nota Provvisori'},
@@ -531,6 +532,49 @@ const MODULES = [
   {id:'riconciliazione', group:'altro', icon:'🔗', label:'Riconciliazione'},
 ];
 const MODULE_GROUPS = {main:'Principale', banca:'Banca & Cassa', passivo:'Ciclo Passivo', fiscale:'Fiscale', hr:'Personale', altro:'Altri'};
+
+// Fornitori ricorrenti (utility + SaaS). La matching è CASE-INSENSITIVE sulla ragione sociale.
+// Modifica/estendi questa lista per personalizzare quali fatture sono considerate 'bollette fisse'.
+// Usata per: (1) filtro Dashboard 'Prossime scadenze', (2) modulo Costi Ricorrenti.
+const RICORRENTI_KEYWORDS = [
+  // Energia
+  'ENEL','ENI ','ENI S','PLENITUDE','A2A','ACEA','HERA','IREN','EDISON','SORGENIA','2I RETE',
+  // Acqua
+  'ABC -','ABC ACQUA','ACQUEDOTTO','ACQUALATINA',
+  // Telco / Internet
+  'TIM ','TIM S','VODAFONE','WINDTRE','WIND TRE','FASTWEB','ILIAD','TELECOM','LINKEM','KENA','COOPVOCE','POSTE ITALIANE',
+  // Software / SaaS / Cloud
+  'GOOGLE CLOUD','MICROSOFT','AMAZON WEB','AWS','MADBIT','TSPAY','DROPBOX','SLACK','ZOOM','NOTION',
+  // Media / TV / Streaming
+  'SKY ','SKY I','MEDIASET','RAI ','NETFLIX','SPOTIFY',
+  // Tributi / Diritti
+  'PAGOPA','SIAE'
+];
+function fornitoreEricorrente(nome){
+  if(!nome) return false;
+  const up = String(nome).toUpperCase();
+  return RICORRENTI_KEYWORDS.some(kw => up.includes(kw));
+}
+function categoriaRicorrente(nome){
+  if(!nome) return 'Altro';
+  const up = String(nome).toUpperCase();
+  if(['ENEL','ENI','PLENITUDE','A2A','ACEA','HERA','IREN','EDISON','SORGENIA','2I RETE'].some(k=>up.includes(k))) return 'Energia';
+  if(['ABC -','ABC ACQUA','ACQUEDOTTO','ACQUALATINA'].some(k=>up.includes(k))) return 'Acqua';
+  if(['TIM','VODAFONE','WINDTRE','WIND TRE','FASTWEB','ILIAD','TELECOM','LINKEM','KENA','COOPVOCE','POSTE ITALIANE'].some(k=>up.includes(k))) return 'Telco';
+  if(['GOOGLE CLOUD','MICROSOFT','AMAZON WEB','AWS','MADBIT','TSPAY','DROPBOX','SLACK','ZOOM','NOTION'].some(k=>up.includes(k))) return 'Software/SaaS';
+  if(['SKY','MEDIASET','RAI','NETFLIX','SPOTIFY'].some(k=>up.includes(k))) return 'Media/TV';
+  if(['PAGOPA','SIAE'].some(k=>up.includes(k))) return 'Tributi/Diritti';
+  return 'Altro';
+}
+const CATEGORIE_RICORRENTI = {
+  'Energia': {color:'#f59e0b', icon:'⚡'},
+  'Acqua':   {color:'#0891b2', icon:'💧'},
+  'Telco':   {color:'#5D29C7', icon:'📞'},
+  'Software/SaaS': {color:'#059669', icon:'💻'},
+  'Media/TV': {color:'#dc2626', icon:'📺'},
+  'Tributi/Diritti': {color:'#64748B', icon:'🏛️'},
+  'Altro':    {color:'#94a3b8', icon:'📄'}
+};
 
 function renderDrawer(){
   const nav = $('drawerNav');
@@ -901,7 +945,14 @@ async function render_dashboard(main){
     api('/api/paghe/buste-paga?stato=DA_PAGARE').catch(()=>[]),
     api('/api/paghe/distinte-f24?stato=DA_PAGARE').catch(()=>[]),
   ]);
-  const lScad = Array.isArray(scadenzePros)?scadenzePros:(scadenzePros?.items||scadenzePros?.scadenze||[]);
+  const lScadRaw = Array.isArray(scadenzePros)?scadenzePros:(scadenzePros?.items||scadenzePros?.scadenze||[]);
+  // Filtro: mostra in Dashboard solo scadenze NON-fattura (F24, IVA, buste paga, ecc.) + fatture ricorrenti (bollette).
+  // Le fatture-merce restano visibili nel modulo 'Fatture'.
+  const lScad = lScadRaw.filter(s => {
+    const tipo = String(s.tipo||'').toUpperCase();
+    if(tipo !== 'FATTURA') return true;  // tutto ciò che non è fattura passa
+    return fornitoreEricorrente(s.fornitore);
+  });
   const lBuste = Array.isArray(busteDP)?busteDP:(busteDP?.items||[]);
   const lF24 = Array.isArray(f24DP)?f24DP:(f24DP?.items||[]);
 
@@ -988,6 +1039,205 @@ async function render_dashboard(main){
         </div>`;
       }).join('')}
     ` : ''}
+  `;
+}
+</script><script>
+// =================== COSTI RICORRENTI ===================
+// Carica fatture dell'anno corrente + anno precedente, filtra per keyword utility/SaaS,
+// raggruppa per categoria/fornitore, calcola spesa mensile e anomalie.
+async function render_costi_ricorrenti(main){
+  state.costRec = state.costRec || {view:'categorie', cat:null, forn:null, anno:ANNO};
+  main.innerHTML = '<div class="loading"><span class="spinner"></span>Analizzo ' + ANNO + '...</div>';
+
+  // Scarica fatture anno corrente e precedente (per confronto)
+  const annoPrev = ANNO - 1;
+  const [fatCur, fatPrev] = await Promise.all([
+    api(`/api/invoices?anno=${ANNO}&limit=5000`).catch(()=>[]),
+    api(`/api/invoices?anno=${annoPrev}&limit=5000`).catch(()=>[])
+  ]);
+  const allFat = [...(Array.isArray(fatCur)?fatCur:[]), ...(Array.isArray(fatPrev)?fatPrev:[])];
+
+  // Filtra solo ricorrenti
+  const ric = allFat.filter(f => fornitoreEricorrente(f.supplier_name || f.cedente_denominazione || ''));
+
+  // Aggrega per categoria, per fornitore, per mese
+  const byCat = {};   // cat -> {total:0, n:0, fornitori:{}}
+  const byForn = {};  // forn -> {cat, total:0, n:0, fatture:[], mese2025:{1:0,...}, mese2026:{1:0,...}, mediaMensile}
+  ric.forEach(f => {
+    const nome = f.supplier_name || f.cedente_denominazione || '?';
+    const cat = categoriaRicorrente(nome);
+    const tot = Number(f.total_amount || f.importo_totale || 0);
+    const data = f.invoice_date || f.data_fattura || '';
+    const anno = String(data).slice(0,4);
+    const mese = parseInt(String(data).slice(5,7)) || 0;
+
+    if(!byCat[cat]) byCat[cat] = {total:0, n:0, fornitori:new Set(), curAnno:0};
+    byCat[cat].n += 1;
+    byCat[cat].total += tot;
+    byCat[cat].fornitori.add(nome);
+    if(anno === String(ANNO)) byCat[cat].curAnno += tot;
+
+    if(!byForn[nome]) byForn[nome] = {cat, total:0, n:0, curAnno:0, prevAnno:0, fatture:[], perMese:{}};
+    byForn[nome].n += 1;
+    byForn[nome].total += tot;
+    if(anno === String(ANNO)) byForn[nome].curAnno += tot;
+    else if(anno === String(annoPrev)) byForn[nome].prevAnno += tot;
+    byForn[nome].fatture.push(f);
+    const key = `${anno}-${String(mese).padStart(2,'0')}`;
+    byForn[nome].perMese[key] = (byForn[nome].perMese[key]||0) + tot;
+  });
+
+  // Calcola media mensile e anomalie per ogni fornitore
+  Object.values(byForn).forEach(v => {
+    const mesi = Object.values(v.perMese).filter(x=>x>0);
+    v.mediaMensile = mesi.length ? (mesi.reduce((s,x)=>s+x,0) / mesi.length) : 0;
+    // Ultima fattura (mese più recente)
+    const keys = Object.keys(v.perMese).sort().reverse();
+    v.ultimoMese = keys[0] || null;
+    v.ultimoImporto = v.ultimoMese ? v.perMese[v.ultimoMese] : 0;
+    // Anomalia: ultima bolletta >30% sopra la media
+    v.anomalia = v.mediaMensile > 0 && v.ultimoImporto > v.mediaMensile * 1.3;
+  });
+
+  const totAnnoCorrente = Object.values(byForn).reduce((s,v)=>s+v.curAnno,0);
+  const totAnnoPrec = Object.values(byForn).reduce((s,v)=>s+v.prevAnno,0);
+  const mediaMensileTot = totAnnoCorrente / Math.max(1, new Date().getMonth()+1);  // Spalmato sui mesi trascorsi
+
+  // ======= RENDER =======
+  if(state.costRec.view === 'categorie') renderCostiCategorie(main, byCat, byForn, totAnnoCorrente, totAnnoPrec, mediaMensileTot);
+  else if(state.costRec.view === 'fornitori') renderCostiFornitori(main, byForn, state.costRec.cat);
+  else if(state.costRec.view === 'dettaglio') renderCostiDettaglio(main, byForn, state.costRec.forn);
+}
+
+function renderCostiCategorie(main, byCat, byForn, totCur, totPrev, mediaMensile){
+  const cats = Object.entries(byCat).sort((a,b)=>b[1].curAnno-a[1].curAnno);
+  const anomalie = Object.entries(byForn).filter(([_,v])=>v.anomalia);
+  const delta = totPrev>0 ? ((totCur-totPrev)/totPrev*100) : 0;
+  main.innerHTML = `
+    <div class="stats three">
+      <div class="stat accent"><div class="label">Costi ${ANNO}</div><div class="value" style="font-size:17px">${euro(totCur)}</div><div class="sub">ricorrenti</div></div>
+      <div class="stat"><div class="label">Media mese</div><div class="value" style="font-size:17px">${euro(mediaMensile)}</div><div class="sub">spesa media</div></div>
+      <div class="stat ${delta>0?'danger':'success'}"><div class="label">vs ${ANNO-1}</div><div class="value" style="font-size:17px">${delta>0?'+':''}${delta.toFixed(0)}%</div><div class="sub">${euro(totPrev)}</div></div>
+    </div>
+    ${anomalie.length ? `
+    <div class="card" style="background:#fef3c7;border:1px solid #fbbf24;padding:12px">
+      <div style="font-weight:700;color:#92400e;margin-bottom:6px">⚠️ ${anomalie.length} bollett${anomalie.length===1?'a':'e'} anomal${anomalie.length===1?'a':'e'}</div>
+      ${anomalie.slice(0,3).map(([n,v])=>`<div style="font-size:12px;color:#7c2d12">• ${escapeHtml(n.slice(0,35))}: ultima ${euro(v.ultimoImporto)} (+${Math.round(((v.ultimoImporto/v.mediaMensile-1)*100))}% sulla media)</div>`).join('')}
+    </div>`:''}
+    <div class="section-title">Categorie</div>
+    ${cats.map(([cat,v])=>{
+      const info = CATEGORIE_RICORRENTI[cat] || CATEGORIE_RICORRENTI.Altro;
+      const nForn = v.fornitori.size;
+      return `<div class="list-item" data-cat="${escapeHtml(cat)}" style="padding:14px">
+        <div class="li-top">
+          <div class="li-title" style="font-size:15px">${info.icon} ${escapeHtml(cat)}<span class="small" style="font-size:11px">${nForn} fornitor${nForn===1?'e':'i'} · ${v.n} fattur${v.n===1?'a':'e'}</span></div>
+          <div class="li-amount" style="font-size:15px;color:${info.color}">${euro(v.curAnno)}</div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:16px;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;color:#475569;line-height:1.5">💡 La lista dei fornitori ricorrenti può essere ampliata modificando <code>RICORRENTI_KEYWORDS</code> nel codice dell'app.</div>
+    </div>
+  `;
+  main.querySelectorAll('.list-item[data-cat]').forEach(el=>{
+    el.onclick = ()=>{ state.costRec.view='fornitori'; state.costRec.cat=el.dataset.cat; render_costi_ricorrenti(main); };
+  });
+}
+
+function renderCostiFornitori(main, byForn, catFilter){
+  const lista = Object.entries(byForn).filter(([_,v])=>v.cat===catFilter).sort((a,b)=>b[1].curAnno-a[1].curAnno);
+  const info = CATEGORIE_RICORRENTI[catFilter] || CATEGORIE_RICORRENTI.Altro;
+  const totCat = lista.reduce((s,[_,v])=>s+v.curAnno,0);
+  main.innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="state.costRec.view='categorie';state.costRec.cat=null;reloadModule()" style="margin-bottom:10px">← Tutte le categorie</button>
+    <div class="card" style="background:${info.color}15;border:1px solid ${info.color}44;padding:14px">
+      <div style="font-size:15px;font-weight:700;color:${info.color}">${info.icon} ${catFilter}</div>
+      <div style="font-size:20px;font-weight:800;margin-top:4px">${euro(totCat)}</div>
+      <div style="font-size:11px;color:#475569">Totale ${ANNO} · ${lista.length} fornitor${lista.length===1?'e':'i'}</div>
+    </div>
+    <div class="section-title">Fornitori</div>
+    ${lista.map(([nome,v])=>{
+      const deltaPct = v.prevAnno>0 ? ((v.curAnno-v.prevAnno)/v.prevAnno*100) : null;
+      return `<div class="list-item" data-forn="${encodeURIComponent(nome)}" style="padding:14px">
+        <div class="li-top">
+          <div class="li-title">${escapeHtml(nome.slice(0,40))}<span class="small">${v.n} fatt · media ${euro(v.mediaMensile)}/mese</span></div>
+          <div class="li-amount">${euro(v.curAnno)}</div>
+        </div>
+        <div class="li-bottom">
+          ${v.anomalia?'<span class="badge danger">⚠️ anomalia ultima bolletta</span>':''}
+          ${deltaPct!==null?`<span class="li-meta">${deltaPct>0?'+':''}${deltaPct.toFixed(0)}% vs ${ANNO-1}</span>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+  main.querySelectorAll('.list-item[data-forn]').forEach(el=>{
+    el.onclick = ()=>{ state.costRec.view='dettaglio'; state.costRec.forn=decodeURIComponent(el.dataset.forn); render_costi_ricorrenti(main); };
+  });
+}
+
+function renderCostiDettaglio(main, byForn, fornName){
+  const v = byForn[fornName];
+  if(!v){ main.innerHTML='<div class="empty"><div class="icon">❌</div><div class="title">Fornitore non trovato</div></div>'; return; }
+  const info = CATEGORIE_RICORRENTI[v.cat] || CATEGORIE_RICORRENTI.Altro;
+
+  // Ordina mesi dal più recente
+  const mesi = Object.entries(v.perMese).sort((a,b)=>b[0].localeCompare(a[0]));
+  const maxMese = Math.max(...Object.values(v.perMese));
+
+  main.innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="state.costRec.view='fornitori';state.costRec.forn=null;reloadModule()" style="margin-bottom:10px">← ${escapeHtml(v.cat)}</button>
+    <div class="card" style="background:${info.color}15;border:1px solid ${info.color}44;padding:14px">
+      <div style="font-size:14px;font-weight:700">${info.icon} ${escapeHtml(fornName)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div><div style="font-size:10px;color:#64748B">Totale ${ANNO}</div><div style="font-size:17px;font-weight:700">${euro(v.curAnno)}</div></div>
+        <div><div style="font-size:10px;color:#64748B">Media mese</div><div style="font-size:17px;font-weight:700">${euro(v.mediaMensile)}</div></div>
+        ${v.prevAnno>0?`<div><div style="font-size:10px;color:#64748B">Totale ${ANNO-1}</div><div style="font-size:14px">${euro(v.prevAnno)}</div></div>`:''}
+        <div><div style="font-size:10px;color:#64748B">N. fatture</div><div style="font-size:14px">${v.n}</div></div>
+      </div>
+      ${v.anomalia?`<div class="alert-row danger" style="margin-top:10px">
+        <div class="a-icon">⚠️</div>
+        <div class="a-body">
+          <div class="a-title" style="font-size:12px">Ultima bolletta anomala</div>
+          <div class="a-sub" style="font-size:11px">${euro(v.ultimoImporto)} vs media ${euro(v.mediaMensile)} (+${Math.round(((v.ultimoImporto/v.mediaMensile-1)*100))}%)</div>
+        </div>
+      </div>`:''}
+    </div>
+
+    <div class="section-title">Spesa per mese</div>
+    <div class="card" style="padding:12px">
+      ${mesi.map(([k, imp])=>{
+        const pct = (imp/maxMese)*100;
+        const [anno,m] = k.split('-');
+        const nomeMese = ['','Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][parseInt(m)];
+        return `<div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span>${nomeMese} ${anno}</span>
+            <span style="font-weight:700">${euro(imp)}</span>
+          </div>
+          <div style="background:#f1f5f9;border-radius:4px;height:6px;overflow:hidden">
+            <div style="background:${info.color};height:100%;width:${pct}%"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="section-title">Tutte le fatture (${v.fatture.length})</div>
+    ${v.fatture.sort((a,b)=>(b.invoice_date||b.data_fattura||'').localeCompare(a.invoice_date||a.data_fattura||'')).map(f=>{
+      const num = f.invoice_number || f.numero_fattura || '-';
+      const d = f.invoice_date || f.data_fattura || '';
+      const tot = Number(f.total_amount || f.importo_totale || 0);
+      const isPagata = (f.pagato===true)||(f.stato==='pagata')||(f.status==='paid');
+      const fid = f.id || f.invoice_key || '';
+      return `<div class="list-item" data-fid="${encodeURIComponent(fid)}" onclick="openFatturaSheet('${encodeURIComponent(fid)}')">
+        <div class="li-top">
+          <div class="li-title">N. ${escapeHtml(num)}<span class="small">${fmtDate(d)}</span></div>
+          <div class="li-amount">${euro(tot)}</div>
+        </div>
+        <div class="li-bottom">
+          ${isPagata?'<span class="badge success">Pagata</span>':'<span class="badge info">Da pagare</span>'}
+        </div>
+      </div>`;
+    }).join('')}
   `;
 }
 </script><script>
