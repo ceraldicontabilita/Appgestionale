@@ -1268,14 +1268,6 @@ async function render_prima_nota_cassa(main){
       <div class="stat danger"><div class="label">Uscite ${ANNO}</div><div class="value" style="font-size:15px">${euro(usc)}</div></div>
       <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldoAnno)}</div></div>
     </div>
-    ${Math.abs(saldoTot - saldoAnno) > 0.01 ? `
-    <div class="alert-row ${saldoTot<0?'danger':'info'}" style="margin-bottom:12px">
-      <div class="a-icon">💼</div>
-      <div class="a-body">
-        <div class="a-title" style="font-size:12px">Saldo complessivo cassa: ${euro(saldoTot)}</div>
-        <div class="a-sub" style="font-size:11px">Include saldi anni precedenti (${euro(Number(data.saldo_precedente||0))})</div>
-      </div>
-    </div>` : ''}
     <div class="stats" style="grid-template-columns:repeat(4,1fr);gap:6px">
       <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Corrisp.</div><div class="value" style="font-size:12px;color:#ff9800">${euro(totCorrisp)}</div></div>
       <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">POS</div><div class="value" style="font-size:12px;color:#1e3a5f">${euro(totPOS)}</div></div>
@@ -1547,14 +1539,6 @@ async function render_prima_nota_banca(main){
       <div class="stat danger"><div class="label">Pagamenti</div><div class="value" style="font-size:15px">${euro(usc)}</div></div>
       <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldoAnno)}</div></div>
     </div>
-    ${Math.abs(saldoTot - saldoAnno) > 0.01 ? `
-    <div class="alert-row ${saldoTot<0?'danger':'info'}" style="margin-bottom:12px">
-      <div class="a-icon">🏦</div>
-      <div class="a-body">
-        <div class="a-title" style="font-size:12px">Saldo complessivo banca: ${euro(saldoTot)}</div>
-        <div class="a-sub" style="font-size:11px">Include saldi anni precedenti (${euro(Number(data.saldo_precedente||0))})</div>
-      </div>
-    </div>` : ''}
     <div class="alert-row info" style="margin-bottom:12px">
       <div class="a-icon">ℹ️</div>
       <div class="a-body">
@@ -1833,42 +1817,74 @@ async function salvaChiusura(data){
 }
 </script><script>
 async function render_coerenza_pos(main){
+  // NB: /api/pos-corrispettivi/verifica-coerenza finora era rotto per bug datetime aware/naive
+  // (corretto lato backend nel commit 3d0a3dcc). L'app deve comunque funzionare anche se questo
+  // endpoint torna null/errore: mostriamo il riepilogo mensile che è il dato principale.
   const [riep, ver] = await Promise.all([
     api(`/api/pos-corrispettivi/riepilogo-mensile?anno=${ANNO}`).catch(()=>null),
     api(`/api/pos-corrispettivi/verifica-coerenza?anno=${ANNO}`).catch(()=>null),
   ]);
   const mesi = (riep?.mesi || riep?.items || riep?.riepilogo || []);
   const anomalie = (ver?.anomalie || ver?.items || []);
-  const tot_pos = mesi.reduce((s,m)=>s+Number(m.pos_dichiarato||m.pos_corr||0),0);
-  const tot_incassi = mesi.reduce((s,m)=>s+Number(m.pos_incassi||m.pos_effettivo||0),0);
-  const diff = tot_pos - tot_incassi;
+  // Campi BACKEND reali: totale_corrispettivi (somma corrispettivi XML dell'AdE), pos_accreditato (somma accrediti POS della banca), differenza (differenza calcolata lato server)
+  const tot_corrisp = mesi.reduce((s,m)=>s+Number(m.totale_corrispettivi||m.pos_dichiarato||m.pos_corr||0),0);
+  const tot_pos_accr = mesi.reduce((s,m)=>s+Number(m.pos_accreditato||m.pos_incassi||m.pos_effettivo||0),0);
+  const tot_elettronico = mesi.reduce((s,m)=>s+Number(m.elettronico_xml||0),0);
+  const tot_contanti = mesi.reduce((s,m)=>s+Number(m.contanti||0),0);
+  const diff_tot = tot_elettronico - tot_pos_accr;  // Coerenza: quanto dichiarato come elettronico nei corrispettivi vs quanto effettivamente accreditato in banca da POS
+  const nAnomalie = mesi.filter(m=>m.stato==='error' || m.stato==='warning').length;
   main.innerHTML = `
+    <div class="stats three">
+      <div class="stat"><div class="label">Corrispettivi ${ANNO}</div><div class="value" style="font-size:14px">${euro(tot_corrisp)}</div><div class="sub">da XML AdE</div></div>
+      <div class="stat"><div class="label">di cui POS (XML)</div><div class="value" style="font-size:14px;color:#5D29C7">${euro(tot_elettronico)}</div><div class="sub">elettronico dichiarato</div></div>
+      <div class="stat accent"><div class="label">POS accreditato</div><div class="value" style="font-size:14px">${euro(tot_pos_accr)}</div><div class="sub">banca effettivo</div></div>
+    </div>
     <div class="stats">
-      <div class="stat accent"><div class="label">POS Corrispettivi</div><div class="value" style="font-size:17px">${euro(tot_pos)}</div></div>
-      <div class="stat"><div class="label">POS Incassi</div><div class="value" style="font-size:17px">${euro(tot_incassi)}</div></div>
+      <div class="stat ${Math.abs(diff_tot)<10?'success':'warning'}">
+        <div class="label">Differenza XML vs Banca</div>
+        <div class="value" style="font-size:17px">${euro(diff_tot)}</div>
+        <div class="sub">${Math.abs(diff_tot)<10?'✓ Coerente':(diff_tot>0?'POS dichiarato > accreditato':'Accreditato > dichiarato')}</div>
+      </div>
+      <div class="stat"><div class="label">Contanti XML</div><div class="value" style="font-size:14px;color:#ff9800">${euro(tot_contanti)}</div></div>
     </div>
-    <div class="stats one">
-      <div class="stat ${Math.abs(diff)<1?'success':'warning'}"><div class="label">Differenza anno ${ANNO}</div><div class="value">${euro(diff)}</div><div class="sub">${Math.abs(diff)<1?'✓ Coerente':'⚠ Verificare'}</div></div>
-    </div>
-    ${anomalie.length?`<div class="section-title">Anomalie (${anomalie.length})</div>
+    ${nAnomalie ? `
+    <div class="alert-row warning" style="margin-bottom:12px">
+      <div class="a-icon">⚠️</div>
+      <div class="a-body">
+        <div class="a-title" style="font-size:12px">${nAnomalie} mes${nAnomalie===1?'e':'i'} con anomalie di coerenza</div>
+        <div class="a-sub" style="font-size:11px">Tocca un mese qui sotto per vedere il dettaglio dei giorni anomali</div>
+      </div>
+    </div>` : ''}
+    ${anomalie.length?`<div class="section-title">Anomalie giornaliere (${anomalie.length})</div>
     ${anomalie.slice(0,30).map(a=>`<div class="alert-row ${a.severita==='alta'||Math.abs(a.differenza||0)>50?'danger':''}">
       <div class="a-icon">⚠️</div>
       <div class="a-body">
         <div class="a-title">${fmtDate(a.data)}</div>
-        <div class="a-sub">POS corr ${euro(a.pos_corrispettivi||0)} vs Incassi ${euro(a.pos_incassi||0)} · diff ${euro(a.differenza||0)}</div>
+        <div class="a-sub">${escapeHtml(a.messaggio||'')} · diff ${euro(a.differenza||0)}</div>
       </div>
       <button class="btn btn-sm btn-primary" onclick="riconciliaPosGiorno('${a.data}')">Riconcilia</button>
     </div>`).join('')}`:''}
     ${mesi.length?`<div class="section-title">Riepilogo mensile</div>
-    ${mesi.map(m=>{
-      const d = Number(m.pos_dichiarato||m.pos_corr||0) - Number(m.pos_incassi||m.pos_effettivo||0);
+    ${mesi.filter(m=>Number(m.totale_corrispettivi||0)>0 || Number(m.pos_accreditato||0)>0).map(m=>{
+      const corr = Number(m.totale_corrispettivi||0);
+      const posAccr = Number(m.pos_accreditato||0);
+      const elettr = Number(m.elettronico_xml||0);
+      const contanti = Number(m.contanti||0);
+      const diffMese = elettr - posAccr;
+      const isError = m.stato === 'error';
+      const isWarn = m.stato === 'warning';
+      const statoBadge = isError ? '<span class="badge danger">Anomalia</span>' : (isWarn?'<span class="badge warning">Verificare</span>':'<span class="badge success">OK</span>');
       return `<div class="list-item">
         <div class="li-top">
-          <div class="li-title">${fmtMonth(m.mese)} ${m.anno||ANNO}<span class="small">POS corr ${euro(m.pos_dichiarato||m.pos_corr||0)} · Incassi ${euro(m.pos_incassi||m.pos_effettivo||0)}</span></div>
-          <div class="li-amount ${Math.abs(d)<1?'positive':'negative'}">${euro(d)}</div>
+          <div class="li-title">${escapeHtml(m.nome||fmtMonth(m.mese))} ${ANNO}<span class="small">${m.corrispettivi_count||0} corr · ${m.pos_count||0} accrediti POS</span></div>
+          <div class="li-amount ${Math.abs(diffMese)<10?'positive':'negative'}">${euro(diffMese)}</div>
+        </div>
+        <div class="li-bottom">
+          ${statoBadge}
+          <span class="li-meta">Tot ${euro(corr)} · POS XML ${euro(elettr)} · POS banca ${euro(posAccr)} · Cash ${euro(contanti)}</span>
         </div>
       </div>`;
-    }).join('')}`:''}
+    }).join('')}`:'<div class="empty"><div class="icon">🔍</div><div class="title">Nessun dato di coerenza POS</div></div>'}
   `;
 }
 async function riconciliaPosGiorno(data){
