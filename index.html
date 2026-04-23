@@ -1883,103 +1883,137 @@ async function render_coerenza_pos(main){
 async function apriDettaglioCoerenzaMese(mese){
   const nomi = ['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
   const nomeM = nomi[mese] || `Mese ${mese}`;
-  openSheet(`<h2>${nomeM} ${ANNO}</h2><div class="loading"><span class="spinner"></span>Carico dettaglio...</div>`);
-  let giorni = [];
-  let riepilogoMese = null;
-  try {
-    const resp = await api(`/api/pos-corrispettivi/verifica-coerenza?anno=${ANNO}&mese=${mese}`).catch(()=>null);
-    if(resp){
-      const ggAll = resp.giorni || resp.riepilogo_giornaliero || resp.items || [];
-      giorni = ggAll.filter(g => {
-        const d = String(g.data||'');
-        return d.startsWith(`${ANNO}-${String(mese).padStart(2,'0')}`);
-      });
-      riepilogoMese = resp.riepilogo || null;
-    }
-  } catch(e){ /* silenzioso */ }
+  openSheet(`<h2>${nomeM} ${ANNO}</h2><div class="loading"><span class="spinner"></span>Calcolo dettaglio giornaliero...</div>`);
+
+  // Strategia: invece di dipendere da /verifica-coerenza (spesso rotto), calcolo client-side
+  // incrociando /api/corrispettivi (totali/cash/elettronico per data) con /api/prima-nota/banca
+  // filtrato per source='corrispettivo_pos' (che è la chiusura POS manuale, il "POS REALE TUO").
+  const [corrisp, banca, verResp] = await Promise.all([
+    api(`/api/corrispettivi?anno=${ANNO}&limit=2000`).catch(()=>[]),
+    api(`/api/prima-nota/banca?anno=${ANNO}&limit=3000`).catch(()=>({movimenti:[]})),
+    api(`/api/pos-corrispettivi/verifica-coerenza?anno=${ANNO}&mese=${mese}`).catch(()=>null)
+  ]);
+
+  // Filtra solo il mese richiesto
+  const mesePad = String(mese).padStart(2,'0');
+  const prefix = `${ANNO}-${mesePad}`;
+  const corrMese = (Array.isArray(corrisp)?corrisp:[]).filter(c => String(c.data||'').startsWith(prefix));
+  const movBanca = (banca?.movimenti || []);
+  const chiusMese = movBanca.filter(m => String(m.data||'').startsWith(prefix) &&
+    (m.source === 'corrispettivo_pos' || m.categoria === 'Corrispettivi POS'));
+  // Versamenti (deposito contanti in banca da cassa)
+  const versMese = movBanca.filter(m => String(m.data||'').startsWith(prefix) &&
+    (m.categoria === 'Ricavi - Deposito contanti' ||
+     (m.categoria||'').toLowerCase().includes('versamento') ||
+     (m.descrizione||'').toUpperCase().includes('VERSAMENTO CONTANTI')));
+
+  // Aggrega per data
+  const byDate = {};
+  function ensure(d){
+    if(!byDate[d]) byDate[d] = {data:d, totale:0, contantiXML:0, elettronicoXML:0, posReale:0, versamento:0, n_corr:0, messaggio:'', stato:'ok'};
+    return byDate[d];
+  }
+  corrMese.forEach(c => {
+    const r = ensure(c.data);
+    r.totale += Number(c.totale||0);
+    r.contantiXML += Number(c.pagato_contanti||0);
+    r.elettronicoXML += Number(c.pagato_elettronico||0);
+    r.n_corr += 1;
+  });
+  chiusMese.forEach(m => {
+    const r = ensure(m.data);
+    r.posReale += Number(m.importo||0);
+  });
+  versMese.forEach(m => {
+    const r = ensure(m.data);
+    r.versamento += Math.abs(Number(m.importo||0));
+  });
+
+  // Arricchisci con eventuali giorni anomali dal backend (se risponde)
+  if(verResp && (verResp.giorni || verResp.riepilogo_giornaliero)){
+    const verGg = verResp.giorni || verResp.riepilogo_giornaliero || [];
+    verGg.filter(g => String(g.data||'').startsWith(prefix)).forEach(g => {
+      const r = ensure(g.data);
+      if(g.stato) r.stato = g.stato;
+      if(g.messaggio) r.messaggio = g.messaggio;
+    });
+  }
+
+  const giorni = Object.values(byDate).sort((a,b)=>a.data.localeCompare(b.data));
 
   if(giorni.length === 0){
     $('sheetBody').innerHTML = `<h2>${nomeM} ${ANNO}</h2>
-      <div class="alert-row warning" style="margin-bottom:12px">
-        <div class="a-icon">⚠️</div>
-        <div class="a-body">
-          <div class="a-title" style="font-size:13px">Dettaglio giornaliero non disponibile</div>
-          <div class="a-sub" style="font-size:11px">L'endpoint /verifica-coerenza del backend ancora non risponde (deploy del fix in corso). Appena completato vedrai qui i giorni dettagliati.</div>
-        </div>
-      </div>
+      <div class="empty"><div class="icon">📊</div><div class="title">Nessun dato per ${nomeM.toLowerCase()} ${ANNO}</div><div class="desc">Non ci sono corrispettivi né chiusure POS registrati in questo mese.</div></div>
       <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;
     return;
   }
 
-  // Calcolo saldo progressivo cassa: parte da 0, per ogni giorno somma contanti XML e sottrae versamenti
-  // (come fa il desktop). NB: se il backend fornisce già un saldo_cassa lo usa.
+  // Calcola diff POS e saldo cassa progressivo
   let saldoCassa = 0;
+  giorni.forEach(g => {
+    g.diffPos = g.posReale > 0 ? (g.elettronicoXML - g.posReale) : null;
+    saldoCassa += g.contantiXML - g.versamento;
+    g.saldoCassa = saldoCassa;
+    // Stato locale se il backend non ne ha messo uno
+    if(!g.stato || g.stato === 'ok'){
+      if(g.diffPos !== null && Math.abs(g.diffPos) > 5) g.stato = 'differenza';
+      else if(g.diffPos === null && g.elettronicoXML > 0) g.stato = 'mancante_chiusura';
+    }
+  });
 
-  // Ordine cronologico
-  giorni.sort((a,b) => String(a.data).localeCompare(String(b.data)));
+  // Totali mese
+  const tot = giorni.reduce((acc,g)=>{
+    acc.tot += g.totale;
+    acc.posXML += g.elettronicoXML;
+    acc.posReale += g.posReale;
+    acc.cash += g.contantiXML;
+    return acc;
+  }, {tot:0, posXML:0, posReale:0, cash:0});
+  const nGgAnomali = giorni.filter(g => g.stato === 'differenza' || g.stato === 'mancante' || g.stato === 'mancante_chiusura' || g.stato === 'error').length;
 
+  // Genera righe tabella
   const rows = giorni.map(g => {
     const dt = new Date(g.data + 'T00:00:00');
-    const giorno = dt.getDate();
     const dowLbl = ['dom','lun','mar','mer','gio','ven','sab'][dt.getDay()];
-    const corrAuto = Number(g.totale_corrispettivo||g.totale_corrispettivi||0);
-    const contantiAuto = Number(g.contanti_xml||g.contanti||g.pagato_contanti||0);
-    const elettrXML = Number(g.elettronico_xml||g.pagato_elettronico||0);
-    const posReale = Number(g.pos_chiusura_manuale||g.pos_manuale||0);  // POS REALE = chiusura giornaliera manuale
-    const posBanca = Number(g.pos_accreditato||0);
-    const versamento = Number(g.versamento||g.versamento_contanti||0);
-    const diffPos = posReale > 0 ? (elettrXML - posReale) : 0;  // differenza tra POS dichiarato in XML e POS reale
-    // Corrisp. Man. nel desktop è calcolato: totale - POS reale (o elettronico XML se no POS reale)
-    const corrMan = corrAuto - (posReale || elettrXML);
-    const diffCorr = posReale > 0 ? (elettrXML - posReale) : elettrXML;  // +verde = POS elettronico dichiarato ok
-    saldoCassa += contantiAuto - versamento;
-    const hasAnomaly = Math.abs(diffPos) > 5 || g.stato === 'error' || g.stato === 'mancante';
-    const rowBg = hasAnomaly ? '#fef3c7' : '';
-    return `<div style="display:grid;grid-template-columns:50px 1fr 1fr 1fr 1fr;gap:4px;padding:8px 4px;border-bottom:1px solid #e2e8f0;font-size:11px;background:${rowBg}">
-      <div style="color:#475569;font-weight:600">${dowLbl} ${giorno}</div>
-      <div style="text-align:right;color:#5D29C7">${elettrXML?euro(elettrXML):'—'}<div style="font-size:9px;color:#94a3b8">POS XML</div></div>
-      <div style="text-align:right;color:${posReale>0?'#0891b2':'#94a3b8'}">${posReale?euro(posReale):'—'}<div style="font-size:9px;color:#94a3b8">POS reale</div></div>
-      <div style="text-align:right;color:${Math.abs(diffPos)<1?'#16a34a':'#dc2626'};font-weight:700">${diffPos?(diffPos>0?'+':'')+euro(diffPos):'—'}<div style="font-size:9px;color:#94a3b8">diff POS</div></div>
-      <div style="text-align:right;color:${saldoCassa>=0?'#16a34a':'#dc2626'};font-weight:700">${euro(saldoCassa)}<div style="font-size:9px;color:#94a3b8">saldo cassa</div></div>
+    const giorno = dt.getDate();
+    const diffPos = g.diffPos;
+    const isAnom = (g.stato && g.stato !== 'ok') || (diffPos !== null && Math.abs(diffPos) > 5);
+    const rowBg = isAnom ? '#fef3c7' : '';
+    const diffDisplay = diffPos === null ? '—' : (diffPos > 0 ? '+' : '') + euro(diffPos);
+    const diffColor = diffPos === null ? '#94a3b8' : (Math.abs(diffPos) < 1 ? '#16a34a' : '#dc2626');
+    return `<div style="display:grid;grid-template-columns:52px 1fr 1fr 1fr 1fr;gap:6px;padding:10px 6px;border-bottom:1px solid #e2e8f0;font-size:11px;background:${rowBg};align-items:center">
+      <div style="color:#475569;font-weight:600;font-size:10px">${dowLbl} ${giorno}</div>
+      <div style="text-align:right;color:#5D29C7;font-weight:600">${g.elettronicoXML ? euro(g.elettronicoXML) : '<span style="color:#cbd5e1">—</span>'}</div>
+      <div style="text-align:right;color:${g.posReale>0?'#0891b2':'#cbd5e1'};font-weight:600">${g.posReale ? euro(g.posReale) : '—'}</div>
+      <div style="text-align:right;color:${diffColor};font-weight:700">${diffDisplay}</div>
+      <div style="text-align:right;color:${g.saldoCassa>=0?'#16a34a':'#dc2626'};font-weight:700">${euro(g.saldoCassa)}</div>
     </div>`;
   }).join('');
 
-  // Totali mese
-  const totalMese = giorni.reduce((acc, g) => {
-    acc.corr += Number(g.totale_corrispettivo||0);
-    acc.posXML += Number(g.elettronico_xml||0);
-    acc.posReale += Number(g.pos_chiusura_manuale||g.pos_manuale||0);
-    acc.posBanca += Number(g.pos_accreditato||0);
-    acc.contanti += Number(g.contanti_xml||0);
-    return acc;
-  }, {corr:0, posXML:0, posReale:0, posBanca:0, contanti:0});
-
-  const nGgAnomali = giorni.filter(g => {
-    const dp = Number(g.pos_chiusura_manuale||0) > 0 ? Math.abs(Number(g.elettronico_xml||0) - Number(g.pos_chiusura_manuale||0)) : 0;
-    return dp > 5 || g.stato === 'error' || g.stato === 'mancante';
-  }).length;
-
-  $('sheetBody').innerHTML = `<h2 style="margin-bottom:8px">${nomeM} ${ANNO}</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;margin-bottom:12px">
-      <div style="background:#EDE7FF;padding:8px;border-radius:6px"><div style="color:#475569">POS XML totale</div><div style="font-weight:700;font-size:13px;color:#5D29C7">${euro(totalMese.posXML)}</div></div>
-      <div style="background:#e0f2fe;padding:8px;border-radius:6px"><div style="color:#475569">POS reale totale</div><div style="font-weight:700;font-size:13px;color:#0891b2">${euro(totalMese.posReale)}</div></div>
-      <div style="background:#fef3c7;padding:8px;border-radius:6px"><div style="color:#475569">Corrispettivi tot.</div><div style="font-weight:700;font-size:13px;color:#92400e">${euro(totalMese.corr)}</div></div>
-      <div style="background:${nGgAnomali>0?'#fee2e2':'#dcfce7'};padding:8px;border-radius:6px"><div style="color:#475569">Giorni anomali</div><div style="font-weight:700;font-size:13px;color:${nGgAnomali>0?'#dc2626':'#16a34a'}">${nGgAnomali}/${giorni.length}</div></div>
+  $('sheetBody').innerHTML = `<div style="padding-bottom:8px">
+    <h2 style="margin-bottom:10px">${nomeM} ${ANNO}</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+      <div style="background:#EDE7FF;padding:10px;border-radius:8px"><div style="font-size:10px;color:#475569">POS XML totale</div><div style="font-weight:800;font-size:15px;color:#5D29C7">${euro(tot.posXML)}</div></div>
+      <div style="background:#e0f2fe;padding:10px;border-radius:8px"><div style="font-size:10px;color:#475569">POS reale totale</div><div style="font-weight:800;font-size:15px;color:#0891b2">${euro(tot.posReale)}</div></div>
+      <div style="background:#fef3c7;padding:10px;border-radius:8px"><div style="font-size:10px;color:#475569">Corrispettivi tot.</div><div style="font-weight:800;font-size:15px;color:#92400e">${euro(tot.tot)}</div></div>
+      <div style="background:${nGgAnomali>0?'#fee2e2':'#dcfce7'};padding:10px;border-radius:8px"><div style="font-size:10px;color:#475569">Anomalie</div><div style="font-weight:800;font-size:15px;color:${nGgAnomali>0?'#dc2626':'#16a34a'}">${nGgAnomali}/${giorni.length}</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:50px 1fr 1fr 1fr 1fr;gap:4px;padding:8px 4px;background:#f8fafc;border-bottom:2px solid #5D29C7;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase">
+    <div style="display:grid;grid-template-columns:52px 1fr 1fr 1fr 1fr;gap:6px;padding:8px 6px;background:#f8fafc;border-bottom:2px solid #5D29C7;font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.3px">
       <div>Data</div>
       <div style="text-align:right">POS XML</div>
       <div style="text-align:right">POS reale</div>
       <div style="text-align:right">Diff POS</div>
-      <div style="text-align:right">Saldo</div>
+      <div style="text-align:right">Saldo €</div>
     </div>
     ${rows}
-    <div style="margin-top:10px;padding:8px;background:#f8fafc;border-radius:6px;font-size:10px;color:#64748B;line-height:1.5">
-      <b>POS XML</b>: quota elettronico dichiarato nei corrispettivi telematici RT/AdE.<br>
-      <b>POS reale</b>: chiusura giornaliera POS che hai inserito nel gestionale. Se mancante, apparirà "—".<br>
-      <b>Diff POS</b>: XML − reale. Zero = perfettamente coerente.
+    <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:10px;color:#64748B;line-height:1.6">
+      <div><b style="color:#5D29C7">POS XML</b>: quota elettronico dichiarata nei corrispettivi telematici RT/AdE</div>
+      <div><b style="color:#0891b2">POS reale</b>: chiusura giornaliera registrata in banca (fonte: prima nota)</div>
+      <div><b>Diff POS</b>: XML − reale. Se &lt;1€ sei coerente. "—" = chiusura non ancora registrata.</div>
+      <div><b>Saldo €</b>: cassa contanti progressiva del mese (contanti XML − versamenti banca)</div>
     </div>
-    <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="closeSheet()">Chiudi</button>`;
+    <button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="closeSheet()">Chiudi</button>
+  </div>`;
 }
 async function riconciliaPosGiorno(data){
   if(!confirm(`Riconciliare POS del ${fmtDate(data)}?`))return;
