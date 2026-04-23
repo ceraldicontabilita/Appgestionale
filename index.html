@@ -275,25 +275,137 @@ async function aiCallVision(base64, mediaType, prompt, maxTokens=2048){
 }
 
 // === PROMPT estrazione FATTURA (da primanota di Valerio Ceraldi) ===
-const PROMPT_FATTURA_BASE = `Sei un esperto di fatture italiane e DDT. Analizza il documento.
+const PROMPT_FATTURA_BASE = `Sei un esperto di fatture e DDT italiani. Analizza il documento ed estrai i dati con ragionamento strutturato.
 
-STEP 1 — IDENTIFICA TIPO DOCUMENTO:
-- "fattura" → ha "Fattura", "Fatt.", "FT", IVA calcolata, totale lordo
-- "ddt" → ha "DDT", "D.D.T.", "Bolla", "Documento di Trasporto", focus su quantità e articoli
+═══════════════════════════════════════
+CAMPO 1 — "tipo_documento"
+═══════════════════════════════════════
+Valori: "fattura" | "ddt"
 
-STEP 2 — ESTRAI CON RAGIONAMENTO:
-"fornitore": Chi ha EMESSO il documento? È il venditore, MAI il destinatario. Ceraldi (Ceraldi Group, Caffetteria Ceraldi, etc) è SEMPRE il destinatario. Cerca prima di "S.r.l./Srl/S.p.A./SpA/S.n.c./SAS/S.a.s./Coop" o dopo "Ragione Sociale/Ditta/Denominazione/Cedente/Prestatore/Fornitore/Emittente".
-"numero_fattura": Codice univoco del documento. Cerca "Numero/N./N°/Nr./Fattura N./Doc. N./Progressivo". Copia valore esatto (es. 001/2024).
-"numero_ddt": Solo se tipo=fattura, riferimento al DDT collegato: "Rif. DDT/DDT N./Bolla N.". Solo numero.
-"data": Data emissione, formato YYYY-MM-DD.
-"importo": Totale FINALE da pagare (numero più alto, include IVA). Ignora Imponibile.
-"data_scadenza": "Scadenza/Data scadenza/Pagamento entro". Formato YYYY-MM-DD o "".
-"pagamento": "contanti"|"bonifico"|"assegno"|"carta" o "".
-"iban": Se bonifico, IBAN del fornitore.
-"partita_iva": P.IVA del fornitore (11 cifre).
+→ "fattura" se trovi: Fattura, Fatt., FT, Fattura Elettronica, Fattura Proforma, Ricevuta Fiscale, Nota di Credito, Parcella, Notula, Nota Onorari — con IVA calcolata e totale lordo da pagare.
 
-STEP 3 — Rispondi SOLO con JSON valido, nessun testo prima o dopo:
-{"tipo_documento":"fattura","fornitore":"","numero_fattura":"","numero_ddt":"","data":"YYYY-MM-DD","data_scadenza":"","importo":0,"pagamento":"","iban":"","partita_iva":""}`;
+→ "ddt" se trovi: DDT, D.D.T., Documento di Trasporto, Documento Accompagnatorio, Bolla, Bolla di Accompagnamento, Bolla di Consegna, Nota di Consegna, Lettera di Vettura, Distinta di Consegna, Buono di Consegna — oppure se contiene: Causale Trasporto, Vettore, Colli, Peso Lordo, Peso Netto, SENZA un totale IVA finale da pagare.
+
+═══════════════════════════════════════
+CAMPO 2 — "fornitore"
+═══════════════════════════════════════
+Chi ha EMESSO il documento (venditore). Di solito in alto con logo.
+IMPORTANTE: Ceraldi Group S.R.L. / Caffetteria Ceraldi / Ceraldi sono SEMPRE il DESTINATARIO, mai il fornitore.
+
+STRATEGIA A — cerca forme giuridiche nel testo:
+  S.r.l., Srl, S.R.L., S.p.A., SpA, S.P.A.,
+  S.n.c., SNC, S.a.s., SAS, S.s., S.c.r.l., S.c.a.r.l.,
+  Coop., Cooperativa, Soc. Coop., Consorzio, Ditta, d.i.
+  → Il testo che PRECEDE la sigla è la ragione sociale completa.
+
+STRATEGIA B — cerca etichette:
+  Ragione Sociale, Rag. Soc., Denominazione, Ditta, Cedente, Cedente/Prestatore,
+  Prestatore, Fornitore, Emittente, Intestatario, Mittente, Società, Azienda, Studio
+
+STRATEGIA C — se nessuna etichetta: prendi il blocco di testo più prominente in alto che NON sia Ceraldi, un indirizzo o una P.IVA.
+
+═══════════════════════════════════════
+CAMPO 3 — "numero_fattura"
+═══════════════════════════════════════
+Codice identificativo del documento. Si trova in alto vicino alla data. Copialo ESATTAMENTE.
+
+Etichette: Numero, N., N°, Nr., Num., Numero Fattura, N. Fattura, Fatt. N., Fatt. Nr., Fattura N., Numero Documento, Doc. N., Progressivo, Prog., Codice Documento, Rif. Documento, Numero Nota.
+
+Formati tipici italiani: 001/2024, 2024/001, FT-001, F001, 2024-001, A-001, 00001, 1/A, 001/A/2024.
+
+Regole anti-errore:
+- NON prendere codici articolo, codici cliente, P.IVA, C.F., telefoni, IBAN
+- Se il documento ha tabella in alto con celle "Tipo Documento / Numero / Data", prendi il valore nella cella "Numero" VICINO a "DDT"/"FT"/"Fattura"
+- Se tipo_documento="ddt", metti qui il numero del DDT
+
+═══════════════════════════════════════
+CAMPO 4 — "numero_ddt"
+═══════════════════════════════════════
+Solo se tipo_documento="fattura": il riferimento al DDT collegato (se la fattura richiama un DDT precedente).
+Etichette: Rif. DDT, DDT N., N. DDT, Numero DDT, Bolla N., N. Bolla, Documento di Trasporto N., Rif. Bolla.
+Copia SOLO il numero. Se non trovato o tipo_documento="ddt", lascia stringa vuota "".
+
+═══════════════════════════════════════
+CAMPO 5 — "data"
+═══════════════════════════════════════
+Data di emissione. Formato output SEMPRE: YYYY-MM-DD (converti da DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY).
+Etichette: Data, Data Fattura, Data DDT, Data Bolla, Data Documento, Data Emissione, Emessa il, Del, In data.
+Se ci sono più date, prendi la data del documento, NON la data di consegna/scadenza.
+
+═══════════════════════════════════════
+CAMPO 6 — "data_scadenza"
+═══════════════════════════════════════
+Data entro cui pagare. Formato YYYY-MM-DD. Se non indicata, stringa vuota "".
+Etichette: Scadenza, Data Scadenza, Pagamento entro, Entro il, Valuta, Data Pagamento.
+
+═══════════════════════════════════════
+CAMPO 7 — "importo"
+═══════════════════════════════════════
+Totale FINALE da pagare, IVA INCLUSA. È SEMPRE il numero più alto nel riepilogo in fondo.
+Struttura tipica: Imponibile → + IVA → = Totale. Prendi il Totale.
+
+Etichette CORRETTE (da prendere):
+  Totale, Totale Fattura, Totale Documento, Totale Complessivo, Totale da Pagare,
+  Totale Dovuto, Da Pagare, Netto a Pagare, Importo Totale, Totale IVA Inclusa,
+  Totale Lordo, A Vostro Debito.
+
+Etichette DA IGNORARE (parziali senza IVA):
+  Imponibile, Base Imponibile, Importo Netto, Subtotale, Totale Parziale,
+  Totale Merce, Totale Articoli.
+
+REGOLA CONTRASSEGNO (DDT): se vedi "Contrassegno X,XX EURO" nel riquadro finale, quello è l'importo da pagare alla consegna → usalo come "importo".
+Per DDT senza contrassegno e senza totale, l'importo può essere 0.
+
+═══════════════════════════════════════
+CAMPO 8 — "iva"
+═══════════════════════════════════════
+Importo IVA in euro (numero, non percentuale). Etichette: IVA, I.V.A., Imposta, Totale IVA.
+Se più aliquote, somma tutti i valori. Se non presente o DDT senza IVA, metti 0.
+
+═══════════════════════════════════════
+CAMPO 9 — "pagamento"
+═══════════════════════════════════════
+Valori ammessi: "contanti" | "bonifico" | "assegno" | "riba" | "carta" | ""
+
+→ "contanti" se: Contanti, Cash, Contante, Pronto Cassa, Rimessa Diretta in Contanti.
+→ "bonifico" se: Bonifico, Bonifico Bancario, Bonifico SEPA, SDD, Accredito su Conto, Rimessa Diretta + IBAN.
+→ "assegno" se: Assegno, Assegno Bancario, Assegno Circolare, Ass. Bancario, Titolo Bancario, Tratta.
+→ "riba" se: RIBA, Ri.Ba., Ricevuta Bancaria, RID.
+→ "carta" se: Carta, Carta di Credito, POS, Bancomat.
+
+REGOLA CONTRASSEGNO: Se vedi "Contrassegno" + assegno fisico allegato/fotografato → "assegno".
+
+═══════════════════════════════════════
+CAMPO 10 — "iban"
+═══════════════════════════════════════
+Solo se pagamento="bonifico". Formato italiano: IT seguito da 25 caratteri. Se non presente, "".
+
+═══════════════════════════════════════
+CAMPO 11 — "partita_iva"
+═══════════════════════════════════════
+P.IVA del FORNITORE (chi emette). 11 cifre italiane. Rimuovi prefisso "IT" se presente.
+Etichette: P.IVA, Partita IVA, P. IVA, VAT.
+NON confondere con codice fiscale (16 caratteri alfanumerici).
+
+═══════════════════════════════════════
+CAMPO 12 — "codice_fiscale"
+═══════════════════════════════════════
+Codice fiscale del fornitore. 16 caratteri alfanumerici (persone fisiche) o 11 cifre = P.IVA (società).
+Etichette: C.F., Codice Fiscale, Cod. Fisc.
+
+═══════════════════════════════════════
+CAMPO 13 — "confidence"
+═══════════════════════════════════════
+Auto-valutazione della qualità della tua lettura:
+- "alta": foto nitida, tutti i campi chiaramente leggibili, nessun dubbio
+- "media": foto parzialmente sfocata o 1-2 campi incerti
+- "bassa": difficoltà significative di lettura, molti campi dubbi
+
+═══════════════════════════════════════
+FORMATO RISPOSTA
+═══════════════════════════════════════
+Rispondi SOLO con JSON valido, nessun testo prima o dopo:
+{"tipo_documento":"","fornitore":"","partita_iva":"","codice_fiscale":"","numero_fattura":"","numero_ddt":"","data":"YYYY-MM-DD","data_scadenza":"","importo":0,"iva":0,"pagamento":"","iban":"","confidence":"media"}`;
 
 // Cache correzioni OCR caricate dal server. Aggiornata a ogni login e dopo ogni invio.
 let _ocrCorrezioni = [];
@@ -751,7 +863,7 @@ function salvaAnno(){
 }
 
 // === SCAN FATTURA con AI ===
-async function scanFattura(){
+async function scanFattura(fornitoreHint){
   if(!getAIKey()){
     openSheet(`<h2>🧠 AI non configurata</h2>
       <p style="margin:0 0 14px">Per scansionare foto di fatture devi configurare la tua API key Anthropic.</p>
@@ -763,11 +875,12 @@ async function scanFattura(){
     openSheet(`<div style="padding:40px 20px;text-align:center">
       <div class="spinner" style="width:40px;height:40px"></div>
       <div style="margin-top:16px;font-weight:700">🧠 Lettura AI in corso...</div>
-      <div style="margin-top:6px;font-size:13px;color:var(--text-2)">Claude sta analizzando la fattura</div>
+      <div style="margin-top:6px;font-size:13px;color:var(--text-2)">Claude sta analizzando la fattura${fornitoreHint?` (${escapeHtml(fornitoreHint)})`:''}</div>
     </div>`);
     try{
-      // Prima scansione: non abbiamo ancora un fornitore noto, uso prompt senza hint
-      const prompt = buildPromptFattura(null);
+      // Se passato un fornitore (es. seconda scansione dopo correzione), uso prompt con hint
+      // per applicare prioritariamente le correzioni apprese relative a quel fornitore.
+      const prompt = buildPromptFattura(fornitoreHint || null);
       const dati = await aiCallVision(base64, mediaType, prompt);
       // Salva la lettura originale AI per poter calcolare il diff quando l'utente conferma
       _aiLastRead = {...dati};
@@ -784,22 +897,43 @@ async function scanFattura(){
 }
 
 function apriFormFatturaDaAI(d, base64Img, mediaType){
+  // Banner di trasparenza AI: mostra confidence, correzioni applicate, fornitore noto
+  const conf = d.confidence || 'media';
+  const confColor = conf==='alta' ? 'var(--success)' : (conf==='bassa' ? 'var(--danger)' : 'var(--warning)');
+  const confLabel = conf==='alta' ? 'Lettura sicura' : (conf==='bassa' ? 'Lettura incerta — controlla bene' : 'Lettura media');
+  const nCorr = Array.isArray(_ocrCorrezioni) ? _ocrCorrezioni.length : 0;
+  const banner = `<div style="display:flex;gap:8px;align-items:center;background:#F8FAFC;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:12px">
+    <span style="width:8px;height:8px;border-radius:50%;background:${confColor};flex-shrink:0"></span>
+    <span style="font-weight:600">${confLabel}</span>
+    ${nCorr>0?`<span style="color:var(--text-2);margin-left:auto">✓ ${nCorr} correzioni apprese</span>`:''}
+  </div>`;
+
+  // Campo N. DDT: visibile solo per fatture (non per i DDT stessi)
+  const numDdtField = `<div class="field" id="fNumDdtWrap" style="${d.tipo_documento==='ddt'?'display:none':''}">
+    <label>Riferimento DDT <span style="font-weight:400;color:var(--text-2)">(se la fattura richiama un DDT)</span></label>
+    <input id="fNumDdt" class="input" value="${escapeHtml(d.numero_ddt||'')}" placeholder="es. 123/2026">
+  </div>`;
+
   openSheet(`<h2>✓ Verifica dati letti</h2>
-    <p class="muted" style="margin:0 0 10px;font-size:12px">L'AI ha letto questi dati. Controlla e correggi se serve.</p>
+    ${banner}
     ${base64Img?`<img src="data:${mediaType};base64,${base64Img}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
     <div class="field"><label>Tipo</label>
-      <select id="fTipoDoc" class="select">
+      <select id="fTipoDoc" class="select" onchange="document.getElementById('fNumDdtWrap').style.display=this.value==='ddt'?'none':''">
         <option value="fattura" ${d.tipo_documento==='fattura'?'selected':''}>Fattura</option>
         <option value="ddt" ${d.tipo_documento==='ddt'?'selected':''}>DDT</option>
       </select></div>
     <div class="field"><label>Fornitore</label><input id="fForn" class="input" value="${escapeHtml(d.fornitore||'')}"></div>
     <div class="field-row">
-      <div class="field"><label>N. documento</label><input id="fNum" class="input" value="${escapeHtml(d.numero_fattura||'')}"></div>
       <div class="field"><label>P.IVA</label><input id="fPiva" class="input" value="${escapeHtml(d.partita_iva||'')}"></div>
+      <div class="field"><label>Cod. Fiscale</label><input id="fCF" class="input" value="${escapeHtml(d.codice_fiscale||'')}"></div>
     </div>
     <div class="field-row">
+      <div class="field"><label>N. documento</label><input id="fNum" class="input" value="${escapeHtml(d.numero_fattura||'')}"></div>
       <div class="field"><label>Data</label><input id="fData" class="input" type="date" value="${escapeHtml(d.data||'')}"></div>
+    </div>
+    <div class="field-row">
       <div class="field"><label>Importo (€)</label><input id="fImp" class="input" type="number" step="0.01" value="${d.importo||''}"></div>
+      <div class="field"><label>di cui IVA (€)</label><input id="fIva" class="input" type="number" step="0.01" value="${d.iva||''}"></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Scadenza</label><input id="fScad" class="input" type="date" value="${escapeHtml(d.data_scadenza||'')}"></div>
@@ -809,10 +943,12 @@ function apriFormFatturaDaAI(d, base64Img, mediaType){
           <option value="contanti" ${d.pagamento==='contanti'?'selected':''}>💵 Contanti</option>
           <option value="bonifico" ${d.pagamento==='bonifico'?'selected':''}>🏦 Bonifico</option>
           <option value="assegno" ${d.pagamento==='assegno'?'selected':''}>📝 Assegno</option>
+          <option value="riba" ${d.pagamento==='riba'?'selected':''}>🧾 RiBa</option>
           <option value="carta" ${d.pagamento==='carta'?'selected':''}>💳 Carta</option>
         </select></div>
     </div>
-    ${d.iban?`<div class="field"><label>IBAN</label><input id="fIban" class="input" value="${escapeHtml(d.iban)}"></div>`:''}
+    ${d.iban?`<div class="field"><label>IBAN</label><input id="fIban" class="input" value="${escapeHtml(d.iban)}"></div>`:`<input type="hidden" id="fIban" value="">`}
+    ${numDdtField}
     <button class="btn btn-success btn-block" onclick='salvaFatturaAI()'>💾 Salva fattura</button>
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="scanFattura()">🔄 Riscatta</button>
     <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="closeSheet()">Annulla</button>`);
@@ -825,11 +961,14 @@ async function salvaFatturaAI(){
     cedente_denominazione: $('fForn').value.trim(),
     partita_iva: $('fPiva')?.value.trim(),
     cedente_piva: $('fPiva')?.value.trim(),
+    codice_fiscale: $('fCF')?.value.trim() || null,
     numero_fattura: $('fNum').value.trim(),
+    numero_ddt: $('fNumDdt')?.value.trim() || null,
     data_fattura: $('fData').value,
     data_scadenza: $('fScad').value||null,
     importo_totale: parseFloat($('fImp').value)||0,
     totale: parseFloat($('fImp').value)||0,
+    iva: parseFloat($('fIva')?.value)||0,
     metodo_pagamento: $('fPag').value||null,
     iban: $('fIban')?.value.trim()||null,
     origine: 'mobile_ai_scan'
@@ -839,17 +978,20 @@ async function salvaFatturaAI(){
   if(!body.data_fattura) return toast('Data obbligatoria','error');
   if(body.importo_totale<=0) return toast('Importo non valido','error');
 
-  // Costruisci versione "user_final" con stessa struttura di ai_read (per diff)
+  // Costruisci versione "user_final" con stessa struttura di ai_read (per diff apprendimento)
   const userFinal = {
     tipo_documento: body.tipo_documento,
     fornitore: body.fornitore_denominazione,
+    partita_iva: body.partita_iva || '',
+    codice_fiscale: body.codice_fiscale || '',
     numero_fattura: body.numero_fattura,
+    numero_ddt: body.numero_ddt || '',
     data: body.data_fattura,
     data_scadenza: body.data_scadenza || '',
     importo: body.importo_totale,
+    iva: body.iva || 0,
     pagamento: body.metodo_pagamento || '',
     iban: body.iban || '',
-    partita_iva: body.partita_iva || '',
   };
 
   let createdId = null;
