@@ -137,6 +137,7 @@ main{flex:1;padding:14px 14px calc(30px + var(--safe-bot));max-width:720px;margi
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{background:var(--success)}
 .toast.error{background:var(--danger)}
+.toast.warn{background:var(--warning);color:#1E1B4B}
 .hidden{display:none!important}
 .empty{text-align:center;padding:40px 20px;color:var(--text-2)}
 .empty .icon{font-size:40px;margin-bottom:10px;opacity:.5}
@@ -241,7 +242,7 @@ const debounce = (fn,ms=300)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout
 const escapeHtml = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const haptic = (ms=10) => { if(navigator.vibrate) navigator.vibrate(ms); };
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
-function toast(msg,type=''){const t=$('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast'+(type?' '+type:''),2800);}
+function toast(msg,type='',duration=2800){const t=$('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._h);t._h=setTimeout(()=>t.className='toast'+(type?' '+type:''),duration);}
 
 // ====== AI ANTHROPIC (chiamate dal browser con la propria API key) ======
 const AI_LS = 'cm_anthropic_key';
@@ -258,17 +259,41 @@ async function aiCallVision(base64, mediaType, prompt, maxTokens=2048){
           : {type:'image',    source:{type:'base64', media_type:mediaType, data:base64}},
     {type:'text', text:prompt}
   ];
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST', headers: aiHeaders(),
-    body: JSON.stringify({
-      model:'claude-sonnet-4-5', max_tokens:maxTokens,
-      messages:[
-        {role:'user', content},
-        {role:'assistant', content:'{'}
-      ]
-    })
-  });
-  const d = await res.json();
+  let res;
+  try{
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers: aiHeaders(),
+      body: JSON.stringify({
+        model:'claude-sonnet-4-5', max_tokens:maxTokens,
+        messages:[
+          {role:'user', content},
+          {role:'assistant', content:'{'}
+        ]
+      })
+    });
+  }catch(netErr){
+    // Rete morta, CORS, DNS: il fetch del browser tira "Failed to fetch" che non aiuta l'utente.
+    throw new Error('Connessione all\'AI fallita - controlla internet');
+  }
+  // Status non 2xx: il body potrebbe non essere JSON (es. 529 "Overloaded" torna HTML/testo)
+  if(!res.ok){
+    let detail = `HTTP ${res.status}`;
+    try{
+      const j = await res.json();
+      if(j?.error?.message) detail = j.error.message;
+      else if(j?.error?.type) detail = j.error.type;
+    }catch{
+      // ignora: status code da solo è già informativo
+    }
+    // Messaggi più umani per status più comuni
+    if(res.status===401) throw new Error('API key Anthropic non valida - ricontrolla nelle Impostazioni');
+    if(res.status===429) throw new Error('Troppe richieste AI, riprova tra qualche secondo');
+    if(res.status===529 || res.status===503) throw new Error('Servizio AI temporaneamente sovraccarico');
+    throw new Error('Errore AI: '+detail);
+  }
+  let d;
+  try{ d = await res.json(); }
+  catch{ throw new Error('Risposta AI non leggibile'); }
   if(d.error) throw new Error(d.error.message||'Errore API');
   const txt = '{' + ((d.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());
   try { return JSON.parse(txt); } catch(e){ throw new Error('JSON non valido: '+txt.slice(0,100)); }
@@ -576,6 +601,46 @@ function forceLogout(reason){
   showPin();
 }
 
+// ====== FATTURA helpers (unica sorgente di verità) ======
+// Il backend espone i campi sia in italiano (importo_totale, data_fattura...) sia in inglese
+// (total_amount, invoice_date...) a seconda dell'endpoint. Invece di normalizzare a ogni lettura,
+// passiamo qualsiasi fattura attraverso normFattura(f) una sola volta e ragioniamo su campi fissi.
+//
+// IMPORTANTE: il campo booleano "pagato" del backend è un FLAG ("pagata sì/no"), NON l'importo
+// pagato. L'importo pagato vero sta in importo_pagato / amount_paid. Non confonderli.
+function normFattura(f){
+  if(!f || typeof f !== 'object') return f;
+  const tot = Number(f.total_amount ?? f.importo_totale ?? f.totale ?? 0) || 0;
+  const pag = Number(f.importo_pagato ?? f.amount_paid ?? 0) || 0;
+  const residuo = (f.residuo != null) ? Number(f.residuo) : Math.max(0, tot - pag);
+  const flagPagataBackend = (f.pagato === true) || (f.stato === 'pagata') || (f.status === 'paid');
+  // Una fattura è "pagata" se il backend lo dice esplicitamente OPPURE se il residuo è zero
+  // (tolleranza 1 centesimo per arrotondamenti) su un totale > 0.
+  const pagata = flagPagataBackend || (residuo <= 0.01 && tot > 0);
+  const dataScad = f.data_scadenza || f.due_date || '';
+  const scaduta = !pagata && dataScad && (new Date(dataScad) < new Date());
+  return {
+    ...f,
+    _n: {
+      id:         f.id || f.invoice_key || f._id || '',
+      numero:     f.invoice_number || f.numero_fattura || f.numero_documento || f.numero || '-',
+      fornitore:  f.cedente_denominazione || f.supplier_name || f.fornitore_denominazione || f.fornitore_ragione_sociale || '-',
+      piva:       f.cedente_piva || f.supplier_vat || f.partita_iva || '',
+      dataDoc:    f.data_fattura || f.invoice_date || f.data_documento || '',
+      dataScad:   dataScad,
+      totale:     tot,
+      pagato:     pag,
+      residuo:    residuo,
+      pagata:     pagata,
+      scaduta:    !!scaduta,
+    }
+  };
+}
+// Wrapper: accettano sia la fattura originale sia quella già normalizzata (_n presente).
+function getResiduoF(f){ return (f && f._n) ? f._n.residuo : normFattura(f)._n.residuo; }
+function isPagataF(f){   return (f && f._n) ? f._n.pagata  : normFattura(f)._n.pagata;  }
+function isScadutaF(f){  return (f && f._n) ? f._n.scaduta : normFattura(f)._n.scaduta; }
+
 async function api(path, opts={}){
   const url = API_BASE.replace(/\/$/,'') + path;
   const headers = {'Content-Type':'application/json',...(opts.headers||{})};
@@ -659,7 +724,34 @@ function lockApp(){
   $('app').classList.add('hidden');
   showPin();
 }
-function showApp(){$('pinScreen').classList.add('hidden');$('app').classList.remove('hidden');renderDrawer();goModule('dashboard');caricaCorrezioniOCR();}
+// Se il JWT scade entro i prossimi N giorni, avvisa l'utente con un toast.
+// Non posso fare refresh: il backend non espone un endpoint di refresh, l'unica via
+// per rinnovare è ri-fare pin-login dopo scadenza. Quindi mi limito a prevenire la sorpresa.
+function checkTokenExpiryWarning(){
+  if(!TOKEN) return;
+  const p = decodeJWT(TOKEN);
+  if(!p || !p.exp) return;
+  const msLeft = (p.exp * 1000) - Date.now();
+  const oreLeft = msLeft / 3600000;
+  const gg = Math.floor(oreLeft / 24);
+  if(oreLeft <= 0) return; // già scaduto, verrà gestito alla prossima chiamata API
+  if(oreLeft <= 6){
+    // Ultime 6 ore: toast persistente
+    toast('⚠️ Sessione in scadenza: re-inserisci il PIN entro oggi', 'warn', 8000);
+  }else if(gg <= 3){
+    toast(`Sessione valida ancora ${gg} ${gg===1?'giorno':'giorni'}`, 'info', 4500);
+  }
+}
+
+function showApp(){
+  $('pinScreen').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  renderDrawer();
+  goModule('dashboard');
+  caricaCorrezioniOCR();
+  // Avviso proattivo sulla scadenza del JWT (se è vicino)
+  setTimeout(checkTokenExpiryWarning, 1500);
+}
 
 // ====== MODULI ======
 const MODULES = [
@@ -1454,19 +1546,16 @@ function renderCostiDettaglio(main, byForn, fornName){
     </div>
 
     <div class="section-title">Tutte le fatture (${v.fatture.length})</div>
-    ${v.fatture.sort((a,b)=>(b.invoice_date||b.data_fattura||'').localeCompare(a.invoice_date||a.data_fattura||'')).map(f=>{
-      const num = f.invoice_number || f.numero_fattura || '-';
-      const d = f.invoice_date || f.data_fattura || '';
-      const tot = Number(f.total_amount || f.importo_totale || 0);
-      const isPagata = (f.pagato===true)||(f.stato==='pagata')||(f.status==='paid');
-      const fid = f.id || f.invoice_key || '';
-      return `<div class="list-item" data-fid="${encodeURIComponent(fid)}" onclick="openFatturaSheet('${encodeURIComponent(fid)}')">
+    ${v.fatture.sort((a,b)=>(b.invoice_date||b.data_fattura||'').localeCompare(a.invoice_date||a.data_fattura||'')).map(raw=>{
+      const f = normFattura(raw);
+      const n = f._n;
+      return `<div class="list-item" data-fid="${encodeURIComponent(n.id)}" onclick="openFatturaSheet('${encodeURIComponent(n.id)}')">
         <div class="li-top">
-          <div class="li-title">N. ${escapeHtml(num)}<span class="small">${fmtDate(d)}</span></div>
-          <div class="li-amount">${euro(tot)}</div>
+          <div class="li-title">N. ${escapeHtml(n.numero)}<span class="small">${fmtDate(n.dataDoc)}</span></div>
+          <div class="li-amount">${euro(n.totale)}</div>
         </div>
         <div class="li-bottom">
-          ${isPagata?'<span class="badge success">Pagata</span>':'<span class="badge info">Da pagare</span>'}
+          ${n.pagata?'<span class="badge success">Pagata</span>':'<span class="badge info">Da pagare</span>'}
         </div>
       </div>`;
     }).join('')}
@@ -2401,22 +2490,17 @@ async function render_fatture(main){
     <div id="lstF"><div class="loading"><span class="spinner"></span>Carico...</div></div>
   `;
   main.querySelectorAll('.chip[data-f]').forEach(c=>{ c.onclick = ()=>{ state.fat.filt = c.dataset.f; render_fatture(main); }; });
-  // FIX: /api/invoices/list|unpaid|overdue ritornano sempre vuoto sul backend di produzione.
-  // L'endpoint funzionante è /api/invoices (senza /list). Il filtro pagato/scaduto lo facciamo client-side
-  // sui campi total_amount / importo_pagato / data_scadenza / stato / pagato.
+  // NOTA: /api/invoices/list|unpaid|overdue ritornano sempre vuoto sul backend in produzione
+  // (bug noto). Usiamo /api/invoices (senza /list) e filtriamo client-side tramite normFattura.
   const path = `/api/invoices?anno=${ANNO}&limit=1000`;
   const data = await api(path);
   const listRaw = Array.isArray(data)?data:(data.items||data.invoices||data.fatture||[]);
-  // Normalizza campi per confronti (gestisce schema backend: total_amount/importo_totale, ecc.)
-  const list = listRaw.filter(f => {
-    const tot = Number(f.total_amount || f.importo_totale || f.totale || 0);
-    const res = getResiduo(f);
-    const isPagata = (f.pagato===true) || (f.stato==='pagata') || (f.status==='paid') || (res<=0.01 && tot>0);
-    const dataScad = f.data_scadenza || f.due_date;
-    const isScaduta = !isPagata && dataScad && new Date(dataScad) < new Date();
-    if(state.fat.filt === 'unpaid')  return !isPagata;
-    if(state.fat.filt === 'overdue') return isScaduta;
-    if(state.fat.filt === 'paid')    return isPagata;
+  // Normalizzazione UNA volta: poi ragioniamo solo su f._n.* (vedi normFattura)
+  const listNorm = listRaw.map(normFattura);
+  const list = listNorm.filter(f => {
+    if(state.fat.filt === 'unpaid')  return !f._n.pagata;
+    if(state.fat.filt === 'overdue') return f._n.scaduta;
+    if(state.fat.filt === 'paid')    return f._n.pagata;
     return true;  // 'all'
   });
   const renderList = ()=>{
@@ -2424,7 +2508,7 @@ async function render_fatture(main){
     state.fat.srch = q;
     let filt = list;
     if(q) filt = list.filter(f=>{
-      const t = [f.cedente_denominazione,f.supplier_name,f.fornitore_denominazione,f.invoice_number,f.numero_fattura,f.numero,f.cedente_piva,f.supplier_vat].filter(Boolean).join(' ').toLowerCase();
+      const t = [f._n.fornitore, f._n.numero, f._n.piva].filter(Boolean).join(' ').toLowerCase();
       return t.includes(q);
     });
     $('lstF').innerHTML = filt.length ? filt.map(fatturaCardHTML).join('') : '<div class="empty"><div class="icon">📭</div><div class="title">Nessuna fattura</div></div>';
@@ -2434,35 +2518,22 @@ async function render_fatture(main){
   $('srchF').addEventListener('input', debounce(renderList,200));
 }
 
-function getResiduo(f){
-  if(f.residuo!=null) return Number(f.residuo);
-  // FIX: il backend usa total_amount (en) o importo_totale (it)
-  const t = Number(f.total_amount || f.importo_totale || f.totale || 0);
-  const p = Number(f.importo_pagato || f.amount_paid || 0);
-  // ATTENZIONE: f.pagato a volte è BOOLEAN ("pagata sì/no"), NON l'importo pagato.
-  // Non usarlo come numero. Se è booleano true e residuo sconosciuto, la fattura è pagata -> residuo 0.
-  if(f.pagato === true || f.stato === 'pagata' || f.status === 'paid') return 0;
-  return Math.max(0, t - p);
-}
+// Wrapper legacy: ora tutto passa da normFattura. Mantenuto per backward compat con codice esistente.
+function getResiduo(f){ return getResiduoF(f); }
+
 function fatturaCardHTML(f){
-  const res = getResiduo(f);
-  const sup = f.cedente_denominazione || f.supplier_name || f.fornitore_denominazione || f.fornitore_ragione_sociale || '-';
-  const num = f.invoice_number || f.numero_fattura || f.numero_documento || f.numero || '-';
-  const fid = f.id || f.invoice_key || f._id || '';
-  const dataFatt = f.data_fattura || f.invoice_date || f.data_documento || '';
-  const dataScad = f.data_scadenza || f.due_date || '';
-  const tot = Number(f.total_amount || f.importo_totale || f.totale || 0);
-  const isPagata = (f.pagato === true) || (f.stato === 'pagata') || (f.status === 'paid') || (res <= 0.01 && tot > 0);
-  const isScaduta = !isPagata && dataScad && new Date(dataScad) < new Date();
-  const badge = isPagata
+  // Accetta sia una fattura raw sia una già normalizzata
+  const nf = f._n ? f : normFattura(f);
+  const n = nf._n;
+  const badge = n.pagata
     ? '<span class="badge success">Pagata</span>'
-    : (isScaduta ? '<span class="badge danger">Scaduta</span>' : '<span class="badge info">Da pagare</span>');
-  return `<div class="list-item" data-fid="${encodeURIComponent(fid)}">
+    : (n.scaduta ? '<span class="badge danger">Scaduta</span>' : '<span class="badge info">Da pagare</span>');
+  return `<div class="list-item" data-fid="${encodeURIComponent(n.id)}">
     <div class="li-top">
-      <div class="li-title">${escapeHtml(sup)}<span class="small">N. ${escapeHtml(num)} · ${fmtDate(dataFatt)}</span></div>
-      <div class="li-amount">${euro(isPagata ? tot : (res > 0 ? res : tot))}</div>
+      <div class="li-title">${escapeHtml(n.fornitore)}<span class="small">N. ${escapeHtml(n.numero)} · ${fmtDate(n.dataDoc)}</span></div>
+      <div class="li-amount">${euro(n.pagata ? n.totale : (n.residuo > 0 ? n.residuo : n.totale))}</div>
     </div>
-    <div class="li-bottom">${badge}<span class="li-meta">${dataScad ? 'Scad. '+fmtDate(dataScad) : ''}</span></div>
+    <div class="li-bottom">${badge}<span class="li-meta">${n.dataScad ? 'Scad. '+fmtDate(n.dataScad) : ''}</span></div>
   </div>`;
 }
 
@@ -3451,10 +3522,7 @@ async function render_riconciliazione(main){
   const lMov = Array.isArray(mov)?mov:(mov.items||[]);
   const lFatAll = Array.isArray(fat)?fat:(fat.items||fat.invoices||[]);
   // Filtra non pagate client-side (endpoint /api/invoices/list ritorna sempre vuoto in produzione)
-  const lFat = lFatAll.filter(f => {
-    const res = (f.residuo!=null) ? f.residuo : Math.max(0, Number(f.importo_totale||f.totale||0) - Number(f.importo_pagato||f.pagato||0));
-    return !(f.pagato===true || f.stato==='pagata' || f.status==='paid' || res<=0.01);
-  });
+  const lFat = lFatAll.filter(f => !isPagataF(f));
   main.innerHTML = `
     <div class="stats">
       <div class="stat warning"><div class="label">Movimenti aperti</div><div class="value">${lMov.length}</div><div class="sub">da riconciliare</div></div>
