@@ -1583,6 +1583,36 @@ async function render_prima_nota_cassa(main){
   const totFatt = movs.filter(m=>m.fattura_id||(m.categoria||'').toLowerCase().includes('fattura')).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0);
   // Ordina per data desc
   movs.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+
+  // ═══ Arricchimento fatture collegate ═══
+  // Il backend espone solo fattura_id (ObjectID). Per mostrare numero+fornitore in chiaro,
+  // carichiamo l'elenco fatture dell'anno UNA volta e costruiamo una mappa id → {num, forn, importo}.
+  // Cache in memoria della sessione: il prossimo rendering del modulo non riparte da zero.
+  window._fatCache = window._fatCache || {};
+  const needFat = movs.some(m => m.fattura_id);
+  if(needFat && !window._fatCache[ANNO]){
+    try{
+      const fatData = await api(`/api/invoices?anno=${ANNO}&limit=1000`);
+      const fatList = Array.isArray(fatData) ? fatData : (fatData.items||fatData.invoices||fatData.fatture||[]);
+      const map = {};
+      for(const raw of fatList){
+        const n = normFattura(raw)._n;
+        if(n.id) map[n.id] = { numero: n.numero, fornitore: n.fornitore, totale: n.totale };
+      }
+      window._fatCache[ANNO] = map;
+    }catch(e){
+      window._fatCache[ANNO] = {}; // cache vuota ma presente: evita retry continui
+    }
+  }
+  const fatMap = window._fatCache[ANNO] || {};
+  // Helper: dato un movimento, ritorna un'etichetta umana della fattura collegata (o null).
+  const fatLabel = m => {
+    if(!m.fattura_id) return null;
+    const f = fatMap[String(m.fattura_id)];
+    if(f) return { text: `${f.fornitore} · N. ${f.numero}`, found: true };
+    return { text: '🔗 Fattura collegata', found: false };
+  };
+
   main.innerHTML = `
     <div class="stats three">
       <div class="stat success"><div class="label">Entrate ${ANNO}</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
@@ -1614,6 +1644,7 @@ async function render_prima_nota_cassa(main){
       const pos = isEntrata(m);
       const cat = (m.categoria||'').toLowerCase();
       const catColor = cat==='corrispettivi'?'#ff9800':(cat==='pos'?'#1e3a5f':(cat==='versamento'||cat==='versamenti'?'#059669':(m.fattura_id?'#ef4444':'#64748B')));
+      const fl = fatLabel(m);
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
@@ -1622,7 +1653,7 @@ async function render_prima_nota_cassa(main){
         <div class="li-bottom">
           <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Entrata':'Uscita'))}</span>
           ${m.provvisorio?'<span class="badge warning">Provvisorio</span>':''}
-          ${m.fattura_id?`<span class="li-meta">→ fattura ${String(m.fattura_id).slice(0,10)}</span>`:''}
+          ${fl ? `<span class="li-meta" style="color:${fl.found?'var(--primary)':'var(--text-2)'};font-weight:${fl.found?'600':'400'}">${escapeHtml(fl.text)}</span>` : ''}
         </div>
       </div>`;
     }).join('') : '<div class="empty"><div class="icon">💰</div><div class="title">Nessun movimento cassa</div></div>'}</div>
@@ -1645,6 +1676,27 @@ async function syncFatturePagate(){
 }
 
 function openMovimentoSheet(tipo, m){
+  // Se il movimento è collegato a una fattura, costruiamo una card cliccabile con numero+fornitore
+  // (presi dalla cache caricata da render_prima_nota_cassa) invece dell'ID grezzo.
+  let fatBlock = '';
+  if(m.fattura_id){
+    const fatMap = (window._fatCache || {})[ANNO] || {};
+    const f = fatMap[String(m.fattura_id)];
+    const fid = encodeURIComponent(String(m.fattura_id));
+    if(f){
+      fatBlock = `<div class="kv" style="cursor:pointer;padding:12px;background:var(--primary-soft);border-radius:10px;margin:8px 0" onclick="closeSheet();setTimeout(()=>openFatturaSheet('${fid}'),150)">
+        <span class="k" style="color:var(--primary);font-weight:700">🔗 Fattura collegata</span>
+        <span class="v" style="text-align:right">
+          <div style="font-weight:700">${escapeHtml(f.fornitore)}</div>
+          <div style="font-size:12px;color:var(--text-2)">N. ${escapeHtml(f.numero)} · ${euro(f.totale)}</div>
+          <div style="font-size:11px;color:var(--primary);margin-top:2px">Tocca per aprire →</div>
+        </span>
+      </div>`;
+    }else{
+      // Fattura non trovata nella cache dell'anno corrente: può essere di un anno diverso
+      fatBlock = `<div class="kv"><span class="k">🔗 Fattura</span><span class="v" style="font-size:12px;color:var(--text-2)">collegata (dettaglio non disponibile)</span></div>`;
+    }
+  }
   openSheet(`<h2>Movimento ${tipo}</h2>
     <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(m.data)}</span></div>
     <div class="kv"><span class="k">Descrizione</span><span class="v">${escapeHtml(m.descrizione||'-')}</span></div>
@@ -1654,7 +1706,7 @@ function openMovimentoSheet(tipo, m){
     ${m.provvisorio?`<div class="kv"><span class="k">Stato</span><span class="v"><span class="badge warning">Provvisorio</span></span></div>`:''}
     ${m.riferimento?`<div class="kv"><span class="k">Riferimento</span><span class="v">${escapeHtml(m.riferimento)}</span></div>`:''}
     ${m.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(m.note)}</span></div>`:''}
-    ${m.fattura_id?`<div class="kv"><span class="k">Fattura</span><span class="v" style="font-size:11px">${escapeHtml(String(m.fattura_id).slice(0,24))}</span></div>`:''}
+    ${fatBlock}
     <div style="margin-top:16px;display:grid;gap:8px">
       ${m.id?`<button class="btn btn-ghost btn-block" onclick='apriFormAltro("${tipo}",${JSON.stringify({id:m.id,data:(m.data||"").slice(0,10),importo:m.importo,descrizione:m.descrizione,categoria:m.categoria,tipo:m.tipo}).replace(/'/g,"&#39;")})'>✏️ Modifica</button>`:''}
       ${m.id && tipo==='cassa' ? `<button class="btn btn-ghost btn-block" onclick="spostaMovimento('${m.id}','cassa','banca')">➡️ Sposta in banca</button>`:''}
@@ -1854,6 +1906,31 @@ async function render_prima_nota_banca(main){
   const saldoAnno = Number(data.saldo_anno ?? (entr - usc));
   const saldoTot = Number(data.saldo ?? saldoAnno);
   movs.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+
+  // Stessa logica di render_prima_nota_cassa: arricchisco i fattura_id con numero+fornitore
+  // usando la cache _fatCache (vedi render_prima_nota_cassa per i dettagli).
+  window._fatCache = window._fatCache || {};
+  const needFat = movs.some(m => m.fattura_id);
+  if(needFat && !window._fatCache[ANNO]){
+    try{
+      const fatData = await api(`/api/invoices?anno=${ANNO}&limit=1000`);
+      const fatList = Array.isArray(fatData) ? fatData : (fatData.items||fatData.invoices||fatData.fatture||[]);
+      const map = {};
+      for(const raw of fatList){
+        const n = normFattura(raw)._n;
+        if(n.id) map[n.id] = { numero: n.numero, fornitore: n.fornitore, totale: n.totale };
+      }
+      window._fatCache[ANNO] = map;
+    }catch(e){ window._fatCache[ANNO] = {}; }
+  }
+  const fatMap = window._fatCache[ANNO] || {};
+  const fatLabel = m => {
+    if(!m.fattura_id) return null;
+    const f = fatMap[String(m.fattura_id)];
+    if(f) return { text: `${f.fornitore} · N. ${f.numero}`, found: true };
+    return { text: '🔗 Fattura collegata', found: false };
+  };
+
   main.innerHTML = `
     <div class="stats three">
       <div class="stat success"><div class="label">Accrediti</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
@@ -1881,6 +1958,7 @@ async function render_prima_nota_banca(main){
       const pos = isEntrata(m);
       const cat = (m.categoria||'').toLowerCase();
       const catColor = cat==='pos'?'#1e3a5f':(cat==='bonifico'?'#5D29C7':(cat==='versamento'?'#059669':(m.fattura_id?'#ef4444':(pos?'#4caf50':'#64748B'))));
+      const fl = fatLabel(m);
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
@@ -1889,7 +1967,7 @@ async function render_prima_nota_banca(main){
         <div class="li-bottom">
           <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Accredito':'Pagamento'))}</span>
           ${m.stato==='riconciliato'?'<span class="badge success">Riconciliato</span>':(m.stato==='da_verificare'?'<span class="badge warning">Da verificare</span>':'')}
-          ${m.fattura_id?`<span class="li-meta">→ fatt. ${String(m.fattura_id).slice(0,10)}</span>`:''}
+          ${fl ? `<span class="li-meta" style="color:${fl.found?'var(--primary)':'var(--text-2)'};font-weight:${fl.found?'600':'400'}">${escapeHtml(fl.text)}</span>` : ''}
         </div>
       </div>`;
     }).join('') : '<div class="empty"><div class="icon">🏦</div><div class="title">Nessun movimento banca</div></div>'}</div>
