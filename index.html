@@ -1697,14 +1697,25 @@ function openMovimentoSheet(tipo, m){
       fatBlock = `<div class="kv"><span class="k">🔗 Fattura</span><span class="v" style="font-size:12px;color:var(--text-2)">collegata (dettaglio non disponibile)</span></div>`;
     }
   }
+  // Segno e colore dell'importo sempre coerenti col tipo di movimento.
+  // Il backend salva sempre l'importo POSITIVO + campo tipo="entrata"|"uscita", quindi
+  // ricostruiamo qui il segno per la visualizzazione.
+  const isEntrataMov = m.tipo==='entrata' || (Number(m.importo)>0 && !m.tipo);
+  const impAbs = Math.abs(Number(m.importo||0));
+  const impSegnato = (isEntrataMov ? 1 : -1) * impAbs;
+  const impColor = isEntrataMov ? 'var(--success)' : 'var(--danger)';
+  // Il "riferimento" testuale ha senso solo se NON è un codice tecnico (UUID/ObjectId/FATT-xxx);
+  // quando c'è già la card "Fattura collegata", un ID grezzo sarebbe rumore duplicato.
+  const rifText = String(m.riferimento||'').trim();
+  const rifIsTechnical = /^(FATT-|[0-9a-f]{24}$|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.test(rifText);
+  const showRif = rifText && !rifIsTechnical && !fatBlock;
   openSheet(`<h2>Movimento ${tipo}</h2>
     <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(m.data)}</span></div>
     <div class="kv"><span class="k">Descrizione</span><span class="v">${escapeHtml(m.descrizione||'-')}</span></div>
-    <div class="kv"><span class="k">Importo</span><span class="v" style="color:${Number(m.importo)>=0?'var(--success)':'var(--danger)'};font-weight:800">${euro(m.importo||0)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="color:${impColor};font-weight:800">${euro(impSegnato)}</span></div>
     <div class="kv"><span class="k">Categoria</span><span class="v">${escapeHtml(m.categoria||'-')}</span></div>
-    ${m.tipo?`<div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(m.tipo)}</span></div>`:''}
     ${m.provvisorio?`<div class="kv"><span class="k">Stato</span><span class="v"><span class="badge warning">Provvisorio</span></span></div>`:''}
-    ${m.riferimento?`<div class="kv"><span class="k">Riferimento</span><span class="v">${escapeHtml(m.riferimento)}</span></div>`:''}
+    ${showRif?`<div class="kv"><span class="k">Riferimento</span><span class="v">${escapeHtml(rifText)}</span></div>`:''}
     ${m.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(m.note)}</span></div>`:''}
     ${fatBlock}
     <div style="margin-top:16px;display:grid;gap:8px">
