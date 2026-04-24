@@ -2790,33 +2790,79 @@ async function render_fornitori(main){
 async function openFornitoreSheet(f){
   const name = f.ragione_sociale||f.denominazione||f.anagrafica?.ragione_sociale||'-';
   const piva = f.piva||f.partita_iva||f.anagrafica?.piva||'';
+  const inMagazzino = f.esclude_magazzino === true ? false : true;
+  const magBadge = inMagazzino
+    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#166534;border:1px solid #86efac;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700">📦 In magazzino</span>`
+    : `<span style="display:inline-flex;align-items:center;gap:4px;background:#fef3c7;color:#92400e;border:1px solid #fbbf24;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700">🚫 Escluso magazzino</span>`;
   openSheet(`<h2>${escapeHtml(name)}</h2>
+    <div style="margin-bottom:12px">${magBadge}</div>
     <div class="kv"><span class="k">P.IVA</span><span class="v">${escapeHtml(piva||'-')}</span></div>
     <div class="kv"><span class="k">C.F.</span><span class="v">${escapeHtml(f.cf||f.codice_fiscale||f.anagrafica?.cf||'-')}</span></div>
     <div class="kv"><span class="k">PEC</span><span class="v" style="font-size:12px">${escapeHtml(f.pec||f.anagrafica?.pec||'-')}</span></div>
     <div class="kv"><span class="k">Email</span><span class="v" style="font-size:12px">${escapeHtml(f.email||f.anagrafica?.email||'-')}</span></div>
     <div class="kv"><span class="k">Telefono</span><span class="v">${escapeHtml(f.telefono||f.anagrafica?.telefono||'-')}</span></div>
     <div class="kv"><span class="k">Città</span><span class="v">${escapeHtml(f.citta||f.anagrafica?.citta||'-')}</span></div>
-    <div class="kv"><span class="k">Metodo pagamento</span><span class="v">${escapeHtml(f.metodo_pagamento||'non definito')}</span></div>
+    <div class="kv"><span class="k">Metodo pagamento</span><span class="v" style="text-transform:capitalize">${escapeHtml(f.metodo_pagamento||'non definito')}</span></div>
     <div class="kv"><span class="k">IBAN</span><span class="v" style="font-size:11px">${escapeHtml(f.iban||f.anagrafica?.iban||'-')}</span></div>
-    <div id="fornFatt" style="margin-top:14px"></div>
+    ${f.id?`<button class="btn btn-ghost btn-block" style="margin-top:6px;font-size:13px" onclick="toggleMagazzinoFornitore('${f.id}',${inMagazzino})">${inMagazzino?'🚫 Escludi da magazzino':'📦 Rimetti in magazzino'}</button>`:''}
+    <div id="fornFatt" style="margin-top:14px"><div class="loading"><span class="spinner"></span>Carico fatture...</div></div>
     <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+
   // Carica fatture del fornitore
-  if(f.id){
+  const fornId = f.id || piva;
+  if(fornId){
     try{
-      const ff = await api(`/api/suppliers/${f.id}/fatture?anno=${ANNO}`);
+      const ff = await api(`/api/suppliers/${encodeURIComponent(fornId)}/fatture?anno=${ANNO}`);
       const ll = Array.isArray(ff)?ff:(ff.items||[]);
       if(ll.length){
-        $('fornFatt').innerHTML = `<div style="border-top:1px solid var(--border);padding-top:10px">
-          <div class="section-title" style="margin:0 0 8px">Fatture ${ANNO} (${ll.length})</div>
-          ${ll.slice(0,20).map(f=>`<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #F1F5F9">
-            <span>${escapeHtml(f.numero_fattura||f.numero||'-')} · ${fmtDate(f.data_fattura)}</span>
-            <span style="font-weight:700">${euro(f.importo_totale||f.totale||0)}</span>
-          </div>`).join('')}
-        </div>`;
+        const totFatt = ll.reduce((s,x)=>s+(Number(x.importo_totale||x.totale||x.importo||0)),0);
+        const nonPagate = ll.filter(x=>x.stato!=='pagata'&&x.status!=='paid').length;
+        $('fornFatt').innerHTML = `
+          <div style="border-top:2px solid var(--border);padding-top:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div class="section-title" style="margin:0">Fatture ${ANNO} (${ll.length})</div>
+              <div style="text-align:right">
+                <div style="font-weight:800;font-size:14px;color:var(--primary)">${euro(totFatt)}</div>
+                ${nonPagate>0?`<div style="font-size:11px;color:var(--danger)">${nonPagate} non pagate</div>`:'<div style="font-size:11px;color:var(--success)">Tutte pagate ✓</div>'}
+              </div>
+            </div>
+            ${ll.map(fat=>{
+              const imp = Number(fat.importo_totale||fat.totale||fat.importo||0);
+              const stato = fat.stato||fat.status||'';
+              const pagata = stato==='pagata'||stato==='paid'||fat.pagato===true;
+              const metodo = fat.metodo_pagamento||fat.payment_method||'';
+              const numFat = fat.numero_fattura||fat.numero||fat.invoice_number||'-';
+              const datFat = fmtDate(fat.data_fattura||fat.invoice_date||fat.data||'');
+              return `<div style="padding:8px 0;border-bottom:1px solid #F1F5F9;display:grid;grid-template-columns:1fr auto;gap:6px;align-items:start">
+                <div>
+                  <div style="font-weight:700;font-size:13px">${escapeHtml(numFat)}</div>
+                  <div style="font-size:11px;color:var(--text-2);margin-top:2px">${datFat}${metodo?' · '+metodo:''}</div>
+                  <div style="margin-top:3px">
+                    <span class="badge ${pagata?'success':'warning'}" style="font-size:10px">${pagata?'PAGATA':'DA PAGARE'}</span>
+                  </div>
+                </div>
+                <div style="font-weight:800;font-size:14px;color:${pagata?'var(--text-2)':'var(--danger)'};text-align:right">${euro(imp)}</div>
+              </div>`;
+            }).join('')}
+          </div>`;
+      } else {
+        $('fornFatt').innerHTML = `<div style="border-top:1px solid var(--border);padding-top:10px;color:var(--text-2);font-size:13px;text-align:center">Nessuna fattura ${ANNO}</div>`;
       }
-    }catch{}
+    }catch(e){
+      $('fornFatt').innerHTML = `<div style="color:var(--danger);font-size:12px">Errore caricamento fatture</div>`;
+    }
+  } else {
+    $('fornFatt').innerHTML = '';
   }
+}
+
+async function toggleMagazzinoFornitore(id, attualmenteInMagazzino){
+  try{
+    await api(`/api/suppliers/${id}`,{method:'PUT',body:JSON.stringify({esclude_magazzino:attualmenteInMagazzino})});
+    toast(attualmenteInMagazzino?'Escluso dal magazzino':'Rimesso in magazzino','success');
+    closeSheet();
+    reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 
 function openNuovoFornitore(){
@@ -2947,23 +2993,79 @@ async function salvaScadenza(){
   catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
-async function render_assegni(main){
-  state.asg = state.asg || {stato:''};
-  const stats = await api(`/api/assegni/stats?anno=${ANNO}`).catch(()=>({per_stato:{}}));
-  const per = stats?.per_stato||{};
-  const params = new URLSearchParams({anno:String(ANNO), limit:'500'});
-  if(state.asg.stato) params.set('stato', state.asg.stato);
-  const list = await api(`/api/assegni?${params}`);
-  const data = Array.isArray(list)?list:(list.items||[]);
-  main.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <button class="btn btn-primary" style="padding:14px" onclick="scanAssegno()">📷 Scansiona con AI</button>
-      <button class="btn btn-ghost" style="padding:14px" onclick="apriFormAssegnoManuale()">✏️ Manuale</button>
+async function apriGeneraCarnet(){
+  openSheet(`<h2>📋 Genera Carnet Assegni</h2>
+    <p class="muted" style="margin:0 0 16px;font-size:13px">Crea un nuovo blocchetto di assegni vuoti. Inserisci il numero del primo assegno e la quantità.</p>
+    <div class="field"><label>Numero primo assegno</label><input id="gcNumero" class="input" inputmode="numeric" placeholder="es. 0208769000"></div>
+    <div class="field"><label>Quantità</label>
+      <select id="gcQta" class="select">
+        <option value="5">5 assegni</option>
+        <option value="10" selected>10 assegni (standard)</option>
+        <option value="15">15 assegni</option>
+        <option value="20">20 assegni</option>
+        <option value="25">25 assegni</option>
+      </select>
     </div>
-    <div class="stats three">
-      <div class="stat"><div class="label">Vuoti</div><div class="value">${per.vuoto?.count||0}</div></div>
-      <div class="stat warning"><div class="label">Emessi</div><div class="value">${per.emesso?.count||0}</div><div class="sub">${euro(per.emesso?.totale||0)}</div></div>
-      <div class="stat success"><div class="label">Incassati</div><div class="value">${per.incassato?.count||0}</div></div>
+    <button class="btn btn-primary btn-block" onclick="salvaGeneraCarnet()">✅ Genera carnet</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+
+async function salvaGeneraCarnet(){
+  const numero = $('gcNumero')?.value?.trim();
+  const qta = parseInt($('gcQta')?.value||'10');
+  if(!numero) return toast('Inserisci il numero del primo assegno','error');
+  try{
+    await api('/api/assegni/genera',{method:'POST',body:JSON.stringify({numero_primo:numero, quantita:qta})});
+    toast(`Carnet da ${qta} assegni creato ✓`,'success');
+    haptic(40);
+    closeSheet();
+    reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+async function render_assegni(main){
+  state.asg = state.asg || {stato:'', vista:'lista'};
+  const [statsRaw, listRaw] = await Promise.all([
+    api(`/api/assegni/stats?anno=${ANNO}`).catch(()=>({per_stato:{}})),
+    (()=>{
+      const params = new URLSearchParams({anno:String(ANNO), limit:'500'});
+      if(state.asg.stato) params.set('stato', state.asg.stato);
+      return api(`/api/assegni?${params}`);
+    })()
+  ]);
+  const per = statsRaw?.per_stato||{};
+  const data = (Array.isArray(listRaw)?listRaw:(listRaw?.items||[])).sort((a,b)=>{
+    const na=parseInt((a.numero||'').replace(/\D/g,''))||0;
+    const nb=parseInt((b.numero||'').replace(/\D/g,''))||0;
+    return nb-na;
+  });
+
+  // Raggruppa per carnet (prefisso prima del trattino, o primi 7 cifre)
+  const carnets={};
+  data.forEach(a=>{
+    const key = a.numero?.includes('-') ? a.numero.split('-')[0] : (a.numero||'').substring(0,7)||'Altri';
+    if(!carnets[key]) carnets[key]=[];
+    carnets[key].push(a);
+  });
+  const carnetKeys = Object.keys(carnets).sort((a,b)=>b.localeCompare(a));
+
+  const vistaCarnet = state.asg.vista==='carnet';
+
+  main.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+      <button class="btn btn-primary" style="padding:12px;font-size:13px" onclick="scanAssegno()">📷 AI</button>
+      <button class="btn btn-ghost" style="padding:12px;font-size:13px" onclick="apriFormAssegnoManuale()">✏️ Manuale</button>
+      <button class="btn btn-success" style="padding:12px;font-size:13px" onclick="apriGeneraCarnet()">📋 Carnet</button>
+    </div>
+    <div class="stats" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+      <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Vuoti</div><div class="value" style="font-size:18px">${per.vuoto?.count||0}</div></div>
+      <div class="stat" style="padding:10px;background:linear-gradient(135deg,#2196F3,#42A5F5);color:#fff"><div class="label" style="font-size:9px;color:rgba(255,255,255,.85)">Compilati</div><div class="value" style="font-size:18px">${per.compilato?.count||0}</div></div>
+      <div class="stat warning" style="padding:10px"><div class="label" style="font-size:9px">Emessi</div><div class="value" style="font-size:18px">${per.emesso?.count||0}</div><div class="sub" style="font-size:10px">${euro(per.emesso?.totale||0)}</div></div>
+      <div class="stat success" style="padding:10px"><div class="label" style="font-size:9px">Incassati</div><div class="value" style="font-size:18px">${per.incassato?.count||0}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn ${!vistaCarnet?'btn-primary':'btn-ghost'}" style="font-size:13px;padding:8px 14px" onclick="state.asg.vista='lista';render_assegni(main)">📃 Lista</button>
+      <button class="btn ${vistaCarnet?'btn-primary':'btn-ghost'}" style="font-size:13px;padding:8px 14px" onclick="state.asg.vista='carnet';render_assegni(main)">📋 Carnet (${carnetKeys.length})</button>
     </div>
     <div class="chips">
       <div class="chip ${!state.asg.stato?'active':''}" data-s="">Tutti</div>
@@ -2973,20 +3075,64 @@ async function render_assegni(main){
       <div class="chip ${state.asg.stato==='incassato'?'active':''}" data-s="incassato">Incassati</div>
       <div class="chip ${state.asg.stato==='annullato'?'active':''}" data-s="annullato">Annullati</div>
     </div>
-    <div>${data.length ? data.map(a=>{
+    <div id="asgContent"></div>
+  `;
+
+  main.querySelectorAll('.chip[data-s]').forEach(c=>{c.onclick=()=>{state.asg.stato=c.dataset.s;render_assegni(main);};});
+
+  const asgContent = $('asgContent');
+  if(!data.length){
+    asgContent.innerHTML='<div class="empty"><div class="icon">🧷</div><div class="title">Nessun assegno</div></div>';
+    return;
+  }
+
+  if(vistaCarnet){
+    // Vista per carnet
+    asgContent.innerHTML = carnetKeys.map((key,ci)=>{
+      const items = carnets[key];
+      const totale = items.reduce((s,a)=>s+(Number(a.importo)||0),0);
+      const compilati = items.filter(a=>a.stato==='compilato'||a.stato==='emesso'||a.stato==='incassato').length;
+      const vuoti = items.filter(a=>a.stato==='vuoto').length;
+      return `<div style="margin-bottom:14px">
+        <div style="background:linear-gradient(135deg,#1E1B4B,#2D2A6E);color:#fff;padding:12px 14px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:700;font-size:14px">Carnet ${ci+1}</div>
+            <div style="font-size:11px;opacity:.75">${items.length} assegni · ${vuoti} vuoti · ${compilati} usati</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:800;font-size:15px">${totale>0?euro(totale):'—'}</div>
+            <div style="font-size:10px;opacity:.7">Prefisso: ${key}</div>
+          </div>
+        </div>
+        ${items.map((a,idx)=>{
+          const s=a.stato||'vuoto';
+          const col={vuoto:'neutral',compilato:'info',emesso:'warning',incassato:'success',annullato:'danger'}[s]||'neutral';
+          return `<div class="list-item" data-id="${encodeURIComponent(a.id||a.numero)}" style="border-radius:${idx===items.length-1?'0 0 12px 12px':'0'};border-left:1px solid var(--border);border-right:1px solid var(--border)">
+            <div class="li-top">
+              <div class="li-title" style="font-size:13px">N. ${escapeHtml(a.numero||'-')}<span class="small">${escapeHtml(a.beneficiario||'vuoto')}</span></div>
+              <div class="li-amount" style="font-size:14px">${a.importo!=null&&a.importo>0?euro(a.importo):'—'}</div>
+            </div>
+            <div class="li-bottom"><span class="badge ${col}">${s}</span><span class="li-meta">${a.data_emissione?fmtDate(a.data_emissione):''}</span></div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+  } else {
+    // Vista lista flat
+    asgContent.innerHTML = data.map(a=>{
       const s=a.stato||'vuoto';
       const col={vuoto:'neutral',compilato:'info',emesso:'warning',incassato:'success',annullato:'danger'}[s]||'neutral';
       return `<div class="list-item" data-id="${encodeURIComponent(a.id||a.numero)}">
         <div class="li-top">
           <div class="li-title">N. ${escapeHtml(a.numero||'-')}<span class="small">${escapeHtml(a.beneficiario||'nessun beneficiario')}</span></div>
-          <div class="li-amount">${a.importo!=null?euro(a.importo):'-'}</div>
+          <div class="li-amount">${a.importo!=null&&a.importo>0?euro(a.importo):'—'}</div>
         </div>
         <div class="li-bottom"><span class="badge ${col}">${s}</span><span class="li-meta">${a.data_emissione?'Emesso '+fmtDate(a.data_emissione):''}</span></div>
       </div>`;
-    }).join('') : '<div class="empty"><div class="icon">🧷</div><div class="title">Nessun assegno</div></div>'}</div>
-  `;
-  main.querySelectorAll('.chip[data-s]').forEach(c=>{c.onclick=()=>{state.asg.stato=c.dataset.s;render_assegni(main);};});
-  main.querySelectorAll('.list-item[data-id]').forEach(el=>{el.onclick=()=>openAssegnoSheet(decodeURIComponent(el.dataset.id));});
+    }).join('');
+  }
+
+  asgContent.querySelectorAll('.list-item[data-id]').forEach(el=>{el.onclick=()=>openAssegnoSheet(decodeURIComponent(el.dataset.id));});
 }
 
 async function openAssegnoSheet(aid){
@@ -3643,3 +3789,4 @@ async function avviaRiconciliazione(){
 </script>
 </body>
 </html>
+
