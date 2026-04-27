@@ -1547,7 +1547,7 @@ async function salvaFatturaAI(){
   // 2. Allega la foto scattata alla fattura appena creata
   if(_aiLastFoto && createdId){
     allegaFotoABase64(createdId, _aiLastFoto.base64, _aiLastFoto.mediaType)
-      .catch(err => /* upload foto fallito — errore gestito dal toast sopra */);
+      .catch(() => { /* upload foto fallito — errore gestito dal toast sopra */ });
   }
   // Reset stato scansione
   _aiLastRead = null;
@@ -3496,7 +3496,7 @@ async function render_scadenze(main){
   const params = new URLSearchParams({anno:String(ANNO)});
   if(state.scd.filt==='aperte') params.set('completata','false');
   else if(state.scd.filt==='completate') params.set('completata','true');
-  const data = await api(`/api/scadenze/tutte?${params}`).catch(()=>api(`/api/scadenze/tutte?anno=${ANNO}`).catch(()=>[])));
+  const data = await api(`/api/scadenze/tutte?${params}`).catch(()=>[]);
   const list = Array.isArray(data)?data:(data.items||data.scadenze||[]);
   const aperte = list.filter(s=>!s.completata && !s.data_completamento);
   const scadute = aperte.filter(s=>s.data_scadenza && new Date(s.data_scadenza)<new Date());
@@ -3547,14 +3547,14 @@ function openScadenzaSheet(s){
     </div>`);
 }
 
-async async function completaScadenza(id){
-  try{await api(`/api/scadenze/completa/${id}`,{method:'PUT'});toast('Completata','success');closeSheet();reloadModule();}
-  catch(e){toast('Errore: '+e.message,'error');}
+async function completaScadenza(id){
+  try{await api(`/api/scadenze/completa/${id}`,{method:'PUT'});toast('Completata','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 async function eliminaScadenza(id){
   if(!confirm('Eliminare questa scadenza?')) return;
-  try{await api(`/api/scadenze/${id}`,{method:'DELETE'});toast('Eliminata','success');closeSheet();reloadModule();}
-  catch(e){toast('Errore: '+e.message,'error');}
+  try{await api(`/api/scadenze/${id}`,{method:'DELETE'});toast('Eliminata','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 
 function openNuovaScadenza(){
@@ -3575,7 +3575,7 @@ function openNuovaScadenza(){
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
 }
 
-async async function salvaScadenza(){
+async function salvaScadenza(){
   const body = {
     descrizione:$('nsDesc').value.trim(), tipo:$('nsTipo').value,
     data_scadenza:$('nsData').value, importo:parseFloat($('nsImp').value)||0,
@@ -3612,7 +3612,7 @@ async function apriGeneraCarnet(){
   setTimeout(()=>$('gcNumero')?.focus(),100);
 }
 
-async async function salvaGeneraCarnet(){
+async function salvaGeneraCarnet(){
   const numero = $('gcNumero')?.value?.trim();
   const qta = parseInt($('gcQta')?.value||'10');
   if(!numero) return toast('Inserisci il numero del primo assegno','error');
@@ -3903,18 +3903,6 @@ function openF24Sheet(f){
     ${f.data_pagamento?`<div class="kv"><span class="k">Pagato il</span><span class="v">${fmtDate(f.data_pagamento)}</span></div>`:''}
     ${f.quietanza?`<div class="kv"><span class="k">Quietanza</span><span class="v">${escapeHtml(f.quietanza)}</span></div>`:''}
     <div style="margin-top:14px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
-}
-</h2>
-    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;font-size:13px;color:var(--red)">${euroD(imp)}</span></div>
-    <div class="kv"><span class="k">Scadenza</span><span class="v" style="${scaduta?'color:var(--red);font-weight:700':''}">${fmtDate(scad)}${scaduta?' ⚠️ SCADUTO':''}</span></div>
-    <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${stato==='pagato'?'success':(scaduta?'danger':'warning')}">${stato||'da pagare'}</span></span></div>
-    ${f.periodo_riferimento||f.competenza?`<div class="kv"><span class="k">Periodo</span><span class="v">${escapeHtml(f.periodo_riferimento||f.competenza||'-')}</span></div>`:''}
-    ${f.tipo_tributo||f.codice_tributo?`<div class="kv"><span class="k">Codice tributo</span><span class="v" style="font-family:'DM Mono',monospace">${escapeHtml(f.tipo_tributo||f.codice_tributo||'-')}</span></div>`:''}
-    ${f.note||f.descrizione_dettaglio?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(f.note||f.descrizione_dettaglio||'-')}</span></div>`:''}
-    <div style="margin-top:16px;display:grid;gap:8px">
-      ${stato!=='pagato' ? `<button class="btn btn-success btn-block" onclick="segnaF24Pagato('${f.id||f._id||f.f24_id}')">✅ Segna come pagato</button>` : ''}
-      <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
-    </div>`);
 }
 async function segnaF24Pagato(id){
   if(!confirm('Segnare questo F24 come pagato?')) return;
