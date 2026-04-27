@@ -2042,7 +2042,7 @@ async function render_prima_nota_cassa(main){
     params.set('data_a', `${ANNO}-${m}-${ultimo}`);
   }
   const data = await api(`/api/prima-nota/cassa?${params}`).catch(()=>({}));
-  const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.cassa||[]);
+  const movs = (()=>{const raw=Array.isArray(data)?data:(data.items||data.movimenti||data.cassa||[]);const seen=new Set();return raw.filter(m=>{const k=m.id||m._id;if(!k||seen.has(k))return !k;seen.add(k);return true;});})();
   // Il backend restituisce tipo='entrata'/'uscita' + importo POSITIVO, e totali aggregati già calcolati.
   // Usali se presenti, altrimenti ricalcola.
   const isEntrata = m => m.tipo==='entrata' || Number(m.importo)>0 && !m.tipo;
@@ -2391,7 +2391,7 @@ async function render_prima_nota_banca(main){
   const params = new URLSearchParams({anno:String(ANNO)});
   if(state.pnb.mese) params.set('mese', String(state.pnb.mese));
   const data = await api(`/api/prima-nota/banca?${params}`).catch(()=>({}));
-  const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.banca||[]);
+  const movs = (()=>{const raw=Array.isArray(data)?data:(data.items||data.movimenti||data.banca||[]);const seen=new Set();return raw.filter(m=>{const k=m.id||m._id;if(!k||seen.has(k))return !k;seen.add(k);return true;});})();
   const isEntrata = m => m.tipo==='entrata' || (Number(m.importo)>0 && !m.tipo);
   const entr = Number(data.totale_entrate ?? movs.filter(isEntrata).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0));
   const usc  = Number(data.totale_uscite  ?? movs.filter(m=>!isEntrata(m)).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0));
@@ -2623,7 +2623,7 @@ async function salvaMistoProv(fidEnc, totale, fdata){
 async function confermaTuttiProvvisori(){
   if(!confirm('Confermare tutti con il metodo suggerito?')) return;
   const data = await api(`/api/prima-nota/provvisori?anno=${ANNO}`).catch(()=>[]);
-  const list = Array.isArray(data)?data:(data.items||[]);
+  const list = (()=>{const raw=Array.isArray(data)?data:(data.items||data.provvisori||data.movimenti||[]);const seen=new Set();return raw.filter(p=>{const k=p.id||p._id;if(!k||seen.has(k))return !k;seen.add(k);return true;});})();
   let ok=0, ko=0;
   for(const p of list){
     try{ await api('/api/prima-nota/provvisori/conferma', {method:'POST', body:JSON.stringify({fattura_id:p.fattura_id, metodo:p.suggerimento||'banca'})}); ok++; }
