@@ -938,7 +938,7 @@ async function inviaCorrezioneOCR(aiRead, userFinal, invoiceId){
     }
   }catch(e){
     // Silenzioso: se l'endpoint non è ancora deployato l'app continua a funzionare
-    console.warn('[OCR] inviaCorrezioneOCR:', e.message);
+    /* errore correzione OCR — silenziato in produzione */
   }
 }
 
@@ -968,7 +968,6 @@ function fileToBase64(file){
 // Camera access
 let _camStream = null;
 async function apriCamera(title, onCapture){
-  const w = $('sheetBody');
   openSheet(`<h2>📷 ${escapeHtml(title||'Scatta foto')}</h2>
     <div style="background:#000;border-radius:14px;overflow:hidden;aspect-ratio:3/4;position:relative;max-height:65vh">
       <video id="camVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>
@@ -1006,7 +1005,7 @@ async function apriCamera(title, onCapture){
   };
 }
 function chiudiCamera(){
-  try{ if(_camStream){_camStream.getTracks().forEach(t=>t.stop()); _camStream=null;} }catch{}
+  try{ if(_camStream){_camStream.getTracks().forEach(t=>t.stop()); _camStream=null;} }catch(e){ /* camera.stop() può fallire se stream già chiuso — ignorato */ }
   closeSheet();
 }
 
@@ -1075,7 +1074,6 @@ function normFattura(f){
 // Wrapper: accettano sia la fattura originale sia quella già normalizzata (_n presente).
 function getResiduoF(f){ return (f && f._n) ? f._n.residuo : normFattura(f)._n.residuo; }
 function isPagataF(f){   return (f && f._n) ? f._n.pagata  : normFattura(f)._n.pagata;  }
-function isScadutaF(f){  return (f && f._n) ? f._n.scaduta : normFattura(f)._n.scaduta; }
 
 async function api(path, opts={}){
   const url = API_BASE.replace(/\/$/,'') + path;
@@ -1093,7 +1091,7 @@ async function api(path, opts={}){
     forceLogout('Sessione scaduta, reinserisci il PIN');
     throw new Error('Sessione scaduta');
   }
-  if(!res.ok){let msg=`HTTP ${res.status}`;try{const j=await res.json();msg=j.detail||j.message||msg;}catch{}throw new Error(msg);}
+  if(!res.ok){let msg=`HTTP ${res.status}`;try{const j=await res.json();msg=j.detail||j.message||msg;}catch(e){ /* JSON parse fallback — msg già impostato sopra */ }throw new Error(msg);}
   if(res.status===204) return null;
   const ct = res.headers.get('content-type')||'';
   if(ct.includes('json')) return res.json();
@@ -1279,6 +1277,8 @@ function openDrawer(){$('drawer').classList.add('show');$('drawerOverlay').class
 function closeDrawer(){$('drawer').classList.remove('show');$('drawerOverlay').classList.remove('show');}
 
 function goModule(id){
+  // Pulisce tutti i timer pendenti al cambio modulo
+  if(window._timers){window._timers.forEach(t=>clearTimeout(t));window._timers=[];}
   currentModule = id;
   const mod = MODULES.find(m=>m.id===id);
   if(!mod) return;
@@ -1547,7 +1547,7 @@ async function salvaFatturaAI(){
   // 2. Allega la foto scattata alla fattura appena creata
   if(_aiLastFoto && createdId){
     allegaFotoABase64(createdId, _aiLastFoto.base64, _aiLastFoto.mediaType)
-      .catch(err => console.warn('[FOTO] upload fallito:', err.message));
+      .catch(err => /* upload foto fallito — errore gestito dal toast sopra */);
   }
   // Reset stato scansione
   _aiLastRead = null;
@@ -2179,7 +2179,7 @@ function openMovimentoSheet(tipo, m){
   const impAbs = Math.abs(Number(m.importo||0));
   const impSegnato = (isEntrataMov ? 1 : -1) * impAbs;
   const impColor = isEntrataMov ? 'var(--success)' : 'var(--danger)';
-  // Il "riferimento" testuale ha senso solo se NON è un codice tecnico (UUID/ObjectId/FATT-xxx);
+  // Mostra riferimento testuale solo se non è un codice tecnico interno
   // quando c'è già la card "Fattura collegata", un ID grezzo sarebbe rumore duplicato.
   const rifText = String(m.riferimento||'').trim();
   const rifIsTechnical = /^(FATT-|[0-9a-f]{24}$|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i.test(rifText);
@@ -2274,7 +2274,7 @@ async function salvaFormCorrisp(){
         aliquota_iva: 10,
         origine:'mobile_chiusura'
       })});
-    }catch{}
+    }catch(e){ /* registrazione cassa secondaria — errore non bloccante */ }
     // 2. In cassa va solo il contante (DARE)
     if(cont>0){
       await api('/api/prima-nota/cassa',{method:'POST',body:JSON.stringify({
@@ -2291,7 +2291,7 @@ async function salvaFormCorrisp(){
           descrizione:`POS corrispettivo ${data} (atteso accredito)`,
           categoria:'POS', source:'manual_pos', provvisorio:true
         })});
-      }catch{}
+      }catch(e){ /* registrazione banca secondaria — errore non bloccante */ }
     }
     toast('Chiusura salvata','success');haptic(30);closeSheet();reloadModule();
   }catch(e){toast('Errore: '+e.message,'error');}
@@ -2546,7 +2546,6 @@ async function render_provvisori(main){
   const nBanca = Number(data.totale_banca ?? 0);
   const nConf = Number(data.confermati ?? 0);
   const nProb = Number(data.probabili ?? 0);
-  const nAttesa = Number(data.in_attesa ?? list.length);
 
   main.innerHTML = `
     <div class="stats three">
@@ -2794,7 +2793,6 @@ async function render_coerenza_pos(main){
 
   const nAlertCompensazione = giorni.filter(g => g.alert_compensazione).length;
   const nAlertBanca = giorni.filter(g => g.stato_accredito === 'mancante' || g.stato_accredito === 'differenza').length;
-  const nProvvisori = Number(stats.fase0_provvisori || 0);
   const nMancaXML = Number(stats.fase0_manca_xml || giorni.filter(g=>g.stato_corrispettivo==='manca_xml').length);
 
   const totXML = giorni.reduce((s,g)=>s+Number(g.xml_elettronico||0),0);
@@ -2836,13 +2834,11 @@ async function render_coerenza_pos(main){
     ${Object.keys(gByMese).length ? `<div class="section-title">Riepilogo mensile <span class="small" style="font-weight:400">tap per il dettaglio</span></div>
     ${Object.entries(gByMese).sort((a,b)=>Number(a[0])-Number(b[0])).map(([mese, ggMese])=>{
       const nomeMese = fmtMonth(Number(mese));
-      const nOk1 = ggMese.filter(g=>g.stato_serale==='ok').length;
-      const nDiff1 = ggMese.filter(g=>g.stato_serale==='differenza'||g.stato_serale==='extra').length;
+          const nDiff1 = ggMese.filter(g=>g.stato_serale==='differenza'||g.stato_serale==='extra').length;
       const nMiss2 = ggMese.filter(g=>g.stato_accredito==='mancante').length;
       const nDiff2 = ggMese.filter(g=>g.stato_accredito==='differenza').length;
       const totM_xml = ggMese.reduce((s,g)=>s+Number(g.xml_elettronico||0),0);
-      const totM_reale = ggMese.reduce((s,g)=>s+Number(g.pos_manuale||0),0);
-      const isCurrent = (new Date().getMonth()+1) === Number(mese) && (new Date().getFullYear()) === ANNO;
+          const isCurrent = (new Date().getMonth()+1) === Number(mese) && (new Date().getFullYear()) === ANNO;
       const hasAnom = nDiff1>0 || nMiss2>0 || nDiff2>0;
       const badge = hasAnom ? '<span class="badge danger">Anomalie</span>' : '<span class="badge success">OK</span>';
       return `<div class="list-item" data-mese-pos="${mese}" style="cursor:pointer">
@@ -2952,7 +2948,7 @@ async function apriDettaglioCoerenzaMese(mese){
     const posR = Number(g.pos_manuale||0);
     const accr = Number(g.accredito_banca||0);
     const diff1 = Number(g.diff_serale||0);  // xml - posR
-    const diff2 = Number(g.diff_accredito||0);  // accr - posR
+     accr - posR
     const hasAlert1 = !!g.alert_compensazione;
     const hasAlert2 = g.stato_accredito==='mancante' || g.stato_accredito==='differenza';
     const isProvv = g.stato_corrispettivo==='provvisorio';
@@ -3908,13 +3904,7 @@ function openF24Sheet(f){
     ${f.quietanza?`<div class="kv"><span class="k">Quietanza</span><span class="v">${escapeHtml(f.quietanza)}</span></div>`:''}
     <div style="margin-top:14px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
 }
-
-function apriF24Sheet(f){
-  const imp = Number(f.importo||f.totale||f.amount||0);
-  const stato = f.stato||f.status||'';
-  const scad = f.data_scadenza||f.scadenza||f.due_date||'';
-  const scaduta = scad && new Date(scad) < new Date() && stato !== 'pagato';
-  openSheet(`<h2>📋 F24 ${escapeHtml(f.tipo||f.descrizione||f.codice||'-')}</h2>
+</h2>
     <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;font-size:13px;color:var(--red)">${euroD(imp)}</span></div>
     <div class="kv"><span class="k">Scadenza</span><span class="v" style="${scaduta?'color:var(--red);font-weight:700':''}">${fmtDate(scad)}${scaduta?' ⚠️ SCADUTO':''}</span></div>
     <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${stato==='pagato'?'success':(scaduta?'danger':'warning')}">${stato||'da pagare'}</span></span></div>
