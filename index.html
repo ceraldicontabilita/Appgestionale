@@ -3181,7 +3181,8 @@ async function openFatturaSheet(fid){
         <button class="btn btn-primary" onclick="allegaFotoFatturaUI('${encodeURIComponent(fid)}')">📷 Allega foto</button>
         <button class="btn btn-ghost" onclick="closeSheet()">Chiudi</button>
       </div>`;
-  }catch(e){$('sheetBody').innerHTML=`<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;}
+  }catch(e){$('sheetBody').innerHTML=`<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+      <button class="btn btn-danger btn-block" style="margin-top:8px" onclick="eliminaFattura(window._lastFat?._n?.id||window._lastFat?.id||'')">🗑 Elimina</button>`;}
 }
 
 // Allega foto alla fattura (tramite camera). Riusa il pattern di apriCamera.
@@ -3274,6 +3275,14 @@ async function salvaModificaFattura(id){
       await api(`/api/fatture/${id}`,{method:'PUT',body:JSON.stringify(body)});
     }
     toast('Fattura aggiornata','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+async function eliminaFattura(id){
+  if(!confirm('Eliminare questa fattura? L\'operazione non può essere annullata.')) return;
+  try{
+    await api(`/api/invoices/${id}`,{method:'DELETE'});
+    toast('Fattura eliminata','success');haptic(30);closeSheet();reloadModule();
   }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
@@ -4651,6 +4660,62 @@ async function eliminaDocumento(id){
     await api(`/api/documenti/documento/${id}`,{method:'DELETE'});
     toast('Documento eliminato','success');closeSheet();reloadModule();
   }catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function apriFormUploadDocumento(){
+  openSheet(`<h2>📤 Carica documento</h2>
+    <p class="muted" style="margin:0 0 14px;font-size:12px">Carica fattura, F24, estratto conto o qualsiasi documento da processare automaticamente.</p>
+    <div class="field"><label>File (PDF, XML, immagine)</label>
+      <input type="file" id="docFile" class="input" accept=".pdf,.xml,.jpg,.jpeg,.png,.tiff">
+    </div>
+    <div class="field"><label>Categoria</label>
+      <select id="docCatUp" class="select">
+        <option value="">-- auto-detect --</option>
+        <option value="fattura">Fattura</option>
+        <option value="f24">F24</option>
+        <option value="estratto_conto">Estratto conto</option>
+        <option value="busta_paga">Busta paga</option>
+        <option value="contratto">Contratto</option>
+        <option value="altro">Altro</option>
+      </select>
+    </div>
+    <div id="docUploadProgress" style="display:none" class="loading"><span class="spinner"></span>Caricamento...</div>
+    <button class="btn btn-primary btn-block" onclick="caricaDocumento()">📤 Carica</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+async function caricaDocumento(){
+  const fileInput = document.getElementById('docFile');
+  if(!fileInput || !fileInput.files[0]) return toast('Seleziona un file','error');
+  const file = fileInput.files[0];
+  const cat = document.getElementById('docCatUp')?.value || '';
+  
+  // Mostra progress
+  const prog = document.getElementById('docUploadProgress');
+  if(prog) prog.style.display = 'block';
+  
+  try{
+    const formData = new FormData();
+    formData.append('file', file);
+    if(cat) formData.append('categoria', cat);
+    
+    const url = API_BASE.replace(/\/$/, '') + '/api/documenti/upload-auto';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: TOKEN ? {'Authorization': 'Bearer '+TOKEN} : {},
+      body: formData,
+    });
+    if(!res.ok){
+      const err = await res.text();
+      throw new Error(`HTTP ${res.status}: ${err.slice(0,100)}`);
+    }
+    const data = await res.json();
+    toast('Documento caricato e in elaborazione','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){
+    if(prog) prog.style.display = 'none';
+    toast('Errore caricamento: '+e.message,'error');
+  }
+  $('fab').classList.remove('hidden');
+  $('fab').onclick = apriFormUploadDocumento;
 }
 </script><script>
 async function render_riconciliazione(main){
