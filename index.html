@@ -195,7 +195,8 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
 
 /* ── Stats grid ── */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.stats.three{grid-template-columns:1fr 1fr 1fr}
+.stats.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stats.three .stat{padding:10px 8px}
 .stats.one{grid-template-columns:1fr}
 .stat{
   background:var(--surface);
