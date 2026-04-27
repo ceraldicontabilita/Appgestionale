@@ -114,7 +114,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .topbar .actions{display:flex;gap:4px;flex-shrink:0;position:relative}
 
 /* ── Main content ── */
-main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margin:0 auto;width:100%}
+main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margin:0 auto;width:100%;overflow-x:hidden}
 
 /* ── Drawer overlay ── */
 .drawer-overlay{position:fixed;inset:0;background:rgba(11,14,26,.6);z-index:90;opacity:0;pointer-events:none;transition:opacity .22s;backdrop-filter:blur(2px)}
@@ -191,7 +191,7 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
   margin-bottom:12px;
   border:1px solid var(--border);
 }
-.card h3{font-size:14px;font-weight:700;margin-bottom:10px;letter-spacing:-.015em}
+.card h3{font-size:14px;font-weight:700;margin-bottom:10px;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── Stats grid ── */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -204,6 +204,7 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
   box-shadow:var(--sh-sm);
   border:1px solid var(--border);
 }
+  min-width:0;overflow:hidden;
 .stat .label{
   font-size:9px;color:var(--text-3);font-weight:700;
   text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;
@@ -211,6 +212,8 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
 .stat .value{
   font-size:22px;font-weight:800;letter-spacing:-.04em;line-height:1;
   font-family:'DM Mono',monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:100%;display:block;
 }
 .stat .sub{font-size:11px;color:var(--text-2);margin-top:5px;font-weight:500}
 
@@ -237,6 +240,8 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
 .stat.accent .label,.stat.accent .sub{color:rgba(255,255,255,.7)}
 .stat.success{background:linear-gradient(135deg,#059669 0%,#10b981 100%);border:none;color:#fff}
 .stat.success .label,.stat.success .sub{color:rgba(255,255,255,.7)}
+/* Valori monetari: font scalabile per evitare overflow */
+.stat .value{font-size:clamp(13px,4vw,22px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%}
 .stat.danger{background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);border:none;color:#fff}
 .stat.danger .label,.stat.danger .sub{color:rgba(255,255,255,.7)}
 .stat.warning{background:linear-gradient(135deg,#d97706 0%,#f59e0b 100%);border:none;color:#fff}
@@ -277,6 +282,7 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
 .list-item .li-amount{
   font-weight:800;font-size:15px;white-space:nowrap;
   letter-spacing:-.03em;font-family:'DM Mono',monospace;
+  flex-shrink:0;max-width:45%;overflow:hidden;text-overflow:ellipsis;
 }
 .list-item .li-amount.positive{color:var(--green)}
 .list-item .li-amount.negative{color:var(--red)}
@@ -396,7 +402,7 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
 }
 .sheet .kv:last-of-type{border:none}
 .sheet .kv .k{color:var(--text-3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding-top:1px}
-.sheet .kv .v{font-weight:700;text-align:right;word-break:break-word;font-family:'DM Mono',monospace}
+.sheet .kv .v{font-weight:700;text-align:right;word-break:break-all;font-family:'DM Mono',monospace;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── PIN screen ── */
 .pin-wrap{
@@ -546,7 +552,7 @@ main{flex:1;padding:16px 14px calc(28px + var(--safe-bot));max-width:680px;margi
 .kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .kv-box{background:var(--surface-3);border-radius:var(--r-md);padding:11px;border:1px solid var(--border)}
 .kv-box .k{font-size:9px;color:var(--text-3);text-transform:uppercase;font-weight:700;letter-spacing:.1em}
-.kv-box .v{font-size:16px;font-weight:800;margin-top:4px;letter-spacing:-.03em;font-family:'DM Mono',monospace}
+.kv-box .v{font-size:clamp(12px,3.5vw,16px);font-weight:800;margin-top:4px;letter-spacing:-.03em;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── Month selector ── */
 .month-selector{
@@ -1720,12 +1726,12 @@ async function render_dashboard(main){
     <div class="stats">
       <div class="stat accent">
         <div class="label">Ricavi ${ANNO}</div>
-        <div class="value" style="font-size:18px">${euro(ric)}</div>
+        <div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(ric)}</div>
         <div class="sub">${confronto?.variazione_percentuale?(confronto.variazione_percentuale>0?'+':'')+confronto.variazione_percentuale.toFixed(1)+'% vs anno prec.':''}</div>
       </div>
       <div class="stat ${utile>=0?'success':'danger'}">
         <div class="label">Utile ${ANNO}</div>
-        <div class="value" style="font-size:18px">${euro(utile)}</div>
+        <div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(utile)}</div>
         <div class="sub">Costi: ${euro(cos)}</div>
       </div>
     </div>
@@ -1740,9 +1746,9 @@ async function render_dashboard(main){
     <div class="card">
       <h3>€ IVA ${ANNO}</h3>
       <div class="stats three">
-        <div class="stat danger"><div class="label">Debito</div><div class="value" style="font-size:14px">${euro(bilancio.iva.debito||0)}</div></div>
-        <div class="stat success"><div class="label">Credito</div><div class="value" style="font-size:14px">${euro(bilancio.iva.credito||0)}</div></div>
-        <div class="stat ${Number(bilancio.iva.saldo)>=0?'danger':'success'}"><div class="label">${Number(bilancio.iva.saldo)>=0?'Da versare':'A credito'}</div><div class="value" style="font-size:14px">${euro(Math.abs(Number(bilancio.iva.saldo||0)))}</div></div>
+        <div class="stat danger"><div class="label">Debito</div><div class="value" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(bilancio.iva.debito||0)}</div></div>
+        <div class="stat success"><div class="label">Credito</div><div class="value" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(bilancio.iva.credito||0)}</div></div>
+        <div class="stat ${Number(bilancio.iva.saldo)>=0?'danger':'success'}"><div class="label">${Number(bilancio.iva.saldo)>=0?'Da versare':'A credito'}</div><div class="value" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(Math.abs(Number(bilancio.iva.saldo||0)))}</div></div>
       </div>
     </div>` : ''}
 
@@ -1898,8 +1904,8 @@ function renderCostiCategorie(main, byCat, byForn, totCur, totPrev, mediaMensile
   const delta = totPrev>0 ? ((totCur-totPrev)/totPrev*100) : 0;
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat accent"><div class="label">Costi ${ANNO}</div><div class="value" style="font-size:17px">${euro(totCur)}</div><div class="sub">ricorrenti</div></div>
-      <div class="stat"><div class="label">Media mese</div><div class="value" style="font-size:17px">${euro(mediaMensile)}</div><div class="sub">spesa media</div></div>
+      <div class="stat accent"><div class="label">Costi ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(totCur)}</div><div class="sub">ricorrenti</div></div>
+      <div class="stat"><div class="label">Media mese</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(mediaMensile)}</div><div class="sub">spesa media</div></div>
       <div class="stat ${delta>0?'danger':'success'}"><div class="label">vs ${ANNO-1}</div><div class="value" style="font-size:17px">${delta>0?'+':''}${delta.toFixed(0)}%</div><div class="sub">${euro(totPrev)}</div></div>
     </div>
     ${anomalie.length ? `
@@ -1914,7 +1920,7 @@ function renderCostiCategorie(main, byCat, byForn, totCur, totPrev, mediaMensile
       return `<div class="list-item" data-cat="${escapeHtml(cat)}" style="padding:14px">
         <div class="li-top">
           <div class="li-title" style="font-size:15px">${info.icon} ${escapeHtml(cat)}<span class="small" style="font-size:11px">${nForn} fornitor${nForn===1?'e':'i'} · ${v.n} fattur${v.n===1?'a':'e'}</span></div>
-          <div class="li-amount" style="font-size:15px;color:${info.color}">${euro(v.curAnno)}</div>
+          <div class="li-amount" style="font-size:13px;color:${info.color}">${euro(v.curAnno)}</div>
         </div>
       </div>`;
     }).join('')}
@@ -1935,7 +1941,7 @@ function renderCostiFornitori(main, byForn, catFilter){
     <button class="btn btn-ghost btn-sm" onclick="state.costRec.view='categorie';state.costRec.cat=null;reloadModule()" style="margin-bottom:10px">← Tutte le categorie</button>
     <div class="card" style="background:${info.color}15;border:1px solid ${info.color}44;padding:14px">
       <div style="font-size:15px;font-weight:700;color:${info.color}">${info.icon} ${catFilter}</div>
-      <div style="font-size:20px;font-weight:800;margin-top:4px">${euro(totCat)}</div>
+      <div style="font-size:13px;font-weight:800;margin-top:4px">${euro(totCat)}</div>
       <div style="font-size:11px;color:#475569">Totale ${ANNO} · ${lista.length} fornitor${lista.length===1?'e':'i'}</div>
     </div>
     <div class="section-title">Fornitori</div>
@@ -1972,8 +1978,8 @@ function renderCostiDettaglio(main, byForn, fornName){
     <div class="card" style="background:${info.color}15;border:1px solid ${info.color}44;padding:14px">
       <div style="font-size:14px;font-weight:700">${info.icon} ${escapeHtml(fornName)}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
-        <div><div style="font-size:10px;color:#64748B">Totale ${ANNO}</div><div style="font-size:17px;font-weight:700">${euro(v.curAnno)}</div></div>
-        <div><div style="font-size:10px;color:#64748B">Media mese</div><div style="font-size:17px;font-weight:700">${euro(v.mediaMensile)}</div></div>
+        <div><div style="font-size:10px;color:#64748B">Totale ${ANNO}</div><div style="font-size:13px;font-weight:700">${euro(v.curAnno)}</div></div>
+        <div><div style="font-size:10px;color:#64748B">Media mese</div><div style="font-size:13px;font-weight:700">${euro(v.mediaMensile)}</div></div>
         ${v.prevAnno>0?`<div><div style="font-size:10px;color:#64748B">Totale ${ANNO-1}</div><div style="font-size:14px">${euro(v.prevAnno)}</div></div>`:''}
         <div><div style="font-size:10px;color:#64748B">N. fatture</div><div style="font-size:14px">${v.n}</div></div>
       </div>
@@ -2080,11 +2086,11 @@ async function render_prima_nota_cassa(main){
 
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat success"><div class="label">Entrate ${ANNO}</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
-      <div class="stat danger"><div class="label">Uscite ${ANNO}</div><div class="value" style="font-size:15px">${euro(usc)}</div></div>
-      <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldoAnno)}</div></div>
+      <div class="stat success"><div class="label">Entrate ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(entr)}</div></div>
+      <div class="stat danger"><div class="label">Uscite ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(usc)}</div></div>
+      <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(saldoAnno)}</div></div>
     </div>
-    <div class="stats" style="grid-template-columns:repeat(4,1fr);gap:6px">
+    <div class="stats" style="grid-template-columns:1fr 1fr;gap:8px">
       <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Corrisp.</div><div class="value" style="font-size:12px;color:#ff9800">${euro(totCorrisp)}</div></div>
       <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">POS</div><div class="value" style="font-size:12px;color:#1e3a5f">${euro(totPOS)}</div></div>
       <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Versam.</div><div class="value" style="font-size:12px;color:#059669">${euro(totVers)}</div></div>
@@ -2415,9 +2421,9 @@ async function render_prima_nota_banca(main){
 
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat success"><div class="label">Accrediti</div><div class="value" style="font-size:15px">${euro(entr)}</div></div>
-      <div class="stat danger"><div class="label">Pagamenti</div><div class="value" style="font-size:15px">${euro(usc)}</div></div>
-      <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:15px">${euro(saldoAnno)}</div></div>
+      <div class="stat success"><div class="label">Accrediti</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(entr)}</div></div>
+      <div class="stat danger"><div class="label">Pagamenti</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(usc)}</div></div>
+      <div class="stat ${saldoAnno>=0?'accent':'danger'}"><div class="label">Saldo ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(saldoAnno)}</div></div>
     </div>
     <div class="alert-row info" style="margin-bottom:12px">
       <div class="a-icon">ℹ️</div>
@@ -2541,7 +2547,7 @@ async function render_provvisori(main){
   main.innerHTML = `
     <div class="stats three">
       <div class="stat warning"><div class="label">Da classificare</div><div class="value">${nTot}</div><div class="sub">fatture</div></div>
-      <div class="stat accent"><div class="label">Importo totale</div><div class="value" style="font-size:15px">${euro(totImp)}</div></div>
+      <div class="stat accent"><div class="label">Importo totale</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(totImp)}</div></div>
       <div class="stat ${nConf+nProb>0?'success':''}"><div class="label">Auto-match</div><div class="value">${nConf+nProb}</div><div class="sub">${nConf} confermati</div></div>
     </div>
     ${(nCassa || nBanca) ? `
@@ -2563,7 +2569,7 @@ async function render_provvisori(main){
       return `<div class="list-item" style="padding:16px">
         <div class="li-top">
           <div class="li-title" style="font-size:15px">${escapeHtml(p.fornitore||'-')}<span class="small" style="font-size:12px">N. ${escapeHtml(p.fattura_numero||'-')} · ${fmtDate(p.fattura_data)}</span></div>
-          <div class="li-amount" style="font-size:17px">${euro(p.importo||0)}</div>
+          <div class="li-amount" style="font-size:13px">${euro(p.importo||0)}</div>
         </div>
         <div style="margin-top:10px;margin-bottom:8px">${sugBadge}${p.stato_match?`<span class="badge neutral" style="margin-left:6px">${escapeHtml(p.stato_match)}</span>`:''}${p.metodo_xml?`<span class="li-meta" style="margin-left:6px">XML: ${escapeHtml(p.metodo_xml)}</span>`:''}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
@@ -2667,9 +2673,9 @@ async function render_corrispettivi(main){
   state._days_corr = perDay;
   main.innerHTML = `
     <div class="stats three">
-      <div class="stat accent"><div class="label">Corrispettivi ${ANNO}</div><div class="value" style="font-size:15px">${euro(tot_corr)}</div><div class="sub">${days.length} giornate</div></div>
-      <div class="stat"><div class="label">POS (uscita)</div><div class="value" style="font-size:15px;color:var(--info)">${euro(tot_pos)}</div></div>
-      <div class="stat"><div class="label">Versamenti</div><div class="value" style="font-size:15px;color:var(--success)">${euro(tot_vers)}</div></div>
+      <div class="stat accent"><div class="label">Corrispettivi ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(tot_corr)}</div><div class="sub">${days.length} giornate</div></div>
+      <div class="stat"><div class="label">POS (uscita)</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(tot_pos)}</div></div>
+      <div class="stat"><div class="label">Versamenti</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(tot_vers)}</div></div>
     </div>
     <div class="stats one">
       <div class="stat ${diff_cassa>=0?'success':'danger'}">
@@ -2707,9 +2713,9 @@ function apriGiornataCorr(data){
   const d = (state._days_corr||{})[data] || {data, corrispettivo:0, pos:0, versamento:0, altro_entrate:0, altro_uscite:0, raw_corr:[], raw_cassa:[]};
   openSheet(`<h2>Chiusura ${fmtDate(data)}</h2>
     <div class="stats three" style="margin-bottom:14px">
-      <div class="stat"><div class="label">Corr.</div><div class="value" style="font-size:15px">${euro(d.corrispettivo)}</div></div>
-      <div class="stat"><div class="label">POS</div><div class="value" style="font-size:15px">${euro(d.pos)}</div></div>
-      <div class="stat"><div class="label">Vers.</div><div class="value" style="font-size:15px">${euro(d.versamento)}</div></div>
+      <div class="stat"><div class="label">Corr.</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(d.corrispettivo)}</div></div>
+      <div class="stat"><div class="label">POS</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(d.pos)}</div></div>
+      <div class="stat"><div class="label">Vers.</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(d.versamento)}</div></div>
     </div>
     <div class="kv"><span class="k">Saldo cassa giorno</span><span class="v" style="font-weight:800;color:${(d.corrispettivo-d.pos-d.versamento)>=0?'var(--success)':'var(--danger)'}">${euro(d.corrispettivo-d.pos-d.versamento)}</span></div>
     ${d.altro_entrate?`<div class="kv"><span class="k">Altre entrate</span><span class="v" style="color:var(--success)">+${euro(d.altro_entrate)}</span></div>`:''}
@@ -2952,7 +2958,7 @@ async function apriDettaglioCoerenzaMese(mese){
     const f1Col = g.stato_serale==='ok' ? '#16a34a' : (g.stato_serale==='differenza'?'#dc2626':(g.stato_serale==='extra'?'#f59e0b':'#94a3b8'));
     const f2Col = g.stato_accredito==='ok' ? '#16a34a' : (g.stato_accredito==='mancante'||g.stato_accredito==='differenza'?'#dc2626':(g.stato_accredito==='attesa'?'#0891b2':(g.stato_accredito==='extra'?'#f59e0b':'#94a3b8')));
 
-    return `<div data-modifica-data="${g.data}" onclick="apriModificaPosReale('${g.data}')" style="display:grid;grid-template-columns:46px 1fr 1fr 1fr 1fr;gap:5px;padding:10px 5px;border-bottom:1px solid #e2e8f0;font-size:11px;background:${rowBg};align-items:center;cursor:pointer">
+    return `<div data-modifica-data="${g.data}" onclick="apriModificaPosReale('${g.data}')" style="display:grid;grid-template-columns:40px 1fr 1fr 1fr 1fr;gap:3px;padding:8px 4px;border-bottom:1px solid #e2e8f0;font-size:10px;background:${rowBg};align-items:center;cursor:pointer">
       <div style="color:#475569;font-weight:600;font-size:10px">${dowLbl} ${giorno}${isProvv?' <span title="provvisorio" style="color:#0891b2">⏳</span>':''}${mancaXML?' <span title="manca XML" style="color:#dc2626">⚠</span>':''}</div>
       <div style="text-align:right;color:#5D29C7;font-weight:600">${xml ? euro(xml) : '<span style="color:#cbd5e1">—</span>'}</div>
       <div style="text-align:right;color:${posR>0?'#0891b2':'#cbd5e1'};font-weight:600">${posR ? euro(posR) : '—'}</div>
@@ -2972,7 +2978,7 @@ async function apriDettaglioCoerenzaMese(mese){
       ${nAlert2?`<div>🏦 <b>${nAlert2}</b> accredit${nAlert2===1?'o':'i'} mancant${nAlert2===1?'e':'i'}/anomal${nAlert2===1?'o':'i'}</div>`:''}
       ${nAlertXML?`<div>⚠ <b>${nAlertXML}</b> corrispettiv${nAlertXML===1?'o':'i'} senza XML</div>`:''}
     </div>`:''}
-    <div style="display:grid;grid-template-columns:46px 1fr 1fr 1fr 1fr;gap:5px;padding:8px 5px;background:#f8fafc;border-bottom:2px solid #5D29C7;font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.3px">
+    <div style="display:grid;grid-template-columns:40px 1fr 1fr 1fr 1fr;gap:3px;padding:6px 4px;background:#f8fafc;border-bottom:2px solid #5D29C7;font-size:9px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.3px">
       <div>Data</div>
       <div style="text-align:right">POS XML</div>
       <div style="text-align:right">POS reale</div>
@@ -3660,11 +3666,11 @@ async function render_assegni(main){
       <button class="btn btn-ghost" style="padding:12px;font-size:13px" onclick="apriFormAssegnoManuale()">✏️ Manuale</button>
       <button class="btn btn-success" style="padding:12px;font-size:13px" onclick="apriGeneraCarnet()">📋 Carnet</button>
     </div>
-    <div class="stats" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
-      <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Vuoti</div><div class="value" style="font-size:18px">${per.vuoto?.count||0}</div></div>
-      <div class="stat" style="padding:10px;background:linear-gradient(135deg,#2196F3,#42A5F5);color:#fff"><div class="label" style="font-size:9px;color:rgba(255,255,255,.85)">Compilati</div><div class="value" style="font-size:18px">${per.compilato?.count||0}</div></div>
-      <div class="stat warning" style="padding:10px"><div class="label" style="font-size:9px">Emessi</div><div class="value" style="font-size:18px">${per.emesso?.count||0}</div><div class="sub" style="font-size:10px">${euro(per.emesso?.totale||0)}</div></div>
-      <div class="stat success" style="padding:10px"><div class="label" style="font-size:9px">Incassati</div><div class="value" style="font-size:18px">${per.incassato?.count||0}</div></div>
+    <div class="stats" style="grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div class="stat" style="padding:10px"><div class="label" style="font-size:9px">Vuoti</div><div class="value" style="font-size:20px">${per.vuoto?.count||0}</div></div>
+      <div class="stat" style="padding:10px;background:linear-gradient(135deg,#2196F3,#42A5F5);color:#fff"><div class="label" style="font-size:9px;color:rgba(255,255,255,.85)">Compilati</div><div class="value" style="font-size:20px">${per.compilato?.count||0}</div></div>
+      <div class="stat warning" style="padding:10px"><div class="label" style="font-size:9px">Emessi</div><div class="value" style="font-size:20px">${per.emesso?.count||0}</div><div class="sub" style="font-size:10px">${euro(per.emesso?.totale||0)}</div></div>
+      <div class="stat success" style="padding:10px"><div class="label" style="font-size:9px">Incassati</div><div class="value" style="font-size:20px">${per.incassato?.count||0}</div></div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px">
       <button class="btn ${!vistaCarnet?'btn-primary':'btn-ghost'}" style="font-size:13px;padding:8px 14px" onclick="state.asg.vista='lista';render_assegni(main)">📃 Lista</button>
@@ -3823,7 +3829,7 @@ async function render_partitario(main){
   $('partBody').innerHTML = `
     <div class="stats">
       <div class="stat accent"><div class="label">${state.part.tab==='fornitori'?'Fornitori':'Clienti'}</div><div class="value">${list.length}</div></div>
-      <div class="stat"><div class="label">Saldo totale</div><div class="value" style="font-size:17px">${euro(tot)}</div></div>
+      <div class="stat"><div class="label">Saldo totale</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(tot)}</div></div>
     </div>
     <div class="section-title">Elenco</div>
     ${list.length?list.slice(0,100).map(p=>{
@@ -3905,7 +3911,7 @@ function apriF24Sheet(f){
   const scad = f.data_scadenza||f.scadenza||f.due_date||'';
   const scaduta = scad && new Date(scad) < new Date() && stato !== 'pagato';
   openSheet(`<h2>📋 F24 ${escapeHtml(f.tipo||f.descrizione||f.codice||'-')}</h2>
-    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;font-size:18px;color:var(--red)">${euro(imp)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;font-size:13px;color:var(--red)">${euro(imp)}</span></div>
     <div class="kv"><span class="k">Scadenza</span><span class="v" style="${scaduta?'color:var(--red);font-weight:700':''}">${fmtDate(scad)}${scaduta?' ⚠️ SCADUTO':''}</span></div>
     <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${stato==='pagato'?'success':(scaduta?'danger':'warning')}">${stato||'da pagare'}</span></span></div>
     ${f.periodo_riferimento||f.competenza?`<div class="kv"><span class="k">Periodo</span><span class="v">${escapeHtml(f.periodo_riferimento||f.competenza||'-')}</span></div>`:''}
@@ -3981,11 +3987,11 @@ async function render_iva(main){
     <div class="stats">
       <div class="stat accent">
         <div class="label">IVA a debito</div>
-        <div class="value" style="font-size:17px">${euro(Number(data.iva_debito||0))}</div>
+        <div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(Number(data.iva_debito||0))}</div>
       </div>
       <div class="stat success">
         <div class="label">IVA a credito</div>
-        <div class="value" style="font-size:17px">${euro(Number(data.iva_credito||0))}</div>
+        <div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(Number(data.iva_credito||0))}</div>
       </div>
     </div>
     <div class="stats one">
@@ -3998,7 +4004,7 @@ async function render_iva(main){
     ${data.imponibile_netto ? `
     <div class="card">
       <h3>Imponibile ${state.iva.mese?fmtMonth(state.iva.mese):ANNO}</h3>
-      <div class="value" style="font-size:20px">${euro(Number(data.imponibile_netto))}</div>
+      <div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(Number(data.imponibile_netto))}</div>
     </div>` : ''}
     ${data.monthly_data ? `
     <div class="card">
@@ -4065,12 +4071,12 @@ async function render_bilancio(main){
     const utile = ce.utile||ce.risultato_esercizio||(ric-cos);
     body.innerHTML = `
       <div class="stats">
-        <div class="stat success"><div class="label">Ricavi ${ANNO}</div><div class="value" style="font-size:18px">${euro(ric)}</div></div>
-        <div class="stat danger"><div class="label">Costi ${ANNO}</div><div class="value" style="font-size:18px">${euro(cos)}</div></div>
+        <div class="stat success"><div class="label">Ricavi ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(ric)}</div></div>
+        <div class="stat danger"><div class="label">Costi ${ANNO}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(cos)}</div></div>
       </div>
       <div class="stats">
-        <div class="stat"><div class="label">MOL / EBITDA</div><div class="value" style="font-size:17px;color:${mol>=0?'var(--success)':'var(--danger)'}">${euro(mol)}</div></div>
-        <div class="stat accent"><div class="label">Utile</div><div class="value" style="font-size:17px">${euro(utile)}</div></div>
+        <div class="stat"><div class="label">MOL / EBITDA</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(mol)}</div></div>
+        <div class="stat accent"><div class="label">Utile</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(utile)}</div></div>
       </div>
       ${ce.dettaglio_categorie?`<div class="section-title">Dettaglio categorie</div>
       ${Object.entries(ce.dettaglio_categorie).map(([k,v])=>`<div class="list-item">
@@ -4105,7 +4111,7 @@ function apriBilancioVoce(voce, tipo){
   const val = Number(voce.valore||voce.saldo||voce.totale||voce.importo||0);
   openSheet(`<h2>📈 ${escapeHtml(voce.nome||voce.descrizione||voce.conto||'-')}</h2>
     <div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(tipo||'-')}</span></div>
-    <div class="kv"><span class="k">Valore</span><span class="v" style="font-weight:800;font-size:20px;color:${val>=0?'var(--green)':'var(--red)'}">${euro(val)}</span></div>
+    <div class="kv"><span class="k">Valore</span><span class="v" style="font-weight:800;font-size:13px;color:${val>=0?'var(--green)':'var(--red)'}">${euro(val)}</span></div>
     ${voce.percentuale!=null ? `<div class="kv"><span class="k">% sul totale</span><span class="v">${Number(voce.percentuale||0).toFixed(1)}%</span></div>` : ''}
     ${voce.variazione!=null ? `<div class="kv"><span class="k">Variazione anno prec.</span><span class="v" style="color:${Number(voce.variazione||0)>=0?'var(--green)':'var(--red)'}">${Number(voce.variazione||0)>=0?'+':''}${Number(voce.variazione||0).toFixed(1)}%</span></div>` : ''}
     ${voce.codice||voce.conto_cod ? `<div class="kv"><span class="k">Codice conto</span><span class="v" style="font-family:'DM Mono',monospace">${escapeHtml(voce.codice||voce.conto_cod||'-')}</span></div>` : ''}
@@ -4345,7 +4351,7 @@ async function render_cedolini(main){
   main.innerHTML = `
     <div class="stats">
       <div class="stat accent"><div class="label">Cedolini ${ANNO}</div><div class="value">${list.length}</div><div class="sub">${euro(tot)} netto</div></div>
-      <div class="stat"><div class="label">${state.ced.mese?fmtMonth(state.ced.mese):'Periodo'}</div><div class="value" style="font-size:17px">${euro(tot)}</div></div>
+      <div class="stat"><div class="label">${state.ced.mese?fmtMonth(state.ced.mese):'Periodo'}</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(tot)}</div></div>
     </div>
     <div class="month-selector">
       <button class="m ${!state.ced.mese?'active':''}" data-mese="">Anno</button>
@@ -4382,7 +4388,7 @@ function apriCedolinoSheet(c){
     <div class="kv"><span class="k">Lordo</span><span class="v" style="font-family:'DM Mono',monospace">${euro(lordo)}</span></div>
     ${contributi?`<div class="kv"><span class="k">Contributi dip.</span><span class="v" style="color:var(--red)">${euro(contributi)}</span></div>`:''}
     ${irpef?`<div class="kv"><span class="k">IRPEF</span><span class="v" style="color:var(--red)">${euro(irpef)}</span></div>`:''}
-    <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:800">Netto</span><span class="v" style="font-weight:800;font-size:18px;color:var(--green)">${euro(netto)}</span></div>
+    <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:800">Netto</span><span class="v" style="font-weight:800;font-size:13px;color:var(--green)">${euro(netto)}</span></div>
     ${c.stato?`<div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${c.stato==='pagato'?'success':'warning'}">${c.stato}</span></span></div>`:''}
     ${c.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(c.note)}</span></div>`:''}
     <div style="margin-top:16px">
@@ -4573,10 +4579,10 @@ async function render_mutui(main){
   main.innerHTML = `
     ${stats?`<div class="stats">
       <div class="stat accent"><div class="label">Mutui attivi</div><div class="value">${stats.attivi||mutui.length}</div></div>
-      <div class="stat danger"><div class="label">Debito residuo</div><div class="value" style="font-size:16px">${euro(stats.debito_residuo_totale||0)}</div></div>
+      <div class="stat danger"><div class="label">Debito residuo</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(stats.debito_residuo_totale||0)}</div></div>
     </div>
     <div class="stats">
-      <div class="stat"><div class="label">Rata mensile tot.</div><div class="value" style="font-size:16px">${euro(stats.rata_mensile_totale||0)}</div></div>
+      <div class="stat"><div class="label">Rata mensile tot.</div><div class="value" style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${euro(stats.rata_mensile_totale||0)}</div></div>
       <div class="stat warning"><div class="label">Prossima scadenza</div><div class="value" style="font-size:13px">${fmtDate(stats.prossima_scadenza)}</div></div>
     </div>`:''}
     <div class="section-title">Mutui (${mutui.length})</div>
