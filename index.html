@@ -1991,7 +1991,13 @@ function renderCostiDettaglio(main, byForn, fornName){
 async function render_prima_nota_cassa(main){
   state.pnc = state.pnc || {mese:null};
   const params = new URLSearchParams({anno:String(ANNO)});
-  if(state.pnc.mese) params.set('mese', String(state.pnc.mese));
+  if(state.pnc.mese){
+    const m = String(state.pnc.mese).padStart(2,'0');
+    // Backend non supporta ?mese: usa data_da/data_a invece
+    params.set('data_da', `${ANNO}-${m}-01`);
+    const ultimo = new Date(ANNO, state.pnc.mese, 0).getDate();
+    params.set('data_a', `${ANNO}-${m}-${ultimo}`);
+  }
   const data = await api(`/api/prima-nota/cassa?${params}`);
   const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.cassa||[]);
   // Il backend restituisce tipo='entrata'/'uscita' + importo POSITIVO, e totali aggregati già calcolati.
@@ -2156,7 +2162,14 @@ function openMovimentoSheet(tipo, m){
 async function deleteMovimento(tipo, id){
   if(!confirm('Eliminare questo movimento?')) return;
   try{
-    await api(`/api/prima-nota/${tipo}/${id}`, {method:'DELETE'});
+    const res = await api(`/api/prima-nota/${tipo}/${id}`, {method:'DELETE'});
+    // Il backend può restituire status='warning' con require_force=true
+    // (es. movimento confermato o collegato a fattura) — chiedi conferma esplicita
+    if(res && res.status === 'warning' && res.require_force){
+      const msgs = (res.warnings||[]).join('\n');
+      if(!confirm(`⚠️ ${msgs}\n\nConfermi l'eliminazione forzata?`)) return;
+      await api(`/api/prima-nota/${tipo}/${id}?force=true`, {method:'DELETE'});
+    }
     toast('Movimento eliminato','success');closeSheet();reloadModule();
   }catch(e){ toast('Errore: '+e.message,'error'); }
 }
@@ -2164,14 +2177,12 @@ async function deleteMovimento(tipo, id){
 async function spostaMovimento(id, da, a){
   if(!confirm(`Spostare da ${da} a ${a}?`)) return;
   try{
-    await api(`/api/prima-nota/sposta/${id}?da=${da}&a=${a}`,{method:'POST'});
+    await api('/api/prima-nota/sposta-scrittura',{
+      method:'POST',
+      body:JSON.stringify({movimento_id:id, destinazione:a})
+    });
     toast('Spostato','success');closeSheet();reloadModule();
-  }catch(e){
-    try{
-      await api(`/api/prima-nota/${da}/${id}/sposta`,{method:'POST',body:JSON.stringify({destinazione:a})});
-      toast('Spostato','success');closeSheet();reloadModule();
-    }catch(e2){toast('Errore: '+e.message,'error');}
-  }
+  }catch(e){ toast('Errore: '+e.message,'error'); }
 }
 
 // --- FORM CHIUSURA CASSA ---
