@@ -667,7 +667,10 @@ let currentModule = 'dashboard';
 let state = {};
 
 const $ = id => document.getElementById(id);
-const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n||0));
+// euro() — interi nelle card (es. 133.606 €)
+const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(Number(n||0)));
+// euroD() — con decimali, usato nelle liste dettaglio e sheet
+const euroD = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n||0));
 const num = n => new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n||0));
 const fmtDate = d => { if(!d) return '-'; try{const s=typeof d==='string'?d.slice(0,10):d;const[Y,M,D]=s.split('-');return D&&M&&Y?`${D}/${M}/${Y}`:s}catch{return d} };
 const fmtMonth = m => ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][m-1] || m;
@@ -1921,7 +1924,7 @@ function renderCostiCategorie(main, byCat, byForn, totCur, totPrev, mediaMensile
       return `<div class="list-item" data-cat="${escapeHtml(cat)}" style="padding:14px">
         <div class="li-top">
           <div class="li-title" style="font-size:15px">${info.icon} ${escapeHtml(cat)}<span class="small" style="font-size:11px">${nForn} fornitor${nForn===1?'e':'i'} · ${v.n} fattur${v.n===1?'a':'e'}</span></div>
-          <div class="li-amount" style="font-size:13px;color:${info.color}">${euro(v.curAnno)}</div>
+          <div class="li-amount" style="font-size:13px;color:${info.color}">${euroD(v.curAnno)}</div>
         </div>
       </div>`;
     }).join('')}
@@ -1951,7 +1954,7 @@ function renderCostiFornitori(main, byForn, catFilter){
       return `<div class="list-item" data-forn="${encodeURIComponent(nome)}" style="padding:14px">
         <div class="li-top">
           <div class="li-title">${escapeHtml(nome.slice(0,40))}<span class="small">${v.n} fatt · media ${euro(v.mediaMensile)}/mese</span></div>
-          <div class="li-amount">${euro(v.curAnno)}</div>
+          <div class="li-amount">${euroD(v.curAnno)}</div>
         </div>
         <div class="li-bottom">
           ${v.anomalia?'<span class="badge danger">⚠️ anomalia ultima bolletta</span>':''}
@@ -2018,7 +2021,7 @@ function renderCostiDettaglio(main, byForn, fornName){
       return `<div class="list-item" data-fid="${encodeURIComponent(n.id)}" onclick="openFatturaSheet('${encodeURIComponent(n.id)}')">
         <div class="li-top">
           <div class="li-title">N. ${escapeHtml(n.numero)}<span class="small">${fmtDate(n.dataDoc)}</span></div>
-          <div class="li-amount">${euro(n.totale)}</div>
+          <div class="li-amount">${euroD(n.totale)}</div>
         </div>
         <div class="li-bottom">
           ${n.pagata?'<span class="badge success">Pagata</span>':'<span class="badge info">Da pagare</span>'}
@@ -2120,7 +2123,7 @@ async function render_prima_nota_cassa(main){
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
-          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':'-'}${euro(imp)}</div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':'-'}${euroD(imp)}</div>
         </div>
         <div class="li-bottom">
           <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Entrata':'Uscita'))}</span>
@@ -2184,7 +2187,7 @@ function openMovimentoSheet(tipo, m){
   openSheet(`<h2>Movimento ${tipo}</h2>
     <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(m.data)}</span></div>
     <div class="kv"><span class="k">Descrizione</span><span class="v">${escapeHtml(m.descrizione||'-')}</span></div>
-    <div class="kv"><span class="k">Importo</span><span class="v" style="color:${impColor};font-weight:800">${euro(impSegnato)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="color:${impColor};font-weight:800">${euroD(impSegnato)}</span></div>
     <div class="kv"><span class="k">Categoria</span><span class="v">${escapeHtml(m.categoria||'-')}</span></div>
     ${m.provvisorio?`<div class="kv"><span class="k">Stato</span><span class="v"><span class="badge warning">Provvisorio</span></span></div>`:''}
     ${showRif?`<div class="kv"><span class="k">Riferimento</span><span class="v">${escapeHtml(rifText)}</span></div>`:''}
@@ -2451,7 +2454,7 @@ async function render_prima_nota_banca(main){
       return `<div class="list-item" data-mov='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.categoria||'-')}<span class="small">${fmtDate(m.data)}</span></div>
-          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':'-'}${euro(imp)}</div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':'-'}${euroD(imp)}</div>
         </div>
         <div class="li-bottom">
           <span class="badge" style="background:${catColor};color:#fff">${escapeHtml(m.categoria||(pos?'Accredito':'Pagamento'))}</span>
@@ -2570,7 +2573,7 @@ async function render_provvisori(main){
       return `<div class="list-item" style="padding:16px">
         <div class="li-top">
           <div class="li-title" style="font-size:15px">${escapeHtml(p.fornitore||'-')}<span class="small" style="font-size:12px">N. ${escapeHtml(p.fattura_numero||'-')} · ${fmtDate(p.fattura_data)}</span></div>
-          <div class="li-amount" style="font-size:13px">${euro(p.importo||0)}</div>
+          <div class="li-amount" style="font-size:13px">${euroD(p.importo||0)}</div>
         </div>
         <div style="margin-top:10px;margin-bottom:8px">${sugBadge}${p.stato_match?`<span class="badge neutral" style="margin-left:6px">${escapeHtml(p.stato_match)}</span>`:''}${p.metodo_xml?`<span class="li-meta" style="margin-left:6px">XML: ${escapeHtml(p.metodo_xml)}</span>`:''}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
@@ -2692,7 +2695,7 @@ async function render_corrispettivi(main){
       return `<div class="list-item" data-day="${d.data}">
         <div class="li-top">
           <div class="li-title">${fmtDate(d.data)}<span class="small">Corr. ${euro(d.corrispettivo)} · POS ${euro(d.pos)} · Vers. ${euro(d.versamento)}</span></div>
-          <div class="li-amount ${delta>=0?'positive':'negative'}">${euro(delta)}</div>
+          <div class="li-amount ${delta>=0?'positive':'negative'}">${euroD(delta)}</div>
         </div>
         ${hint?`<div class="li-bottom"><span class="badge warning">${hint}</span></div>`:''}
       </div>`;
@@ -2730,8 +2733,8 @@ function apriGiornataCorr(data){
     ${(d.raw_corr.length||d.raw_cassa.length)?`
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
         <div class="section-title" style="margin:0 0 8px">Movimenti del giorno</div>
-        ${d.raw_corr.map(r=>`<div class="list-item"><div class="li-top"><div class="li-title">Corrispettivo XML${r.contanti?` · cont. ${euro(r.contanti)}`:''}${r.pos||r.elettronico?` · POS ${euro(r.pos||r.elettronico)}`:''}</div><div class="li-amount positive">+${euro(r.totale||r.incasso||(Number(r.contanti||0)+Number(r.pos||r.elettronico||0)))}</div></div></div>`).join('')}
-        ${d.raw_cassa.map(r=>{const imp=Number(r.importo||0);return `<div class="list-item"><div class="li-top"><div class="li-title">${escapeHtml(r.descrizione||r.categoria||'-')}<span class="small">${escapeHtml(r.categoria||'')}</span></div><div class="li-amount ${imp>=0?'positive':'negative'}">${imp>=0?'+':''}${euro(imp)}</div></div>${r.id?`<div class="li-bottom"><button class="btn btn-sm btn-danger" onclick="deleteMovimento('cassa','${r.id}')">🗑</button></div>`:''}</div>`;}).join('')}
+        ${d.raw_corr.map(r=>`<div class="list-item"><div class="li-top"><div class="li-title">Corrispettivo XML${r.contanti?` · cont. ${euro(r.contanti)}`:''}${r.pos||r.elettronico?` · POS ${euro(r.pos||r.elettronico)}`:''}</div><div class="li-amount positive">+${euroD(r.totale||r.incasso||(Number(r.contanti||0)+Number(r.pos||r.elettronico||0)))}</div></div></div>`).join('')}
+        ${d.raw_cassa.map(r=>{const imp=Number(r.importo||0);return `<div class="list-item"><div class="li-top"><div class="li-title">${escapeHtml(r.descrizione||r.categoria||'-')}<span class="small">${escapeHtml(r.categoria||'')}</span></div><div class="li-amount ${imp>=0?'positive':'negative'}">${imp>=0?'+':''}${euroD(imp)}</div></div>${r.id?`<div class="li-bottom"><button class="btn btn-sm btn-danger" onclick="deleteMovimento('cassa','${r.id}')">🗑</button></div>`:''}</div>`;}).join('')}
       </div>`:''}
   `);
 }
@@ -2845,7 +2848,7 @@ async function render_coerenza_pos(main){
       return `<div class="list-item" data-mese-pos="${mese}" style="cursor:pointer">
         <div class="li-top">
           <div class="li-title">${escapeHtml(nomeMese)} ${ANNO}${isCurrent?' <span style="font-size:10px;color:#5D29C7">· in corso</span>':''}<span class="small">${ggMese.length} giorni con dati</span></div>
-          <div class="li-amount">${euro(totM_xml)}</div>
+          <div class="li-amount">${euroD(totM_xml)}</div>
         </div>
         <div class="li-bottom">
           ${badge}
@@ -3161,7 +3164,7 @@ function fatturaCardHTML(f){
   return `<div class="list-item" data-fid="${encodeURIComponent(n.id)}">
     <div class="li-top">
       <div class="li-title">${escapeHtml(n.fornitore)}<span class="small">N. ${escapeHtml(n.numero)} · ${fmtDate(n.dataDoc)}</span></div>
-      <div class="li-amount">${euro(n.pagata ? n.totale : (n.residuo > 0 ? n.residuo : n.totale))}</div>
+      <div class="li-amount">${euroD(n.pagata ? n.totale : (n.residuo > 0 ? n.residuo : n.totale))}</div>
     </div>
     <div class="li-bottom">${badge}<span class="li-meta">${n.dataScad ? 'Scad. '+fmtDate(n.dataScad) : ''}</span></div>
   </div>`;
@@ -3202,8 +3205,8 @@ async function openFatturaSheet(fid){
       <div class="kv"><span class="k">Numero</span><span class="v">${escapeHtml(num)}</span></div>
       <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(dataFatt)}</span></div>
       ${dataScad?`<div class="kv"><span class="k">Scadenza</span><span class="v">${fmtDate(dataScad)}</span></div>`:''}
-      <div class="kv"><span class="k">Totale</span><span class="v">${euro(tot)}</span></div>
-      <div class="kv"><span class="k">Pagato</span><span class="v" style="color:var(--success)">${euro(pag)}</span></div>
+      <div class="kv"><span class="k">Totale</span><span class="v">${euroD(tot)}</span></div>
+      <div class="kv"><span class="k">Pagato</span><span class="v" style="color:var(--success)">${euroD(pag)}</span></div>
       <div class="kv"><span class="k">Residuo</span><span class="v" style="color:${res>0.01?'var(--danger)':'var(--success)'};font-weight:800">${euro(res)}</span></div>
       ${res>0.01?`
         <div style="margin-top:14px;padding-top:14px;border-top:2px solid var(--border)">
@@ -3289,7 +3292,7 @@ function apriFormModificaFattura(f){
   openSheet(`<h2>✏️ Modifica fattura</h2>
     <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(n.fornitore||'-')}</span></div>
     <div class="kv"><span class="k">Numero</span><span class="v">${escapeHtml(n.numero||'-')}</span></div>
-    <div class="kv"><span class="k">Totale</span><span class="v">${euro(n.totale)}</span></div>
+    <div class="kv"><span class="k">Totale</span><span class="v">${euroD(n.totale)}</span></div>
     <div class="field" style="margin-top:12px"><label>Metodo pagamento</label><select id="fatMetodo" class="select">
       <option value="">-- non specificato --</option>
       ${metodi.map(m=>`<option value="${m}" ${(f.metodo_pagamento||f.payment_method||'')=== m?'selected':''}>${m}</option>`).join('')}
@@ -3355,7 +3358,7 @@ async function render_fornitori(main){
       return `<div class="list-item" data-forn='${encodeURIComponent(JSON.stringify(f))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(name)}<span class="small">${piva?'P.IVA '+piva:''}</span></div>
-          ${tot>0?`<div class="li-amount" style="font-size:13px">${euro(tot)}</div>`:''}
+          ${tot>0?`<div class="li-amount" style="font-size:13px">${euroD(tot)}</div>`:''}
         </div>
         <div class="li-bottom">
           ${metodo?`<span class="badge info">${escapeHtml(metodo)}</span>`:'<span class="badge warning">Metodo mancante</span>'}
@@ -3521,7 +3524,7 @@ async function render_scadenze(main){
       return `<div class="list-item" data-scd='${encodeURIComponent(JSON.stringify(s))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(s.descrizione||s.tipo||'Scadenza')}<span class="small">${fmtDate(s.data_scadenza)}</span></div>
-          <div class="li-amount">${euro(s.importo||0)}</div>
+          <div class="li-amount">${euroD(s.importo||0)}</div>
         </div>
         <div class="li-bottom">${badge}<span class="li-meta">${escapeHtml(s.categoria||s.tipo||'')}</span></div>
       </div>`;
@@ -3539,7 +3542,7 @@ function openScadenzaSheet(s){
     <div class="kv"><span class="k">Descrizione</span><span class="v">${escapeHtml(s.descrizione||'-')}</span></div>
     <div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(s.tipo||s.categoria||'-')}</span></div>
     <div class="kv"><span class="k">Data scadenza</span><span class="v">${fmtDate(s.data_scadenza)}</span></div>
-    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800">${euro(s.importo||0)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800">${euroD(s.importo||0)}</span></div>
     ${s.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(s.note)}</span></div>`:''}
     <div style="margin-top:16px;display:grid;gap:8px">
       ${!s.completata?`<button class="btn btn-success btn-block" onclick="completaScadenza('${s.id||s._id}')">✅ Segna come completata</button>`:''}
@@ -3838,7 +3841,7 @@ async function render_partitario(main){
       return `<div class="list-item" onclick="apriPartitarioSheet(JSON.parse(decodeURIComponent(this.dataset.part)))" data-part='${encodeURIComponent(JSON.stringify(p))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(p.ragione_sociale||p.denominazione||p.nome||'-')}<span class="small">${p.piva||p.partita_iva||''}</span></div>
-          <div class="li-amount ${saldo>=0?'positive':'negative'}">${euro(saldo)}</div>
+          <div class="li-amount ${saldo>=0?'positive':'negative'}">${euroD(saldo)}</div>
         </div>
         <div class="li-bottom">
           <span class="li-meta">${p.num_fatture?p.num_fatture+' fatture':''}</span>
@@ -3855,8 +3858,8 @@ function apriPartitarioSheet(p){
   const saldo = dare - avere;
   openSheet(`<h2>📘 ${escapeHtml(p.nome||p.ragione_sociale||p.denominazione||p.soggetto||'-')}</h2>
     <div class="kv"><span class="k">P.IVA</span><span class="v" style="font-family:'DM Mono',monospace">${escapeHtml(p.partita_iva||p.piva||'-')}</span></div>
-    <div class="kv"><span class="k">Dare (debiti)</span><span class="v" style="color:var(--red)">${euro(dare)}</span></div>
-    <div class="kv"><span class="k">Avere (crediti)</span><span class="v" style="color:var(--green)">${euro(avere)}</span></div>
+    <div class="kv"><span class="k">Dare (debiti)</span><span class="v" style="color:var(--red)">${euroD(dare)}</span></div>
+    <div class="kv"><span class="k">Avere (crediti)</span><span class="v" style="color:var(--green)">${euroD(avere)}</span></div>
     <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px">
       <span class="k" style="font-weight:800">Saldo</span>
       <span class="v" style="font-weight:800;font-size:18px;color:${saldo>0?'var(--red)':'var(--green)'}">${saldo>0?'Dare ':'Avere '}${euro(Math.abs(saldo))}</span>
@@ -3885,7 +3888,7 @@ async function render_f24(main){
       return `<div class="list-item" data-id='${encodeURIComponent(JSON.stringify(f))}'>
         <div class="li-top">
           <div class="li-title">F24 ${escapeHtml(f.periodo||`${f.mese||''}/${f.anno||''}`||'-')}<span class="small">${f.codici_tributo?'Trib: '+escapeHtml(String(f.codici_tributo).slice(0,40)):(f.descrizione?escapeHtml(f.descrizione.slice(0,40)):'')}</span></div>
-          <div class="li-amount">${euro(f.importo||0)}</div>
+          <div class="li-amount">${euroD(f.importo||0)}</div>
         </div>
         <div class="li-bottom">${badge}<span class="li-meta">${f.data_scadenza?'Scad. '+fmtDate(f.data_scadenza):''}</span></div>
       </div>`;
@@ -3899,7 +3902,7 @@ function openF24Sheet(f){
   openSheet(`<h2>F24</h2>
     <div class="kv"><span class="k">Periodo</span><span class="v">${escapeHtml(f.periodo||`${f.mese||''}/${f.anno||''}`)}</span></div>
     <div class="kv"><span class="k">Scadenza</span><span class="v">${fmtDate(f.data_scadenza)}</span></div>
-    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800">${euro(f.importo||0)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800">${euroD(f.importo||0)}</span></div>
     <div class="kv"><span class="k">Codici tributo</span><span class="v" style="font-size:11px">${escapeHtml(String(f.codici_tributo||'-').slice(0,80))}</span></div>
     ${f.data_pagamento?`<div class="kv"><span class="k">Pagato il</span><span class="v">${fmtDate(f.data_pagamento)}</span></div>`:''}
     ${f.quietanza?`<div class="kv"><span class="k">Quietanza</span><span class="v">${escapeHtml(f.quietanza)}</span></div>`:''}
@@ -3912,7 +3915,7 @@ function apriF24Sheet(f){
   const scad = f.data_scadenza||f.scadenza||f.due_date||'';
   const scaduta = scad && new Date(scad) < new Date() && stato !== 'pagato';
   openSheet(`<h2>📋 F24 ${escapeHtml(f.tipo||f.descrizione||f.codice||'-')}</h2>
-    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;font-size:13px;color:var(--red)">${euro(imp)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;font-size:13px;color:var(--red)">${euroD(imp)}</span></div>
     <div class="kv"><span class="k">Scadenza</span><span class="v" style="${scaduta?'color:var(--red);font-weight:700':''}">${fmtDate(scad)}${scaduta?' ⚠️ SCADUTO':''}</span></div>
     <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${stato==='pagato'?'success':(scaduta?'danger':'warning')}">${stato||'da pagare'}</span></span></div>
     ${f.periodo_riferimento||f.competenza?`<div class="kv"><span class="k">Periodo</span><span class="v">${escapeHtml(f.periodo_riferimento||f.competenza||'-')}</span></div>`:''}
@@ -4014,7 +4017,7 @@ async function render_iva(main){
         <div class="list-item" data-mese-iva="${m.mese}">
           <div class="li-top">
             <div class="li-title">${escapeHtml(m.mese_nome)}<span class="small">${m.fatture_count} fatt · ${m.corrispettivi_count} corr</span></div>
-            <div class="li-amount ${Number(m.saldo)>=0?'negative':'positive'}">${euro(Math.abs(Number(m.saldo||0)))}</div>
+            <div class="li-amount ${Number(m.saldo)>=0?'negative':'positive'}">${euroD(Math.abs(Number(m.saldo||0)))}</div>
           </div>
           <div class="li-bottom">
             <span class="badge ${Number(m.saldo)>=0?'danger':'success'}">${m.stato||(Number(m.saldo)>=0?'Debito':'Credito')}</span>
@@ -4038,14 +4041,14 @@ function apriIvaSheet(m){
   const credito = Number(m.iva_credito||m.iva_acquisti||m.credito||0);
   const saldo = Number(m.saldo||m.liquidazione||(debito-credito));
   openSheet(`<h2>€ IVA ${escapeHtml(label)}</h2>
-    <div class="kv"><span class="k">IVA vendite (debito)</span><span class="v" style="color:var(--red)">${euro(debito)}</span></div>
-    <div class="kv"><span class="k">IVA acquisti (credito)</span><span class="v" style="color:var(--green)">${euro(credito)}</span></div>
+    <div class="kv"><span class="k">IVA vendite (debito)</span><span class="v" style="color:var(--red)">${euroD(debito)}</span></div>
+    <div class="kv"><span class="k">IVA acquisti (credito)</span><span class="v" style="color:var(--green)">${euroD(credito)}</span></div>
     <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px">
       <span class="k" style="font-weight:800">Liquidazione</span>
       <span class="v" style="font-weight:800;font-size:18px;color:${saldo>0?'var(--red)':'var(--green)'}">${saldo>0?'Da versare ':'Credito '}${euro(Math.abs(saldo))}</span>
     </div>
-    ${m.base_imponibile_vendite ? `<div class="kv"><span class="k">Imponibile vendite</span><span class="v">${euro(m.base_imponibile_vendite)}</span></div>` : ''}
-    ${m.base_imponibile_acquisti ? `<div class="kv"><span class="k">Imponibile acquisti</span><span class="v">${euro(m.base_imponibile_acquisti)}</span></div>` : ''}
+    ${m.base_imponibile_vendite ? `<div class="kv"><span class="k">Imponibile vendite</span><span class="v">${euroD(m.base_imponibile_vendite)}</span></div>` : ''}
+    ${m.base_imponibile_acquisti ? `<div class="kv"><span class="k">Imponibile acquisti</span><span class="v">${euroD(m.base_imponibile_acquisti)}</span></div>` : ''}
     <div style="margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
 }
 </script><script>
@@ -4083,7 +4086,7 @@ async function render_bilancio(main){
       ${Object.entries(ce.dettaglio_categorie).map(([k,v])=>`<div class="list-item">
         <div class="li-top">
           <div class="li-title">${escapeHtml(k)}</div>
-          <div class="li-amount ${Number(v)>=0?'positive':'negative'}">${euro(v)}</div>
+          <div class="li-amount ${Number(v)>=0?'positive':'negative'}">${euroD(v)}</div>
         </div>
       </div>`).join('')}`:''}
     `;
@@ -4092,17 +4095,17 @@ async function render_bilancio(main){
     body.innerHTML = `
       <div class="card">
         <h3>🏛️ Attivo</h3>
-        <div class="kv"><span class="k">Immobilizzazioni</span><span class="v">${euro(sp.immobilizzazioni||0)}</span></div>
-        <div class="kv"><span class="k">Crediti</span><span class="v">${euro(sp.crediti||0)}</span></div>
-        <div class="kv"><span class="k">Disponibilità liquide</span><span class="v">${euro(sp.disponibilita||sp.liquidita||0)}</span></div>
-        <div class="kv"><span class="k">Totale Attivo</span><span class="v" style="font-weight:800;color:var(--primary)">${euro(sp.totale_attivo||0)}</span></div>
+        <div class="kv"><span class="k">Immobilizzazioni</span><span class="v">${euroD(sp.immobilizzazioni||0)}</span></div>
+        <div class="kv"><span class="k">Crediti</span><span class="v">${euroD(sp.crediti||0)}</span></div>
+        <div class="kv"><span class="k">Disponibilità liquide</span><span class="v">${euroD(sp.disponibilita||sp.liquidita||0)}</span></div>
+        <div class="kv"><span class="k">Totale Attivo</span><span class="v" style="font-weight:800;color:var(--primary)">${euroD(sp.totale_attivo||0)}</span></div>
       </div>
       <div class="card">
         <h3>🧾 Passivo</h3>
-        <div class="kv"><span class="k">Patrimonio netto</span><span class="v">${euro(sp.patrimonio_netto||0)}</span></div>
-        <div class="kv"><span class="k">Debiti</span><span class="v">${euro(sp.debiti||0)}</span></div>
-        <div class="kv"><span class="k">Fondi</span><span class="v">${euro(sp.fondi||0)}</span></div>
-        <div class="kv"><span class="k">Totale Passivo</span><span class="v" style="font-weight:800;color:var(--primary)">${euro(sp.totale_passivo||0)}</span></div>
+        <div class="kv"><span class="k">Patrimonio netto</span><span class="v">${euroD(sp.patrimonio_netto||0)}</span></div>
+        <div class="kv"><span class="k">Debiti</span><span class="v">${euroD(sp.debiti||0)}</span></div>
+        <div class="kv"><span class="k">Fondi</span><span class="v">${euroD(sp.fondi||0)}</span></div>
+        <div class="kv"><span class="k">Totale Passivo</span><span class="v" style="font-weight:800;color:var(--primary)">${euroD(sp.totale_passivo||0)}</span></div>
       </div>
     `;
   }
@@ -4150,7 +4153,7 @@ async function render_calendario_fiscale(main){
       return `<div class="list-item">
         <div class="li-top">
           <div class="li-title">${escapeHtml(s.titolo||s.descrizione||s.tipo||'-')}<span class="small">${escapeHtml(s.categoria||s.tipo||'')} · ${fmtDate(s.data_scadenza)}</span></div>
-          ${s.importo?`<div class="li-amount">${euro(s.importo)}</div>`:''}
+          ${s.importo?`<div class="li-amount">${euroD(s.importo)}</div>`:''}
         </div>
         <div class="li-bottom">${badge}
           ${!s.completata&&s.id?`<button class="btn btn-sm btn-success" onclick="completaScadFiscale('${s.id}')">✓ Fatto</button>`:''}
@@ -4365,7 +4368,7 @@ async function render_cedolini(main){
       return `<div class="list-item" data-ced='${encodeURIComponent(JSON.stringify(c))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(nome)}<span class="small">${escapeHtml(periodo)}</span></div>
-          <div class="li-amount">${euro(c.netto||c.netto_pagare||0)}</div>
+          <div class="li-amount">${euroD(c.netto||c.netto_pagare||0)}</div>
         </div>
         <div class="li-bottom"><span class="badge info">${escapeHtml(c.tipo||'Cedolino')}</span><span class="li-meta">Lordo ${euro(c.lordo||0)}</span></div>
       </div>`;
@@ -4386,10 +4389,10 @@ function apriCedolinoSheet(c){
   openSheet(`<h2>💼 Cedolino ${escapeHtml(comp)}</h2>
     <div class="kv"><span class="k">Dipendente</span><span class="v">${escapeHtml(nome)}</span></div>
     <div class="kv"><span class="k">Competenza</span><span class="v">${escapeHtml(comp)}</span></div>
-    <div class="kv"><span class="k">Lordo</span><span class="v" style="font-family:'DM Mono',monospace">${euro(lordo)}</span></div>
-    ${contributi?`<div class="kv"><span class="k">Contributi dip.</span><span class="v" style="color:var(--red)">${euro(contributi)}</span></div>`:''}
-    ${irpef?`<div class="kv"><span class="k">IRPEF</span><span class="v" style="color:var(--red)">${euro(irpef)}</span></div>`:''}
-    <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:800">Netto</span><span class="v" style="font-weight:800;font-size:13px;color:var(--green)">${euro(netto)}</span></div>
+    <div class="kv"><span class="k">Lordo</span><span class="v" style="font-family:'DM Mono',monospace">${euroD(lordo)}</span></div>
+    ${contributi?`<div class="kv"><span class="k">Contributi dip.</span><span class="v" style="color:var(--red)">${euroD(contributi)}</span></div>`:''}
+    ${irpef?`<div class="kv"><span class="k">IRPEF</span><span class="v" style="color:var(--red)">${euroD(irpef)}</span></div>`:''}
+    <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:800">Netto</span><span class="v" style="font-weight:800;font-size:13px;color:var(--green)">${euroD(netto)}</span></div>
     ${c.stato?`<div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${c.stato==='pagato'?'success':'warning'}">${c.stato}</span></span></div>`:''}
     ${c.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(c.note)}</span></div>`:''}
     <div style="margin-top:16px">
@@ -4504,7 +4507,7 @@ async function render_verbali(main){
     <div>${lNonAss.slice(0,20).map(f=>`<div class="list-item">
       <div class="li-top">
         <div class="li-title">${escapeHtml(f.fornitore||f.cedente_denominazione||'-')}<span class="small">${escapeHtml(f.numero||'-')} · ${fmtDate(f.data_fattura)}</span></div>
-        <div class="li-amount">${euro(f.importo||0)}</div>
+        <div class="li-amount">${euroD(f.importo||0)}</div>
       </div>
     </div>`).join('')}</div>`:''}
   `;
@@ -4563,7 +4566,7 @@ function apriVeicoloSheet(v){
   openSheet(`<h2>🚗 ${escapeHtml(v.targa||'Veicolo')}</h2>
     <div class="kv"><span class="k">Modello</span><span class="v">${escapeHtml(v.modello||v.descrizione||'-')}</span></div>
     <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(v.fornitore||v.societa_noleggio||'-')}</span></div>
-    <div class="kv"><span class="k">Canone</span><span class="v">${euro(v.canone_mensile||0)}/mese</span></div>
+    <div class="kv"><span class="k">Canone</span><span class="v">${euroD(v.canone_mensile||0)}/mese</span></div>
     ${v.data_scadenza_contratto?`<div class="kv"><span class="k">Scadenza contratto</span><span class="v">${fmtDate(v.data_scadenza_contratto)}</span></div>`:''}
     <div style="margin-top:16px;display:grid;gap:8px">
       <button class="btn btn-primary btn-block" onclick="closeSheet();setTimeout(()=>apriFormVeicolo(window._lastVeicolo),150)">✏️ Modifica</button>
@@ -4590,7 +4593,7 @@ async function render_mutui(main){
     ${mutui.length?mutui.map(m=>`<div class="list-item" onclick="apriFormMutuo(JSON.parse(decodeURIComponent(this.dataset.m)))" data-m='${encodeURIComponent(JSON.stringify(m))}'>
       <div class="li-top">
         <div class="li-title">${escapeHtml(m.descrizione||m.nome||m.banca||'Mutuo')}<span class="small">${escapeHtml(m.banca||'-')} · ${m.data_erogazione?fmtDate(m.data_erogazione):''}</span></div>
-        <div class="li-amount">${euro(m.debito_residuo||m.importo_residuo||0)}</div>
+        <div class="li-amount">${euroD(m.debito_residuo||m.importo_residuo||0)}</div>
       </div>
       <div class="li-bottom">
         <span class="badge ${m.stato==='attivo'||!m.stato?'success':'neutral'}">${escapeHtml(m.stato||'attivo')}</span>
@@ -4809,7 +4812,7 @@ async function render_riconciliazione(main){
       return `<div class="list-item" onclick="apriMovimentoRicSheet(JSON.parse(decodeURIComponent(this.dataset.ric)))" data-ric='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.description||'-')}<span class="small">${fmtDate(m.data)}</span></div>
-          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
+          <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euroD(imp)}</div>
         </div>
       </div>`;
     }).join('')}</div>`:''}
