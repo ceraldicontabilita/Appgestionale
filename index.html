@@ -1639,7 +1639,40 @@ async function salvaAssegnoAI(){
 }
 
 function apriFormAssegnoManuale(){
-  apriFormAssegnoDaAI({stato:'compilato'}, null, null);
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>✏️ Nuovo assegno manuale</h2>
+    <div class="field"><label>Numero assegno</label><input id="aNum" class="input" inputmode="numeric" placeholder="es. 0208769182-11"></div>
+    <div class="field"><label>Beneficiario (fornitore)</label><input id="aBen" class="input" placeholder="Ragione sociale fornitore"></div>
+    <div class="field"><label>Importo (€)</label><input id="aImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="1250,00"></div>
+    <div class="field"><label>Causale</label><input id="aCau" class="input" placeholder="Pagamento fattura N. ..."></div>
+    <div class="field-row">
+      <div class="field"><label>Data emissione</label><input id="aDat" class="input" type="date" value="${oggi}"></div>
+      <div class="field"><label>Stato iniziale</label><select id="aStat" class="select">
+        <option value="vuoto">Vuoto</option>
+        <option value="compilato" selected>Compilato</option>
+        <option value="emesso">Emesso</option>
+      </select></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="salvaAssegnoManuale()">💾 Salva assegno</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('aNum')?.focus(),100);
+}
+
+async function salvaAssegnoManuale(){
+  const numero = $('aNum').value.trim();
+  if(!numero) return toast('Numero assegno obbligatorio','error');
+  const imp = parseFloat($('aImp').value)||null;
+  try{
+    await api('/api/assegni/',{method:'POST', body:JSON.stringify({
+      numero,
+      beneficiario: $('aBen').value.trim()||null,
+      importo: imp,
+      causale: $('aCau').value.trim()||null,
+      data_emissione: $('aDat').value||null,
+      stato: $('aStat').value||'compilato',
+    })});
+    toast('Assegno salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 
 // ====== BOOTSTRAP ======
@@ -3186,7 +3219,7 @@ async function openFatturaSheet(fid){
 }
 
 // Allega foto alla fattura (tramite camera). Riusa il pattern di apriCamera.
-function allegaFotoFatturaUI(fidEnc){
+async function allegaFotoFatturaUI(fidEnc){
   const fid = decodeURIComponent(fidEnc);
   apriCamera('Scatta foto fattura', async (base64, mediaType)=>{
     openSheet(`<div style="padding:40px 20px;text-align:center">
@@ -3549,28 +3582,44 @@ async function salvaScadenza(){
 </script><script>
 async function apriGeneraCarnet(){
   openSheet(`<h2>📋 Genera Carnet Assegni</h2>
-    <p class="muted" style="margin:0 0 16px;font-size:13px">Crea un nuovo blocchetto di assegni vuoti. Inserisci il numero del primo assegno e la quantità.</p>
-    <div class="field"><label>Numero primo assegno</label><input id="gcNumero" class="input" inputmode="numeric" placeholder="es. 0208769000"></div>
-    <div class="field"><label>Quantità</label>
+    <div class="alert-row info" style="margin-bottom:12px">
+      <div class="a-icon">ℹ️</div>
+      <div class="a-body">
+        <div class="a-title">Formato numero assegno</div>
+        <div class="a-sub">Usa il formato <b>PREFISSO-NUMERO</b> che trovi stampato sul blocchetto.<br>Esempio: <b>0208769182-11</b> (dove 11 è il primo del carnet).<br>Se hai solo il numero senza trattino (es. 0208769182) verrà usato come prefisso e numerati da -1.</div>
+      </div>
+    </div>
+    <div class="field"><label>Numero primo assegno</label><input id="gcNumero" class="input" inputmode="numeric" placeholder="es. 0208769182-11"></div>
+    <div class="field"><label>Banca emittente</label><input id="gcBanca" class="input" placeholder="es. Banco BPM, Intesa, UniCredit..."></div>
+    <div class="field"><label>Quantità assegni nel carnet</label>
       <select id="gcQta" class="select">
         <option value="5">5 assegni</option>
         <option value="10" selected>10 assegni (standard)</option>
         <option value="15">15 assegni</option>
         <option value="20">20 assegni</option>
         <option value="25">25 assegni</option>
+        <option value="50">50 assegni</option>
       </select>
     </div>
     <button class="btn btn-primary btn-block" onclick="salvaGeneraCarnet()">✅ Genera carnet</button>
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('gcNumero')?.focus(),100);
 }
 
-async function salvaGeneraCarnet(){
+async async function salvaGeneraCarnet(){
   const numero = $('gcNumero')?.value?.trim();
   const qta = parseInt($('gcQta')?.value||'10');
   if(!numero) return toast('Inserisci il numero del primo assegno','error');
+  // Backend richiede formato PREFISSO-NUMERO (es. 0208769182-11)
+  // Se l'utente non ha messo il trattino, lo aggiungiamo come -1
+  const numeroFormattato = numero.includes('-') ? numero : `${numero}-1`;
   try{
-    await api('/api/assegni/genera',{method:'POST',body:JSON.stringify({numero_primo:numero, quantita:qta})});
-    toast(`Carnet da ${qta} assegni creato ✓`,'success');
+    const banca = $('gcBanca')?.value?.trim()||'';
+    const res = await api('/api/assegni/genera',{
+      method:'POST',
+      body:JSON.stringify({numero_primo: numeroFormattato, quantita: qta, banca_emittente: banca})
+    });
+    toast(`Carnet da ${qta} assegni creato ✓ (${res.primo} → ${res.ultimo})`,'success');
     haptic(40);
     closeSheet();
     reloadModule();
@@ -3706,26 +3755,34 @@ async function openAssegnoSheet(aid){
         ${stato==='compilato'?`<button class="btn btn-warning btn-block" onclick="azioneAssegno('${encodeURIComponent(aid)}','emetti')">📤 Emetti</button>`:''}
         ${stato==='emesso'?`<button class="btn btn-success btn-block" onclick="azioneAssegno('${encodeURIComponent(aid)}','incassa')">💰 Incassa</button>`:''}
         ${stato!=='annullato'&&stato!=='incassato'?`<button class="btn btn-danger btn-block" onclick="azioneAssegno('${encodeURIComponent(aid)}','annulla')">⛔ Annulla</button>`:''}
+        <button class="btn btn-ghost btn-block" onclick="eliminaAssegno(a.id||a.numero)">🗑 Elimina</button>
         <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
       </div>`;
-  }catch(e){$('sheetBody').innerHTML=`<div class="empty">Errore: ${escapeHtml(e.message)}</div><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>`;}
+  }catch(e){$('sheetBody').innerHTML=`<div class="empty"><div class="icon">🧷</div><div class="title">Assegno non trovato</div><div class="desc">${escapeHtml(e.message)}</div></div><button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="closeSheet()">Chiudi</button>`;}
 }
 
 function compilaAssegno(aidEnc){
   const aid = decodeURIComponent(aidEnc);
-  openSheet(`<h2>Compila assegno</h2>
-    <div class="field"><label>Beneficiario</label><input id="caBen" class="input"></div>
-    <div class="field"><label>Importo (€)</label><input id="caImp" class="input" type="number" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>Causale</label><input id="caCau" class="input"></div>
-    <button class="btn btn-primary btn-block" onclick="salvaCompilazione('${encodeURIComponent(aid)}')">💾 Salva</button>
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>✏️ Compila assegno</h2>
+    <div class="field"><label>Beneficiario (fornitore)</label><input id="caBen" class="input" placeholder="Ragione sociale fornitore"></div>
+    <div class="field"><label>Importo (€)</label><input id="caImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+    <div class="field"><label>Causale</label><input id="caCau" class="input" placeholder="Pagamento fattura N. ..."></div>
+    <div class="field"><label>Data emissione</label><input id="caDat" class="input" type="date" value="${oggi}"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaCompilazione('${encodeURIComponent(aid)}')">💾 Salva compilazione</button>
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('caBen')?.focus(),100);
 }
 
 async function salvaCompilazione(aidEnc){
   const aid = decodeURIComponent(aidEnc);
   try{
     await api('/api/assegni/'+encodeURIComponent(aid), {method:'PUT', body:JSON.stringify({
-      beneficiario:$('caBen').value.trim(), importo:parseFloat($('caImp').value)||null, causale:$('caCau').value.trim(), stato:'compilato'
+      beneficiario:$('caBen').value.trim()||null,
+      importo:parseFloat($('caImp').value)||null,
+      causale:$('caCau').value.trim()||null,
+      data_emissione:$('caDat')?.value||null,
+      stato:'compilato'
     })});
     toast('Salvato','success');haptic(30);closeSheet();reloadModule();
   }catch(e){toast('Errore: '+e.message,'error');}
