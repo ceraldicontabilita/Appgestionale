@@ -2151,7 +2151,8 @@ function openMovimentoSheet(tipo, m){
     ${m.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(m.note)}</span></div>`:''}
     ${fatBlock}
     <div style="margin-top:16px;display:grid;gap:8px">
-      ${m.id?`<button class="btn btn-ghost btn-block" onclick='apriFormAltro("${tipo}",${JSON.stringify({id:m.id,data:(m.data||"").slice(0,10),importo:m.importo,descrizione:m.descrizione,categoria:m.categoria,tipo:m.tipo}).replace(/'/g,"&#39;")})'>✏️ Modifica</button>`:''}
+      ${m.id && tipo==='banca' ? `<button class="btn btn-ghost btn-block" onclick='apriFormEditBanca(${JSON.stringify({id:m.id,data:(m.data||"").slice(0,10),importo:m.importo,descrizione:m.descrizione,categoria:m.categoria,tipo:m.tipo}).replace(/'/g,"&#39;")})'>✏️ Modifica</button>` : ''}
+      ${m.id && tipo!=='banca' ?`<button class="btn btn-ghost btn-block" onclick='apriFormAltro("${tipo}",${JSON.stringify({id:m.id,data:(m.data||"").slice(0,10),importo:m.importo,descrizione:m.descrizione,categoria:m.categoria,tipo:m.tipo}).replace(/'/g,"&#39;")})'>✏️ Modifica</button>`:''}
       ${m.id && tipo==='cassa' ? `<button class="btn btn-ghost btn-block" onclick="spostaMovimento('${m.id}','cassa','banca')">➡️ Sposta in banca</button>`:''}
       ${m.id && tipo==='banca' ? `<button class="btn btn-ghost btn-block" onclick="spostaMovimento('${m.id}','banca','cassa')">⬅️ Sposta in cassa</button>`:''}
       ${m.id?`<button class="btn btn-danger btn-block" onclick="deleteMovimento('${tipo}','${m.id}')">🗑 Elimina</button>`:''}
@@ -2427,6 +2428,69 @@ async function render_prima_nota_banca(main){
     el.onclick = ()=>openMovimentoSheet('banca', JSON.parse(decodeURIComponent(el.dataset.mov)));
   });
   $('fab').classList.add('hidden');
+}
+
+function apriFormNuovoBanca(){
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>✏️ Nuovo movimento banca</h2>
+    <div class="field"><label>Data</label><input id="fBData" class="input" type="date" value="${oggi}"></div>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label><select id="fBTipo" class="select">
+        <option value="uscita">Uscita (−)</option>
+        <option value="entrata">Entrata (+)</option>
+      </select></div>
+      <div class="field"><label>Importo (€)</label><input id="fBImp" class="input" type="number" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+    </div>
+    <div class="field"><label>Descrizione</label><input id="fBDesc" class="input" placeholder="Es. Bonifico fornitore..."></div>
+    <div class="field"><label>Categoria</label><input id="fBCat" class="input" placeholder="Es. Fornitori, Stipendi..."></div>
+    <button class="btn btn-primary btn-block" onclick="salvaMovimentoBanca(null)">💾 Salva</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('fBDesc')?.focus(),100);
+}
+function apriFormEditBanca(m){
+  openSheet(`<h2>✏️ Modifica movimento</h2>
+    <div class="field"><label>Data</label><input id="fBData" class="input" type="date" value="${(m.data||'').slice(0,10)}"></div>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label><select id="fBTipo" class="select">
+        <option value="uscita" ${m.tipo==='uscita'?'selected':''}>Uscita (−)</option>
+        <option value="entrata" ${m.tipo==='entrata'?'selected':''}>Entrata (+)</option>
+      </select></div>
+      <div class="field"><label>Importo (€)</label><input id="fBImp" class="input" type="number" step="0.01" inputmode="decimal" value="${Math.abs(Number(m.importo||0))}"></div>
+    </div>
+    <div class="field"><label>Descrizione</label><input id="fBDesc" class="input" value="${escapeHtml(m.descrizione||'')}"></div>
+    <div class="field"><label>Categoria</label><input id="fBCat" class="input" value="${escapeHtml(m.categoria||'')}"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaMovimentoBanca('${m.id}')">💾 Aggiorna</button>
+    <button class="btn btn-danger btn-block" style="margin-top:8px" onclick="eliminaMovimentoBanca('${m.id}')">🗑 Elimina</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+async function salvaMovimentoBanca(id){
+  const imp = parseFloat($('fBImp').value)||0;
+  if(imp<=0) return toast('Importo non valido','error');
+  const desc = $('fBDesc').value.trim();
+  if(!desc) return toast('Descrizione obbligatoria','error');
+  const body = {
+    data:$('fBData').value, tipo:$('fBTipo').value,
+    importo:imp, descrizione:desc,
+    categoria:$('fBCat').value.trim()||($('fBTipo').value==='entrata'?'Incasso':'Spese'),
+    source:'manual_entry'
+  };
+  try{
+    if(id) await api(`/api/prima-nota/banca/${id}`,{method:'PUT',body:JSON.stringify(body)});
+    else    await api('/api/prima-nota/banca',{method:'POST',body:JSON.stringify(body)});
+    toast('Salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+async function eliminaMovimentoBanca(id){
+  if(!confirm('Eliminare questo movimento banca?')) return;
+  try{
+    const res = await api(`/api/prima-nota/banca/${id}`,{method:'DELETE'});
+    if(res && res.status==='warning' && res.require_force){
+      const msgs=(res.warnings||[]).join('\n');
+      if(!confirm(`⚠️ ${msgs}\n\nConfermi?`)) return;
+      await api(`/api/prima-nota/banca/${id}?force=true`,{method:'DELETE'});
+    }
+    toast('Eliminato','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_provvisori(main){
@@ -3177,6 +3241,41 @@ async function registraPagamentoFattura(fidEnc){
     }catch(e2){ toast('Errore: '+e.message,'error'); }
   }
 }
+
+function apriFormModificaFattura(f){
+  const n = f._n || normFattura(f)._n;
+  const metodi = ['bonifico','contanti','assegno','riba','carta','pos'];
+  openSheet(`<h2>✏️ Modifica fattura</h2>
+    <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(n.fornitore||'-')}</span></div>
+    <div class="kv"><span class="k">Numero</span><span class="v">${escapeHtml(n.numero||'-')}</span></div>
+    <div class="kv"><span class="k">Totale</span><span class="v">${euro(n.totale)}</span></div>
+    <div class="field" style="margin-top:12px"><label>Metodo pagamento</label><select id="fatMetodo" class="select">
+      <option value="">-- non specificato --</option>
+      ${metodi.map(m=>`<option value="${m}" ${(f.metodo_pagamento||f.payment_method||'')=== m?'selected':''}>${m}</option>`).join('')}
+    </select></div>
+    <div class="field"><label>Data scadenza</label><input id="fatScad" class="input" type="date" value="${(n.dataScad||'').slice(0,10)}"></div>
+    <div class="field"><label>Note</label><input id="fatNote" class="input" value="${escapeHtml(f.note||f.notes||'')}"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaModificaFattura('${n.id}')">💾 Salva</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+async function salvaModificaFattura(id){
+  try{
+    const body = {
+      metodo_pagamento: $('fatMetodo').value,
+      payment_method: $('fatMetodo').value,
+      data_scadenza: $('fatScad').value,
+      due_date: $('fatScad').value,
+      note: $('fatNote').value.trim(),
+    };
+    // Prova endpoint PUT diretto
+    try{
+      await api(`/api/invoices/${id}`,{method:'PUT',body:JSON.stringify(body)});
+    }catch{
+      await api(`/api/fatture/${id}`,{method:'PUT',body:JSON.stringify(body)});
+    }
+    toast('Fattura aggiornata','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
 </script><script>
 async function render_fornitori(main){
   state.forn = state.forn || {srch:''};
@@ -3243,7 +3342,8 @@ async function openFornitoreSheet(f){
     <div class="kv"><span class="k">IBAN</span><span class="v" style="font-size:11px">${escapeHtml(f.iban||f.anagrafica?.iban||'-')}</span></div>
     ${f.id?`<button class="btn btn-ghost btn-block" style="margin-top:6px;font-size:13px" onclick="toggleMagazzinoFornitore('${f.id}',${inMagazzino})">${inMagazzino?'🚫 Escludi da magazzino':'📦 Rimetti in magazzino'}</button>`:''}
     <div id="fornFatt" style="margin-top:14px"><div class="loading"><span class="spinner"></span>Carico fatture...</div></div>
-    <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+    <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+      <button class="btn btn-danger btn-block" style="margin-top:8px" onclick="eliminaFornitore(_lastForn?.id||_lastForn?._id||'')">🗑 Elimina fornitore</button></div>`);
 
   // Carica fatture del fornitore
   const fornId = f.id || piva;
@@ -3333,6 +3433,14 @@ async function salvaFornitore(){
     await api('/api/suppliers', {method:'POST', body:JSON.stringify(body)});
     toast('Fornitore creato','success');closeSheet();reloadModule();
   }catch(e){ toast('Errore: '+e.message,'error'); }
+}
+
+async function eliminaFornitore(id){
+  if(!confirm('Eliminare questo fornitore? Questa azione non può essere annullata.')) return;
+  try{
+    await api(`/api/suppliers/${id}`,{method:'DELETE'});
+    toast('Fornitore eliminato','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_scadenze(main){
@@ -3623,6 +3731,14 @@ async function azioneAssegno(aidEnc, az){
     toast('Fatto','success');haptic(30);closeSheet();reloadModule();
   }catch(e){toast('Errore: '+e.message,'error');}
 }
+
+async function eliminaAssegno(id){
+  if(!confirm('Eliminare questo assegno?')) return;
+  try{
+    await api(`/api/assegni/${id}`,{method:'DELETE'});
+    toast('Assegno eliminato','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
 </script><script>
 async function render_partitario(main){
   state.part = state.part || {tab:'fornitori'};
@@ -3646,7 +3762,7 @@ async function render_partitario(main){
     <div class="section-title">Elenco</div>
     ${list.length?list.slice(0,100).map(p=>{
       const saldo = Number(p.saldo||p.totale||0);
-      return `<div class="list-item">
+      return `<div class="list-item" onclick="apriPartitarioSheet(JSON.parse(decodeURIComponent(this.dataset.part)))" data-part='${encodeURIComponent(JSON.stringify(p))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(p.ragione_sociale||p.denominazione||p.nome||'-')}<span class="small">${p.piva||p.partita_iva||''}</span></div>
           <div class="li-amount ${saldo>=0?'positive':'negative'}">${euro(saldo)}</div>
@@ -3658,6 +3774,22 @@ async function render_partitario(main){
       </div>`;
     }).join(''):'<div class="empty"><div class="icon">📘</div><div class="title">Nessun movimento</div></div>'}
   `;
+}
+
+function apriPartitarioSheet(p){
+  const dare = Number(p.dare||p.totale_dare||p.debiti||0);
+  const avere = Number(p.avere||p.totale_avere||p.crediti||0);
+  const saldo = dare - avere;
+  openSheet(`<h2>📘 ${escapeHtml(p.nome||p.ragione_sociale||p.denominazione||p.soggetto||'-')}</h2>
+    <div class="kv"><span class="k">P.IVA</span><span class="v" style="font-family:'DM Mono',monospace">${escapeHtml(p.partita_iva||p.piva||'-')}</span></div>
+    <div class="kv"><span class="k">Dare (debiti)</span><span class="v" style="color:var(--red)">${euro(dare)}</span></div>
+    <div class="kv"><span class="k">Avere (crediti)</span><span class="v" style="color:var(--green)">${euro(avere)}</span></div>
+    <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px">
+      <span class="k" style="font-weight:800">Saldo</span>
+      <span class="v" style="font-weight:800;font-size:18px;color:${saldo>0?'var(--red)':'var(--green)'}">${saldo>0?'Dare ':'Avere '}${euro(Math.abs(saldo))}</span>
+    </div>
+    ${p.numero_operazioni!=null ? `<div class="kv"><span class="k">Operazioni</span><span class="v">${p.numero_operazioni}</span></div>` : ''}
+    <div style="margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
 }
 </script><script>
 async function render_f24(main){
@@ -3699,6 +3831,37 @@ function openF24Sheet(f){
     ${f.data_pagamento?`<div class="kv"><span class="k">Pagato il</span><span class="v">${fmtDate(f.data_pagamento)}</span></div>`:''}
     ${f.quietanza?`<div class="kv"><span class="k">Quietanza</span><span class="v">${escapeHtml(f.quietanza)}</span></div>`:''}
     <div style="margin-top:14px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+}
+
+function apriF24Sheet(f){
+  const imp = Number(f.importo||f.totale||f.amount||0);
+  const stato = f.stato||f.status||'';
+  const scad = f.data_scadenza||f.scadenza||f.due_date||'';
+  const scaduta = scad && new Date(scad) < new Date() && stato !== 'pagato';
+  openSheet(`<h2>📋 F24 ${escapeHtml(f.tipo||f.descrizione||f.codice||'-')}</h2>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;font-size:18px;color:var(--red)">${euro(imp)}</span></div>
+    <div class="kv"><span class="k">Scadenza</span><span class="v" style="${scaduta?'color:var(--red);font-weight:700':''}">${fmtDate(scad)}${scaduta?' ⚠️ SCADUTO':''}</span></div>
+    <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${stato==='pagato'?'success':(scaduta?'danger':'warning')}">${stato||'da pagare'}</span></span></div>
+    ${f.periodo_riferimento||f.competenza?`<div class="kv"><span class="k">Periodo</span><span class="v">${escapeHtml(f.periodo_riferimento||f.competenza||'-')}</span></div>`:''}
+    ${f.tipo_tributo||f.codice_tributo?`<div class="kv"><span class="k">Codice tributo</span><span class="v" style="font-family:'DM Mono',monospace">${escapeHtml(f.tipo_tributo||f.codice_tributo||'-')}</span></div>`:''}
+    ${f.note||f.descrizione_dettaglio?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(f.note||f.descrizione_dettaglio||'-')}</span></div>`:''}
+    <div style="margin-top:16px;display:grid;gap:8px">
+      ${stato!=='pagato' ? `<button class="btn btn-success btn-block" onclick="segnaF24Pagato('${f.id||f._id||f.f24_id}')">✅ Segna come pagato</button>` : ''}
+      <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+    </div>`);
+}
+async function segnaF24Pagato(id){
+  if(!confirm('Segnare questo F24 come pagato?')) return;
+  const oggi = new Date().toISOString().slice(0,10);
+  try{
+    // Prova endpoint dedicato, poi fallback su PUT generico
+    try{
+      await api(`/api/f24/${id}/pagato`,{method:'POST',body:JSON.stringify({data_pagamento:oggi})});
+    }catch{
+      await api(`/api/f24/${id}`,{method:'PUT',body:JSON.stringify({stato:'pagato',data_pagamento:oggi})});
+    }
+    toast('F24 segnato come pagato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_iva(main){
@@ -3794,6 +3957,24 @@ async function render_iva(main){
     el.onclick=()=>{state.iva.mese=parseInt(el.dataset.meseIva); render_iva(main);};
   });
 }
+
+function apriIvaSheet(m){
+  const mesi = ['','Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const label = m.mese ? `${mesi[m.mese]||m.mese} ${m.anno||ANNO}` : (m.trimestre ? `${m.trimestre}° trim. ${m.anno||ANNO}` : String(m.periodo||m.label||'-'));
+  const debito = Number(m.iva_debito||m.iva_vendite||m.debito||0);
+  const credito = Number(m.iva_credito||m.iva_acquisti||m.credito||0);
+  const saldo = Number(m.saldo||m.liquidazione||(debito-credito));
+  openSheet(`<h2>€ IVA ${escapeHtml(label)}</h2>
+    <div class="kv"><span class="k">IVA vendite (debito)</span><span class="v" style="color:var(--red)">${euro(debito)}</span></div>
+    <div class="kv"><span class="k">IVA acquisti (credito)</span><span class="v" style="color:var(--green)">${euro(credito)}</span></div>
+    <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px">
+      <span class="k" style="font-weight:800">Liquidazione</span>
+      <span class="v" style="font-weight:800;font-size:18px;color:${saldo>0?'var(--red)':'var(--green)'}">${saldo>0?'Da versare ':'Credito '}${euro(Math.abs(saldo))}</span>
+    </div>
+    ${m.base_imponibile_vendite ? `<div class="kv"><span class="k">Imponibile vendite</span><span class="v">${euro(m.base_imponibile_vendite)}</span></div>` : ''}
+    ${m.base_imponibile_acquisti ? `<div class="kv"><span class="k">Imponibile acquisti</span><span class="v">${euro(m.base_imponibile_acquisti)}</span></div>` : ''}
+    <div style="margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+}
 </script><script>
 async function render_bilancio(main){
   state.bil = state.bil || {tab:'ce'};
@@ -3852,6 +4033,17 @@ async function render_bilancio(main){
       </div>
     `;
   }
+}
+
+function apriBilancioVoce(voce, tipo){
+  const val = Number(voce.valore||voce.saldo||voce.totale||voce.importo||0);
+  openSheet(`<h2>📈 ${escapeHtml(voce.nome||voce.descrizione||voce.conto||'-')}</h2>
+    <div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(tipo||'-')}</span></div>
+    <div class="kv"><span class="k">Valore</span><span class="v" style="font-weight:800;font-size:20px;color:${val>=0?'var(--green)':'var(--red)'}">${euro(val)}</span></div>
+    ${voce.percentuale!=null ? `<div class="kv"><span class="k">% sul totale</span><span class="v">${Number(voce.percentuale||0).toFixed(1)}%</span></div>` : ''}
+    ${voce.variazione!=null ? `<div class="kv"><span class="k">Variazione anno prec.</span><span class="v" style="color:${Number(voce.variazione||0)>=0?'var(--green)':'var(--red)'}">${Number(voce.variazione||0)>=0?'+':''}${Number(voce.variazione||0).toFixed(1)}%</span></div>` : ''}
+    ${voce.codice||voce.conto_cod ? `<div class="kv"><span class="k">Codice conto</span><span class="v" style="font-family:'DM Mono',monospace">${escapeHtml(voce.codice||voce.conto_cod||'-')}</span></div>` : ''}
+    <div style="margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
 }
 </script><script>
 async function render_calendario_fiscale(main){
@@ -3984,7 +4176,7 @@ async function render_dipendenti(main){
   $('srchD').addEventListener('input', debounce(render,200));
 }
 
-async function openDipendenteSheet(d){
+async function openDipendenteSheet(d){ window._lastDip = d;
   const nome = `${d.cognome||''} ${d.nome||''}`.trim() || d.nome_completo || '-';
   openSheet(`<h2>${escapeHtml(nome)}</h2>
     <div class="kv"><span class="k">C.F.</span><span class="v">${escapeHtml(d.codice_fiscale||d.cf||'-')}</span></div>
@@ -3995,7 +4187,8 @@ async function openDipendenteSheet(d){
     <div class="kv"><span class="k">IBAN cedolino</span><span class="v" style="font-size:11px">${escapeHtml(d.iban_cedolino||d.iban||'-')}</span></div>
     <div class="kv"><span class="k">Tel.</span><span class="v">${escapeHtml(d.telefono||'-')}</span></div>
     <div id="dipDetails" style="margin-top:12px"><div class="loading"><span class="spinner"></span></div></div>
-    <div style="margin-top:12px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
+    <div style="margin-top:12px"><button class="btn btn-primary btn-block" onclick="closeSheet();setTimeout(()=>apriFormDipendente(_lastDip),100)">✏️ Modifica</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Chiudi</button></div>`);
   if(d.id){
     const [ced, sf] = await Promise.all([
       api(`/api/cedolini/dipendente/${d.id}?anno=${ANNO}`).catch(()=>[]),
@@ -4016,6 +4209,64 @@ async function openDipendenteSheet(d){
         </div>`:''}
     `;
   } else $('dipDetails').innerHTML='';
+}
+
+function apriFormDipendente(d){
+  d = d || {};
+  const titolo = d.id ? 'Modifica dipendente' : 'Nuovo dipendente';
+  openSheet(`<h2>👤 ${titolo}</h2>
+    <div class="field-row">
+      <div class="field"><label>Nome</label><input id="dNome" class="input" value="${escapeHtml(d.nome||'')}" placeholder="Mario"></div>
+      <div class="field"><label>Cognome</label><input id="dCogn" class="input" value="${escapeHtml(d.cognome||'')}" placeholder="Rossi"></div>
+    </div>
+    <div class="field"><label>Codice fiscale</label><input id="dCF" class="input" value="${escapeHtml(d.codice_fiscale||d.cf||'')}" placeholder="RSSMRA80A01F205X" style="text-transform:uppercase"></div>
+    <div class="field"><label>Email</label><input id="dEmail" class="input" type="email" value="${escapeHtml(d.email||'')}" placeholder="mario.rossi@email.it"></div>
+    <div class="field"><label>Telefono</label><input id="dTel" class="input" type="tel" value="${escapeHtml(d.telefono||'')}" placeholder="+39 333 1234567"></div>
+    <div class="field"><label>Mansione</label><input id="dMans" class="input" value="${escapeHtml(d.mansione||d.qualifica||'')}" placeholder="Cameriere, Cuoco..."></div>
+    <div class="field-row">
+      <div class="field"><label>Data assunzione</label><input id="dDataAss" class="input" type="date" value="${(d.data_assunzione||'').slice(0,10)}"></div>
+      <div class="field"><label>Tipo contratto</label><select id="dContr" class="select">
+        <option value="indeterminato" ${(d.tipo_contratto||'')==='indeterminato'?'selected':''}>Indeterminato</option>
+        <option value="determinato" ${(d.tipo_contratto||'')==='determinato'?'selected':''}>Determinato</option>
+        <option value="apprendistato" ${(d.tipo_contratto||'')==='apprendistato'?'selected':''}>Apprendistato</option>
+        <option value="collaborazione" ${(d.tipo_contratto||'')==='collaborazione'?'selected':''}>Collaborazione</option>
+        <option value="parttime" ${(d.tipo_contratto||'')==='parttime'?'selected':''}>Part-time</option>
+      </select></div>
+    </div>
+    <div class="field"><label>IBAN</label><input id="dIban" class="input" value="${escapeHtml(d.iban||d.ibans?.[0]||'')}" placeholder="IT60X0542811101000000123456"></div>
+    <button class="btn btn-primary btn-block" style="margin-top:4px" onclick="salvaDipendente('${d.id||d._id||''}')">💾 Salva</button>
+    ${d.id||d._id ? `<button class="btn btn-danger btn-block" style="margin-top:8px" onclick="eliminaDipendente('${d.id||d._id}')">🗑 Elimina</button>` : ''}
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('dNome')?.focus(),100);
+}
+async function salvaDipendente(id){
+  const nome = $('dNome').value.trim();
+  const cognome = $('dCogn').value.trim();
+  if(!nome || !cognome) return toast('Nome e cognome obbligatori','error');
+  const body = {
+    nome, cognome,
+    codice_fiscale: $('dCF').value.trim().toUpperCase(),
+    email: $('dEmail').value.trim(),
+    telefono: $('dTel').value.trim(),
+    mansione: $('dMans').value.trim(),
+    qualifica: $('dMans').value.trim(),
+    data_assunzione: $('dDataAss').value,
+    tipo_contratto: $('dContr').value,
+    iban: $('dIban').value.trim().replace(/\s/g,''),
+    in_carico: true, attivo: true,
+  };
+  try{
+    if(id) await api(`/api/dipendenti/${id}`,{method:'PUT',body:JSON.stringify(body)});
+    else    await api('/api/dipendenti',{method:'POST',body:JSON.stringify(body)});
+    toast('Salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+async function eliminaDipendente(id){
+  if(!confirm('Eliminare questo dipendente? L\'operazione è irreversibile.')) return;
+  try{
+    await api(`/api/dipendenti/${id}`,{method:'DELETE'});
+    toast('Dipendente eliminato','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_cedolini(main){
@@ -4038,7 +4289,7 @@ async function render_cedolini(main){
     <div>${list.length ? list.map(c=>{
       const nome = c.nome_dipendente||c.dipendente_nome||`${c.cognome||''} ${c.nome||''}`.trim()||'-';
       const periodo = c.anno&&c.mese?`${fmtMonth(c.mese)} ${c.anno}`:(c.periodo||'-');
-      return `<div class="list-item">
+      return `<div class="list-item" data-ced='${encodeURIComponent(JSON.stringify(c))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(nome)}<span class="small">${escapeHtml(periodo)}</span></div>
           <div class="li-amount">${euro(c.netto||c.netto_pagare||0)}</div>
@@ -4050,6 +4301,27 @@ async function render_cedolini(main){
   main.querySelectorAll('.month-selector .m').forEach(b=>{
     b.onclick=()=>{state.ced.mese=b.dataset.mese?parseInt(b.dataset.mese):null;render_cedolini(main);};
   });
+}
+
+function apriCedolinoSheet(c){
+  const netto = Number(c.netto||c.netto_paga||c.importo||0);
+  const lordo = Number(c.lordo||c.lordo_totale||c.imponibile||netto);
+  const contributi = Number(c.contributi_dipendente||c.inps_dipendente||0);
+  const irpef = Number(c.irpef||c.ritenuta_irpef||0);
+  const nome = c.nome_dipendente||(c.nome&&c.cognome?`${c.nome} ${c.cognome}`:'Dipendente');
+  const comp = c.competenza||`${c.anno||''}-${String(c.mese||'').padStart(2,'0')}`;
+  openSheet(`<h2>💼 Cedolino ${escapeHtml(comp)}</h2>
+    <div class="kv"><span class="k">Dipendente</span><span class="v">${escapeHtml(nome)}</span></div>
+    <div class="kv"><span class="k">Competenza</span><span class="v">${escapeHtml(comp)}</span></div>
+    <div class="kv"><span class="k">Lordo</span><span class="v" style="font-family:'DM Mono',monospace">${euro(lordo)}</span></div>
+    ${contributi?`<div class="kv"><span class="k">Contributi dip.</span><span class="v" style="color:var(--red)">${euro(contributi)}</span></div>`:''}
+    ${irpef?`<div class="kv"><span class="k">IRPEF</span><span class="v" style="color:var(--red)">${euro(irpef)}</span></div>`:''}
+    <div class="kv" style="border-top:2px solid var(--border);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:800">Netto</span><span class="v" style="font-weight:800;font-size:18px;color:var(--green)">${euro(netto)}</span></div>
+    ${c.stato?`<div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${c.stato==='pagato'?'success':'warning'}">${c.stato}</span></span></div>`:''}
+    ${c.note?`<div class="kv"><span class="k">Note</span><span class="v">${escapeHtml(c.note)}</span></div>`:''}
+    <div style="margin-top:16px">
+      <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+    </div>`);
 }
 </script><script>
 async function render_presenze(main){
@@ -4095,6 +4367,43 @@ async function render_presenze(main){
 }
 async function approvaRichiesta(id){try{await api(`/api/attendance/richiesta-assenza/${id}/approva`,{method:'PUT'});toast('Approvata','success');reloadModule();}catch(e){toast('Errore: '+e.message,'error');}}
 async function rifiutaRichiesta(id){if(!confirm('Rifiutare?'))return;try{await api(`/api/attendance/richiesta-assenza/${id}/rifiuta`,{method:'PUT'});toast('Rifiutata','success');reloadModule();}catch(e){toast('Errore: '+e.message,'error');}}
+
+async function eliminaPresenza(employeeId, data){
+  if(!confirm(`Eliminare la presenza del ${fmtDate(data)}?`)) return;
+  try{
+    await api('/api/attendance/presenza',{method:'DELETE',body:JSON.stringify({employee_id:employeeId,data})});
+    toast('Presenza eliminata','success');reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+function apriFormRichiestaAssenza(employeeId){
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>📅 Richiesta assenza</h2>
+    <div class="field"><label>Tipo</label><select id="raType" class="select">
+      <option value="ferie">Ferie</option>
+      <option value="permesso">Permesso</option>
+      <option value="malattia">Malattia</option>
+      <option value="rol">ROL</option>
+    </select></div>
+    <div class="field-row">
+      <div class="field"><label>Dal</label><input id="raDal" class="input" type="date" value="${oggi}"></div>
+      <div class="field"><label>Al</label><input id="raAl" class="input" type="date" value="${oggi}"></div>
+    </div>
+    <div class="field"><label>Note</label><input id="raNote" class="input" placeholder="Motivazione..."></div>
+    <button class="btn btn-primary btn-block" onclick="inviaRichiestaAssenza('${employeeId}')">📤 Invia richiesta</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+async function inviaRichiestaAssenza(employeeId){
+  try{
+    await api('/api/attendance/richiesta-assenza',{method:'POST',body:JSON.stringify({
+      employee_id:employeeId,
+      tipo:$('raType').value,
+      data_inizio:$('raDal').value,
+      data_fine:$('raAl').value,
+      note:$('raNote').value.trim(),
+    })});
+    toast('Richiesta inviata','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
 </script><script>
 async function render_verbali(main){
   const [veic, nonAss] = await Promise.all([
@@ -4109,7 +4418,7 @@ async function render_verbali(main){
       <div class="stat warning"><div class="label">Fatture non associate</div><div class="value">${lNonAss.length}</div></div>
     </div>
     <div class="section-title">Flotta (${lVeic.length})</div>
-    <div>${lVeic.length?lVeic.map(v=>`<div class="list-item">
+    <div>${lVeic.length?lVeic.map(v=>`<div class="list-item" onclick="apriVeicoloSheet(JSON.parse(decodeURIComponent(this.dataset.veic)))" data-veic='${encodeURIComponent(JSON.stringify(v))}'>
       <div class="li-top">
         <div class="li-title">${escapeHtml(v.targa||'-')}<span class="small">${escapeHtml(v.modello||v.marca+' '+v.modello||'-')}</span></div>
       </div>
@@ -4126,6 +4435,67 @@ async function render_verbali(main){
       </div>
     </div>`).join('')}</div>`:''}
   `;
+}
+
+function apriFormVeicolo(v){
+  v = v || {};
+  openSheet(`<h2>🚗 ${v.targa ? 'Modifica veicolo' : 'Nuovo veicolo'}</h2>
+    <div class="field"><label>Targa</label><input id="vTarga" class="input" value="${escapeHtml(v.targa||'')}" placeholder="AB123CD" style="text-transform:uppercase" ${v.targa?'readonly':''}></div>
+    <div class="field"><label>Modello / Descrizione</label><input id="vModello" class="input" value="${escapeHtml(v.modello||v.descrizione||'')}" placeholder="Fiat Ducato"></div>
+    <div class="field-row">
+      <div class="field"><label>Anno</label><input id="vAnno" class="input" type="number" value="${v.anno||new Date().getFullYear()}" inputmode="numeric"></div>
+      <div class="field"><label>Tipo</label><select id="vTipo" class="select">
+        <option value="furgone" ${(v.tipo||'')==='furgone'?'selected':''}>Furgone</option>
+        <option value="auto" ${(v.tipo||'')==='auto'?'selected':''}>Auto</option>
+        <option value="moto" ${(v.tipo||'')==='moto'?'selected':''}>Moto</option>
+      </select></div>
+    </div>
+    <div class="field"><label>Fornitore noleggio</label><input id="vFornitore" class="input" value="${escapeHtml(v.fornitore||v.societa_noleggio||'')}" placeholder="Frecciarossa Fleet..."></div>
+    <div class="field-row">
+      <div class="field"><label>Canone mensile (€)</label><input id="vCanone" class="input" type="number" step="0.01" inputmode="decimal" value="${v.canone_mensile||''}"></div>
+      <div class="field"><label>Scadenza contratto</label><input id="vScad" class="input" type="date" value="${(v.data_scadenza_contratto||'').slice(0,10)}"></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="salvaVeicolo('${v.targa||''}')">💾 Salva</button>
+    ${v.targa ? `<button class="btn btn-danger btn-block" style="margin-top:8px" onclick="eliminaVeicolo('${v.targa}')">🗑 Elimina</button>` : ''}
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=> v.targa ? $('vModello')?.focus() : $('vTarga')?.focus(), 100);
+}
+async function salvaVeicolo(targaOld){
+  const targa = $('vTarga').value.trim().toUpperCase();
+  if(!targa) return toast('Targa obbligatoria','error');
+  const body = {
+    targa, modello:$('vModello').value.trim(),
+    anno:parseInt($('vAnno').value)||new Date().getFullYear(),
+    tipo:$('vTipo').value,
+    fornitore:$('vFornitore').value.trim(),
+    societa_noleggio:$('vFornitore').value.trim(),
+    canone_mensile:parseFloat($('vCanone').value)||0,
+    data_scadenza_contratto:$('vScad').value,
+  };
+  try{
+    if(targaOld) await api(`/api/noleggio/veicoli/${targaOld}`,{method:'PUT',body:JSON.stringify(body)});
+    else         await api('/api/noleggio/veicoli',{method:'POST',body:JSON.stringify(body)});
+    toast('Salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+async function eliminaVeicolo(targa){
+  if(!confirm(`Eliminare il veicolo ${targa}?`)) return;
+  try{
+    await api(`/api/noleggio/veicoli/${targa}`,{method:'DELETE'});
+    toast('Veicolo eliminato','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+function apriVeicoloSheet(v){
+  window._lastVeicolo = v;
+  openSheet(`<h2>🚗 ${escapeHtml(v.targa||'Veicolo')}</h2>
+    <div class="kv"><span class="k">Modello</span><span class="v">${escapeHtml(v.modello||v.descrizione||'-')}</span></div>
+    <div class="kv"><span class="k">Fornitore</span><span class="v">${escapeHtml(v.fornitore||v.societa_noleggio||'-')}</span></div>
+    <div class="kv"><span class="k">Canone</span><span class="v">${euro(v.canone_mensile||0)}/mese</span></div>
+    ${v.data_scadenza_contratto?`<div class="kv"><span class="k">Scadenza contratto</span><span class="v">${fmtDate(v.data_scadenza_contratto)}</span></div>`:''}
+    <div style="margin-top:16px;display:grid;gap:8px">
+      <button class="btn btn-primary btn-block" onclick="closeSheet();setTimeout(()=>apriFormVeicolo(window._lastVeicolo),150)">✏️ Modifica</button>
+      <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+    </div>`);
 }
 </script><script>
 async function render_mutui(main){
@@ -4144,7 +4514,7 @@ async function render_mutui(main){
       <div class="stat warning"><div class="label">Prossima scadenza</div><div class="value" style="font-size:13px">${fmtDate(stats.prossima_scadenza)}</div></div>
     </div>`:''}
     <div class="section-title">Mutui (${mutui.length})</div>
-    ${mutui.length?mutui.map(m=>`<div class="list-item">
+    ${mutui.length?mutui.map(m=>`<div class="list-item" onclick="apriFormMutuo(JSON.parse(decodeURIComponent(this.dataset.m)))" data-m='${encodeURIComponent(JSON.stringify(m))}'>
       <div class="li-top">
         <div class="li-title">${escapeHtml(m.descrizione||m.nome||m.banca||'Mutuo')}<span class="small">${escapeHtml(m.banca||'-')} · ${m.data_erogazione?fmtDate(m.data_erogazione):''}</span></div>
         <div class="li-amount">${euro(m.debito_residuo||m.importo_residuo||0)}</div>
@@ -4155,6 +4525,58 @@ async function render_mutui(main){
       </div>
     </div>`).join(''):'<div class="empty"><div class="icon">🏠</div><div class="title">Nessun mutuo</div></div>'}
   `;
+}
+
+function apriFormMutuo(m){
+  m = m || {};
+  const oggi = new Date().toISOString().slice(0,10);
+  openSheet(`<h2>🏠 ${m.mutuo_id ? 'Modifica mutuo' : 'Nuovo mutuo'}</h2>
+    <div class="field"><label>Descrizione / Banca</label><input id="mDesc" class="input" value="${escapeHtml(m.descrizione||m.banca||'')}" placeholder="Banca Intesa - Mutuo sede"></div>
+    <div class="field-row">
+      <div class="field"><label>Importo erogato (€)</label><input id="mImp" class="input" type="number" step="0.01" inputmode="decimal" value="${m.importo_erogato||m.capitale_iniziale||''}" placeholder="150000"></div>
+      <div class="field"><label>Tasso % annuo</label><input id="mTasso" class="input" type="number" step="0.01" inputmode="decimal" value="${m.tasso_interesse||''}" placeholder="3.5"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Data erogazione</label><input id="mDataEr" class="input" type="date" value="${(m.data_erogazione||'').slice(0,10)||oggi}"></div>
+      <div class="field"><label>Durata (mesi)</label><input id="mDurata" class="input" type="number" inputmode="numeric" value="${m.durata_mesi||m.rate_totali||''}" placeholder="120"></div>
+    </div>
+    <div class="field"><label>Debito residuo attuale (€)</label><input id="mResiduo" class="input" type="number" step="0.01" inputmode="decimal" value="${m.debito_residuo||m.importo_residuo||''}" placeholder="120000"></div>
+    <div class="field"><label>Rata mensile (€)</label><input id="mRata" class="input" type="number" step="0.01" inputmode="decimal" value="${m.rata_mensile||''}" placeholder="800"></div>
+    <button class="btn btn-primary btn-block" onclick="salvaMutuo('${m._id||m.mutuo_id||''}')">💾 Salva</button>
+    ${m._id||m.mutuo_id ? `<button class="btn btn-danger btn-block" style="margin-top:8px" onclick="eliminaMutuo('${m._id||m.mutuo_id}')">🗑 Elimina</button>` : ''}
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+  setTimeout(()=>$('mDesc')?.focus(),100);
+}
+async function salvaMutuo(id){
+  const desc = $('mDesc').value.trim();
+  if(!desc) return toast('Descrizione obbligatoria','error');
+  const imp = parseFloat($('mImp').value)||0;
+  if(imp<=0) return toast('Importo obbligatorio','error');
+  const body = {
+    descrizione:desc, banca:desc,
+    importo_erogato:imp, capitale_iniziale:imp,
+    tasso_interesse:parseFloat($('mTasso').value)||0,
+    data_erogazione:$('mDataEr').value,
+    durata_mesi:parseInt($('mDurata').value)||0,
+    rate_totali:parseInt($('mDurata').value)||0,
+    debito_residuo:parseFloat($('mResiduo').value)||imp,
+    importo_residuo:parseFloat($('mResiduo').value)||imp,
+    rata_mensile:parseFloat($('mRata').value)||0,
+    stato:'attivo',
+  };
+  if(!id) body.mutuo_id = 'MUT-'+Date.now();
+  try{
+    if(id) await api(`/api/mutui/${id}`,{method:'PUT',body:JSON.stringify(body)});
+    else    await api('/api/mutui/',{method:'POST',body:JSON.stringify(body)});
+    toast('Salvato','success');haptic(30);closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+async function eliminaMutuo(id){
+  if(!confirm('Eliminare questo mutuo?')) return;
+  try{
+    await api(`/api/mutui/${id}`,{method:'DELETE'});
+    toast('Mutuo eliminato','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_documenti(main){
@@ -4175,7 +4597,7 @@ async function render_documenti(main){
       const tipo = d.tipo||d.classificazione||d.categoria||'da classificare';
       const stato = d.stato||d.status||'';
       const bClass = stato==='elaborato'?'success':(stato==='non_associato'||stato==='da_verificare'?'warning':'neutral');
-      return `<div class="list-item">
+      return `<div class="list-item" onclick="apriDocumentoSheet(JSON.parse(decodeURIComponent(this.dataset.d)))" data-d='${encodeURIComponent(JSON.stringify(d))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(name)}<span class="small">${escapeHtml(tipo)} · ${fmtDate(d.data||d.data_acquisizione||d.created_at)}</span></div>
         </div>
@@ -4183,6 +4605,52 @@ async function render_documenti(main){
       </div>`;
     }).join(''):'<div class="empty"><div class="icon">📂</div><div class="title">Inbox vuota</div></div>'}</div>
   `;
+}
+
+function apriDocumentoSheet(d){
+  window._lastDoc = d;
+  const stato = d.stato||d.status||'';
+  const bClass = stato==='elaborato'?'success':(stato==='non_associato'||stato==='da_verificare'?'warning':'neutral');
+  openSheet(`<h2>📂 ${escapeHtml(d.filename||d.nome||'Documento')}</h2>
+    <div class="kv"><span class="k">Tipo</span><span class="v">${escapeHtml(d.tipo||d.classificazione||d.categoria||'-')}</span></div>
+    <div class="kv"><span class="k">Stato</span><span class="v"><span class="badge ${bClass}">${escapeHtml(stato||'-')}</span></span></div>
+    <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(d.data||d.data_acquisizione||d.created_at)}</span></div>
+    <div class="kv"><span class="k">Origine</span><span class="v">${escapeHtml(d.origine||d.source||'-')}</span></div>
+    ${d.size ? `<div class="kv"><span class="k">Dimensione</span><span class="v">${Math.round((d.size||0)/1024)} KB</span></div>` : ''}
+    <div style="margin-top:16px;display:grid;gap:8px">
+      <button class="btn btn-primary btn-block" onclick="processaDocumento('${d.id||d._id||d.doc_id}')">⚡ Processa</button>
+      <button class="btn btn-ghost btn-block" onclick="apriFormCategoriaDoc('${d.id||d._id||d.doc_id}','${escapeHtml(d.tipo||'')}')">🏷 Cambia categoria</button>
+      <button class="btn btn-danger btn-block" onclick="eliminaDocumento('${d.id||d._id||d.doc_id}')">🗑 Elimina</button>
+      <button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button>
+    </div>`);
+}
+async function processaDocumento(id){
+  try{
+    await api(`/api/documenti/documento/${id}/processa`,{method:'POST'});
+    toast('Documento in elaborazione','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+function apriFormCategoriaDoc(id, catAttuale){
+  const categorie = ['fattura','corrispettivo','estratto_conto','f24','busta_paga','contratto','altro'];
+  openSheet(`<h2>🏷 Cambia categoria</h2>
+    <div class="field"><label>Categoria</label><select id="docCat" class="select">
+      ${categorie.map(c=>`<option value="${c}" ${c===catAttuale?'selected':''}>${c}</option>`).join('')}
+    </select></div>
+    <button class="btn btn-primary btn-block" onclick="salvaCategoriaDoc('${id}')">💾 Salva</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
+}
+async function salvaCategoriaDoc(id){
+  try{
+    await api(`/api/documenti/documento/${id}/cambia-categoria`,{method:'POST',body:JSON.stringify({categoria:$('docCat').value})});
+    toast('Categoria aggiornata','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
+}
+async function eliminaDocumento(id){
+  if(!confirm('Eliminare questo documento?')) return;
+  try{
+    await api(`/api/documenti/documento/${id}`,{method:'DELETE'});
+    toast('Documento eliminato','success');closeSheet();reloadModule();
+  }catch(e){toast('Errore: '+e.message,'error');}
 }
 </script><script>
 async function render_riconciliazione(main){
@@ -4209,7 +4677,7 @@ async function render_riconciliazione(main){
     ${lMov.length?`<div class="section-title">Movimenti da riconciliare (${lMov.length})</div>
     <div>${lMov.slice(0,20).map(m=>{
       const imp=Number(m.importo||0);const pos=imp>=0;
-      return `<div class="list-item">
+      return `<div class="list-item" onclick="apriMovimentoRicSheet(JSON.parse(decodeURIComponent(this.dataset.ric)))" data-ric='${encodeURIComponent(JSON.stringify(m))}'>
         <div class="li-top">
           <div class="li-title">${escapeHtml(m.descrizione||m.description||'-')}<span class="small">${fmtDate(m.data)}</span></div>
           <div class="li-amount ${pos?'positive':'negative'}">${pos?'+':''}${euro(imp)}</div>
@@ -4222,6 +4690,16 @@ async function avviaRiconciliazione(){
   if(!confirm('Avviare riconciliazione automatica?'))return;
   try{await api('/api/riconciliazione-auto/riconcilia-estratto-conto',{method:'POST',body:JSON.stringify({anno:ANNO})});toast('Riconciliazione avviata','success');setTimeout(reloadModule,1500);}
   catch(e){toast('Errore: '+e.message,'error');}
+}
+
+function apriMovimentoRicSheet(m){
+  const imp = Number(m.importo||0);
+  openSheet(`<h2>🔗 Movimento da riconciliare</h2>
+    <div class="kv"><span class="k">Descrizione</span><span class="v">${escapeHtml(m.descrizione||m.description||'-')}</span></div>
+    <div class="kv"><span class="k">Data</span><span class="v">${fmtDate(m.data)}</span></div>
+    <div class="kv"><span class="k">Importo</span><span class="v" style="font-weight:800;color:${imp>=0?'var(--green)':'var(--red)'}">${imp>=0?'+':''}${euro(imp)}</span></div>
+    ${m.banca||m.conto ? `<div class="kv"><span class="k">Conto</span><span class="v">${escapeHtml(m.banca||m.conto||'-')}</span></div>` : ''}
+    <div style="margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeSheet()">Chiudi</button></div>`);
 }
 </script>
 
