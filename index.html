@@ -2041,7 +2041,7 @@ async function render_prima_nota_cassa(main){
     const ultimo = new Date(ANNO, state.pnc.mese, 0).getDate();
     params.set('data_a', `${ANNO}-${m}-${ultimo}`);
   }
-  const data = await api(`/api/prima-nota/cassa?${params}`);
+  const data = await api(`/api/prima-nota/cassa?${params}`).catch(()=>({}));
   const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.cassa||[]);
   // Il backend restituisce tipo='entrata'/'uscita' + importo POSITIVO, e totali aggregati già calcolati.
   // Usali se presenti, altrimenti ricalcola.
@@ -2067,7 +2067,7 @@ async function render_prima_nota_cassa(main){
   const needFat = movs.some(m => m.fattura_id);
   if(needFat && !window._fatCache[ANNO]){
     try{
-      const fatData = await api(`/api/invoices?anno=${ANNO}&limit=1000`);
+      const fatData = await api(`/api/invoices?anno=${ANNO}&limit=1000`).catch(()=>[]);
       const fatList = Array.isArray(fatData) ? fatData : (fatData.items||fatData.invoices||fatData.fatture||[]);
       const map = {};
       for(const raw of fatList){
@@ -2390,7 +2390,7 @@ async function render_prima_nota_banca(main){
   state.pnb = state.pnb || {mese:null};
   const params = new URLSearchParams({anno:String(ANNO)});
   if(state.pnb.mese) params.set('mese', String(state.pnb.mese));
-  const data = await api(`/api/prima-nota/banca?${params}`);
+  const data = await api(`/api/prima-nota/banca?${params}`).catch(()=>({}));
   const movs = Array.isArray(data)?data:(data.items||data.movimenti||data.banca||[]);
   const isEntrata = m => m.tipo==='entrata' || (Number(m.importo)>0 && !m.tipo);
   const entr = Number(data.totale_entrate ?? movs.filter(isEntrata).reduce((s,m)=>s+Math.abs(Number(m.importo||0)),0));
@@ -2405,7 +2405,7 @@ async function render_prima_nota_banca(main){
   const needFat = movs.some(m => m.fattura_id);
   if(needFat && !window._fatCache[ANNO]){
     try{
-      const fatData = await api(`/api/invoices?anno=${ANNO}&limit=1000`);
+      const fatData = await api(`/api/invoices?anno=${ANNO}&limit=1000`).catch(()=>[]);
       const fatList = Array.isArray(fatData) ? fatData : (fatData.items||fatData.invoices||fatData.fatture||[]);
       const map = {};
       for(const raw of fatList){
@@ -2537,7 +2537,7 @@ async function eliminaMovimentoBanca(id){
 }
 </script><script>
 async function render_provvisori(main){
-  const data = await api(`/api/prima-nota/provvisori?anno=${ANNO}`);
+  const data = await api(`/api/prima-nota/provvisori?anno=${ANNO}`).catch(()=>[]);
   const list = Array.isArray(data)?data:(data.items||data.provvisori||[]);
   // Il backend fornisce gli aggregati già calcolati
   const totImp = list.reduce((s,p)=>s+Number(p.importo||0),0);
@@ -3401,7 +3401,7 @@ async function openFornitoreSheet(f){
   const fornId = f.id || piva;
   if(fornId){
     try{
-      const ff = await api(`/api/suppliers/${encodeURIComponent(fornId)}/fatture?anno=${ANNO}`);
+      const ff = await api(`/api/suppliers/${encodeURIComponent(fornId)}/fatture?anno=${ANNO}`).catch(()=>[]);
       const ll = Array.isArray(ff)?ff:(ff.items||[]);
       if(ll.length){
         const totFatt = ll.reduce((s,x)=>s+(Number(x.importo_totale||x.totale||x.importo||0)),0);
@@ -3500,7 +3500,7 @@ async function render_scadenze(main){
   const params = new URLSearchParams({anno:String(ANNO)});
   if(state.scd.filt==='aperte') params.set('completata','false');
   else if(state.scd.filt==='completate') params.set('completata','true');
-  const data = await api(`/api/scadenze/tutte?${params}`).catch(()=>api(`/api/scadenze?anno=${ANNO}`));
+  const data = await api(`/api/scadenze/tutte?${params}`).catch(()=>api(`/api/scadenze?anno=${ANNO}`).catch(()=>[])));
   const list = Array.isArray(data)?data:(data.items||data.scadenze||[]);
   const aperte = list.filter(s=>!s.completata && !s.data_completamento);
   const scadute = aperte.filter(s=>s.data_scadenza && new Date(s.data_scadenza)<new Date());
@@ -3643,7 +3643,7 @@ async function render_assegni(main){
     (()=>{
       const params = new URLSearchParams({anno:String(ANNO), limit:'500'});
       if(state.asg.stato) params.set('stato', state.asg.stato);
-      return api(`/api/assegni?${params}`);
+      return api(`/api/assegni?${params}`).catch(()=>[]);
     })()
   ]);
   const per = statsRaw?.per_stato||{};
@@ -4349,7 +4349,7 @@ async function render_cedolini(main){
   state.ced = state.ced || {mese:null};
   const params = new URLSearchParams({anno:String(ANNO), limit:'500'});
   if(state.ced.mese) params.set('mese', String(state.ced.mese));
-  const data = await api(`/api/cedolini?${params}`);
+  const data = await api(`/api/cedolini?${params}`).catch(()=>[]);
   const list = Array.isArray(data)?data:(data.items||data.cedolini||[]);
   const tot = list.reduce((s,c)=>s+Number(c.netto||c.netto_pagare||0),0);
   main.innerHTML = `
