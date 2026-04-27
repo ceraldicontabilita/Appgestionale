@@ -3500,7 +3500,7 @@ async function render_scadenze(main){
   const params = new URLSearchParams({anno:String(ANNO)});
   if(state.scd.filt==='aperte') params.set('completata','false');
   else if(state.scd.filt==='completate') params.set('completata','true');
-  const data = await api(`/api/scadenze/tutte?${params}`).catch(()=>api(`/api/scadenze?anno=${ANNO}`).catch(()=>[])));
+  const data = await api(`/api/scadenze/tutte?${params}`).catch(()=>api(`/api/scadenze/tutte?anno=${ANNO}`).catch(()=>[])));
   const list = Array.isArray(data)?data:(data.items||data.scadenze||[]);
   const aperte = list.filter(s=>!s.completata && !s.data_completamento);
   const scadute = aperte.filter(s=>s.data_scadenza && new Date(s.data_scadenza)<new Date());
@@ -3551,7 +3551,7 @@ function openScadenzaSheet(s){
     </div>`);
 }
 
-async function completaScadenza(id){
+async async function completaScadenza(id){
   try{await api(`/api/scadenze/completa/${id}`,{method:'PUT'});toast('Completata','success');closeSheet();reloadModule();}
   catch(e){toast('Errore: '+e.message,'error');}
 }
@@ -3579,7 +3579,7 @@ function openNuovaScadenza(){
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeSheet()">Annulla</button>`);
 }
 
-async function salvaScadenza(){
+async async function salvaScadenza(){
   const body = {
     descrizione:$('nsDesc').value.trim(), tipo:$('nsTipo').value,
     data_scadenza:$('nsData').value, importo:parseFloat($('nsImp').value)||0,
@@ -4125,7 +4125,7 @@ function apriBilancioVoce(voce, tipo){
 async function render_calendario_fiscale(main){
   const [cal, notif] = await Promise.all([
     api(`/api/fiscalita/calendario/${ANNO}`).catch(()=>null),
-    api(`/api/fiscalita/notifiche-scadenze?anno=${ANNO}&giorni=30`).catch(()=>null),
+    Promise.resolve(null), // notifiche-scadenze endpoint ha bug backend (500)
   ]);
   const scad = (cal?.scadenze || cal?.items || cal || []);
   const list = Array.isArray(scad)?scad:[];
@@ -4404,7 +4404,7 @@ async function render_presenze(main){
   const now = new Date();
   state.pres = state.pres || {mese:now.getMonth()+1};
   const [pres, rich] = await Promise.all([
-    api(`/api/attendance/presenze-mese?anno=${ANNO}&mese=${state.pres.mese}`).catch(()=>[]),
+    api(`/api/attendance/presenze-mese?anno=${ANNO}&mese=${state.pres.mese||new Date().getMonth()+1}`).catch(()=>[]),
     api('/api/attendance/richieste-pending').catch(()=>[]),
   ]);
   const lPres = Array.isArray(pres)?pres:(pres.items||pres.presenze||[]);
